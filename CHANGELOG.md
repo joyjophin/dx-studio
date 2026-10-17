@@ -39,6 +39,8 @@
 - Assistant handoff guidance preserves manual edits, stable identities, media needed by versions and output-timed sidecars.
 - Development package/CLI versions are distinct from v0.1; release packaging uses versioned directories and refuses to overwrite existing artifacts.
 
+- No-narration exports reuse completed MP4s with isolated temporary audio; an optional flag also mutes footage audio.
+
 ## 0.1.0 — 2026-10-17
 
 Initial public release of DX Studio (DesignXstream) and DX Editor.

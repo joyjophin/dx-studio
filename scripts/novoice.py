@@ -1,37 +1,59 @@
-"""Render a music + sound-effects-only version of a built project (same master chain, voice muted).
+"""Make a separate no-narration MP4 from a freshly completed project export.
 
-    python3 scripts/novoice.py <project> <out.mp4>
+    python scripts/novoice.py <project> <out.mp4> [--mute-footage]
 
-Run from the work folder that contains dx_studio/, after `python3 -m dx_studio build <project>`
-(it reuses .build/video.mp4 and the build's mix). Deliver it next to the master so the user can record their own voice.
+Run immediately after building the same saved settings. Footage audio stays unless
+--mute-footage is selected. No shared export intermediates are required.
 """
-import os, subprocess, sys
-sys.path.insert(0, os.getcwd())
-from dx_studio import cli, audio
+import argparse
+import os
+from pathlib import Path
+import subprocess
+import sys
+import tempfile
+sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
+from dx_studio import cli,audio
+
+
+def make_novoice(project,out,mute_footage=False):
+    pr=cli._project(project);source=Path(pr.output).resolve();destination=Path(out).resolve()
+    if not source.is_file():raise ValueError('Build the project first, using the same saved settings.')
+    if destination==source:raise ValueError('Use a separate output path so the voiced master is kept.')
+    sources={Path(pr.media.path(item)).resolve() for item in pr.values.get('__media',[]) if item.get('file')}
+    if destination in sources:raise ValueError('Do not overwrite a source asset with the no-narration export.')
+    if destination.suffix.lower()!='.mp4':raise ValueError('Export to an .mp4 file')
+    destination.parent.mkdir(parents=True,exist_ok=True)
+    mx=pr.cfg.get('mix',{});target,peak=mx.get('loudness',-14.0),mx.get('peak',-1.2)
+    with tempfile.TemporaryDirectory(prefix='.dx-novoice-',dir=destination.parent) as work:
+        work=Path(work)
+        def chain(raw,dst,gain,limit):
+            subprocess.run(['ffmpeg','-hide_banner','-loglevel','error','-y','-i',str(raw),'-af',
+                            f'acompressor=threshold=-24dB:ratio=3:attack=6:release=120:makeup=4dB,volume={gain:.2f}dB,'
+                            f'alimiter=limit={10**(limit/20):.4f}:attack=2:release=60:level=false',
+                            '-ar',str(audio.SR),'-c:a','pcm_s24le',str(dst)],check=True)
+            return audio._lufs(dst)
+        full=audio.build_mix(pr,str(work/'full.wav'));gain,limit=8.5,peak-.55
+        for _ in range(6):
+            loudness,actual_peak=chain(full,work/'full-master.wav',gain,limit)
+            if abs(loudness-target)<.25 and actual_peak<=peak+.05:break
+            if actual_peak>peak+.05:limit-=(actual_peak-peak)+.1
+            if abs(loudness-target)>=.25:gain+=(target-loudness)*1.05
+        for line in pr.cfg.get('voice',[]):line['gain']=0.0
+        if mute_footage:
+            for item in pr.values.get('__media',[]):
+                if item.get('kind')=='video':item['muted']=True
+        raw=audio.build_mix(pr,str(work/'no-narration.wav'));master=work/'master.wav';chain(raw,master,gain,limit)
+        complete=work/'complete.mp4'
+        subprocess.run(['ffmpeg','-hide_banner','-loglevel','error','-y','-i',str(source),'-i',str(master),
+                        '-map','0:v:0','-map','1:a:0','-c:v','copy','-c:a','aac','-b:a','256k','-ar','48000',
+                        '-t',str(pr.duration),'-movflags','+faststart',str(complete)],check=True)
+        os.replace(complete,destination)
+    print('wrote',destination)
+
 
 def main():
-    if len(sys.argv) < 3: sys.exit(__doc__)
-    pr = cli._project(sys.argv[1]); out = sys.argv[2]; b = os.path.join(pr.path, '.build'); SR = audio.SR
-    if not os.path.exists(os.path.join(b, 'video.mp4')): sys.exit('build the project first (python3 -m dx_studio build <project>)')
-    mx = pr.cfg.get('mix', {}); target, peak = mx.get('loudness', -14.0), mx.get('peak', -1.2)
-    def chain(raw, dst, gain, lim_db):
-        subprocess.run(['ffmpeg', '-hide_banner', '-loglevel', 'error', '-y', '-i', raw, '-af',
-                        f'acompressor=threshold=-24dB:ratio=3:attack=6:release=120:makeup=4dB,volume={gain:.2f}dB,'
-                        f'alimiter=limit={10**(lim_db/20):.4f}:attack=2:release=60:level=false', '-ar', str(SR), '-c:a', 'pcm_s24le', dst], check=True)
-        return audio._lufs(dst)
-    # find the gain the full mix needed, then apply the same chain to the voiceless mix (music/sfx keep their level)
-    tmp = os.path.join(b, 'tmp_full.wav'); gain, lim = 8.5, peak - 0.55
-    for _ in range(6):
-        i, pk = chain(os.path.join(b, 'mix_raw.wav'), tmp, gain, lim)
-        if abs(i - target) < 0.25 and pk <= peak + 0.05: break
-        if pk > peak + 0.05: lim -= (pk - peak) + 0.1
-        if abs(i - target) >= 0.25: gain += (target - i)*1.05
-    for line in pr.cfg.get('voice', []): line['gain'] = 0.0
-    nv_raw = os.path.join(b, 'mix_novoice_raw.wav'); audio.build_mix(pr, nv_raw)
-    nv = os.path.join(b, 'master_novoice.wav'); chain(nv_raw, nv, gain, lim)
-    subprocess.run(['ffmpeg', '-hide_banner', '-loglevel', 'error', '-y', '-i', os.path.join(b, 'video.mp4'), '-i', nv, '-map', '0:v', '-map', '1:a',
-                    '-c:v', 'copy', '-c:a', 'aac', '-b:a', '256k', '-ar', '48000', '-t', str(pr.duration), '-movflags', '+faststart', out], check=True)
-    os.remove(tmp); print('wrote', out)
+    parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('project');parser.add_argument('output');parser.add_argument('--mute-footage',action='store_true');args=parser.parse_args()
+    try:make_novoice(args.project,args.output,args.mute_footage)
+    except (ValueError,OSError,RuntimeError,subprocess.SubprocessError) as error:parser.exit(1,f'Error: {error}\n')
 
-if __name__ == '__main__':
-    main()
+if __name__=='__main__':main()
