@@ -198,6 +198,8 @@ class Editor:
             return copy.deepcopy(self.state())
 
 def make_handler(ed=None, workspace=None):
+    from .brands import BrandLibrary
+    brands=workspace.brands if workspace else BrandLibrary()
     class H(BaseHTTPRequestHandler):
         def log_message(self, *a): pass
         def _send(self, code, body, ctype, extra=None):
@@ -266,6 +268,7 @@ def make_handler(ed=None, workspace=None):
                 editor = self._project_editor()
                 u = urlparse(self.path); q = parse_qs(u.query)
                 if u.path == '/': return self._send(200, open(os.path.join(HERE, 'editor.html'), 'rb').read(), 'text/html; charset=utf-8')
+                if u.path == '/editor-brand.js': return self._send(200, open(os.path.join(HERE, 'editor-brand.js'), 'rb').read(), 'text/javascript; charset=utf-8')
                 if u.path == '/editor-captions.js': return self._send(200, open(os.path.join(HERE, 'editor-captions.js'), 'rb').read(), 'text/javascript; charset=utf-8')
                 if u.path == '/editor-audio.js': return self._send(200, open(os.path.join(HERE, 'editor-audio.js'), 'rb').read(), 'text/javascript; charset=utf-8')
                 if u.path == '/editor-media.js': return self._send(200, open(os.path.join(HERE, 'editor-media.js'), 'rb').read(), 'text/javascript; charset=utf-8')
@@ -275,6 +278,7 @@ def make_handler(ed=None, workspace=None):
                 if editor is None: return self._send(404,b'Open a project first','text/plain')
                 if u.path == '/frame': return self._send(200, editor.frame(float(q.get('t', ['0'])[0]), min(1.0, max(0.05, float(q.get('s', ['0.45'])[0]))), json.loads(q.get('solo',['[]'])[0])), 'image/jpeg')
                 if u.path == '/api/state': return self._json(editor.open_state())
+                if u.path == '/api/brands': return self._json({'presets':brands.list()})
                 if u.path == '/api/captions/export':
                     from .subtitles import export
                     format=q.get('format',['srt'])[0]
@@ -322,6 +326,18 @@ def make_handler(ed=None, workspace=None):
                 if u.path == '/api/preview':
                     editor.apply(self._body())
                     return self._json({'ok': True, 'layers': editor.pr.layer_meta, 'layout': editor.pr.layout, 'layer_defaults': editor.pr.defaults.get('__layers', {}), 'has_audio':editor.has_audio()})
+                if u.path == '/api/brands/resolve':
+                    from .brands import resolve
+                    body=self._body();return self._json(resolve(brands.get(body.get('id')),editor.pr.schema))
+                if u.path == '/api/brands/save':
+                    from .brands import capture
+                    body=self._body()
+                    with editor.lock: preset=capture(body.get('name'),editor.pr.schema,body.get('values'),body.get('keys'))
+                    return self._json({'ok':True,'preset':brands.save(preset)})
+                if u.path == '/api/brands/import':
+                    body=self._body()
+                    if body.get('format_version')!=1:raise ValueError('Unsupported brand preset format')
+                    return self._json({'ok':True,'preset':brands.save(body)})
                 if u.path == '/api/captions/import':
                     from .subtitles import prepare_import
                     body=self._body()
