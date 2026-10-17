@@ -1,6 +1,5 @@
 """Portable named palettes and exposed type-size presets, independent of scene code."""
 import contextlib
-import os
 import copy
 import json
 import math
@@ -9,6 +8,7 @@ import re
 import threading
 import uuid
 from .history import atomic_json
+from .paths import file_lock
 
 
 def eligible(entry):
@@ -72,20 +72,7 @@ class BrandLibrary:
 
     @contextlib.contextmanager
     def writing(self):
-        self.path.parent.mkdir(parents=True,exist_ok=True)
-        with self.lock, open(self.path.with_suffix('.lock'),'a+b') as lock:
-            if os.name=='nt':
-                import msvcrt
-                lock.seek(0,os.SEEK_END)
-                if not lock.tell():lock.write(b'\0');lock.flush()
-                lock.seek(0);msvcrt.locking(lock.fileno(),msvcrt.LK_LOCK,1)
-            else:
-                import fcntl
-                fcntl.flock(lock,fcntl.LOCK_EX)
-            try:yield
-            finally:
-                if os.name=='nt':lock.seek(0);msvcrt.locking(lock.fileno(),msvcrt.LK_UNLCK,1)
-                else:fcntl.flock(lock,fcntl.LOCK_UN)
+        with self.lock,file_lock(self.path.with_suffix('.lock')):yield
 
     def read(self):
         if not self.path.is_file():return []

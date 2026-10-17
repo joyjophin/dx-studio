@@ -5,7 +5,7 @@
 Panels and timeline lanes are generated from the scene's SCHEMA. The preview is rendered by the
 project's own scene code, so what you see is exactly what gets built.
 """
-import contextlib, copy, hashlib, io, json, os, re, subprocess, sys, threading, time, webbrowser
+import contextlib, copy, hashlib, io, json, os, re, subprocess, sys, threading, time, webbrowser, signal, uuid
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 from urllib.parse import urlparse, parse_qs, unquote
 import numpy as np
@@ -31,7 +31,9 @@ class Editor:
         self.source_revision = source.hexdigest()
         self._audio_timer = None
         self.audio_version = 0; self.audio_busy = False; self._audio_again = False
-        self.build = {'running': False, 'progress': 0.0, 'log': [], 'done': False, 'ok': None}
+        self.build_lock=threading.RLock();self.build_process=None;self.build_thread=None
+        self.build = {'running':False,'progress':0.0,'log':[],'done':False,'ok':None,'id':None,
+                      'state':'idle','cancelled':False,'cancel_requested':False,'revision':None,'started_at':None}
         self._thumbs = {}
 
     # ---------------- helpers
@@ -159,25 +161,85 @@ class Editor:
         self.regen_audio()
         return {'ok': True, 'state': state}
 
-    def start_build(self, values=None, revision=None):
-        b = self.build
-        if b['running']: return
-        self.save(values, revision)
+    def _terminate_build(self,process):
+        if process.poll() is not None:return
+        try:
+            if os.name=='nt':subprocess.run(['taskkill','/PID',str(process.pid),'/T','/F'],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
+            else:os.killpg(process.pid,signal.SIGTERM)
+        except ProcessLookupError:return
+        def force_stop():
+            if os.name!='nt':
+                time.sleep(3)
+                try:os.killpg(process.pid,signal.SIGKILL)
+                except ProcessLookupError:pass
+            else:
+                try:process.wait(timeout=3)
+                except subprocess.TimeoutExpired:process.kill()
+        threading.Thread(target=force_stop,daemon=True).start()
+
+    def cancel_build(self, identifier=None):
+        with self.build_lock:
+            if identifier is not None and identifier!=self.build['id']:raise ValueError('The export changed. Reopen progress before cancelling.')
+            if not self.build['running']:return dict(self.build)
+            self.build.update(cancel_requested=True,state='cancelling')
+            process=self.build_process
+        if process:self._terminate_build(process)
+        return dict(self.build)
+
+    def start_build(self,values=None,revision=None):
         from .preflight import require_ready
-        with self.lock: require_ready(self.pr)
-        n = int(round(self.pr.duration*self.pr.fps))
-        b.update(running=True, progress=0.0, log=[], done=False, ok=None)
+        from .history import atomic_json
+        with self.build_lock,self.lock:
+            if self.build['running']:raise ValueError('An export is already running. Open its progress or cancel it first.')
+            self.save(values,revision)
+            with self.lock:require_ready(self.pr)
+            n=int(round(self.pr.duration*self.pr.fps));b=self.build
+            job_id=uuid.uuid4().hex
+            snapshot=os.path.join(self.pr.path,'.build','export-'+job_id+'.settings.json')
+            os.makedirs(os.path.dirname(snapshot),exist_ok=True)
+            atomic_json(snapshot,copy.deepcopy(self.saved))
+            b.update(running=True,progress=0.0,log=[],done=False,ok=None,id=job_id,
+                     state='preparing',cancelled=False,cancel_requested=False,revision=self.revision,started_at=time.time())
+            self.build_process=None
+            candidate=os.path.join(self.pr.path,'.build','export-'+b['id']+'.mp4')
         def run():
-            p = subprocess.Popen([sys.executable, '-m', 'dx_studio', 'build', self.pr.path], cwd=KIT_ROOT, env=self.env(),
-                                 stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
-            for line in p.stdout:
-                line = line.rstrip(); b['log'] = (b['log']+[line])[-40:]
-                m = re.match(r'frame (\d+)', line)
-                if m: b['progress'] = 0.08+0.88*int(m.group(1))/max(1, n)
-                elif line.startswith('mastered'): b['progress'] = 0.08
-                elif line.strip() == 'done': b['progress'] = 0.97
-            p.wait(); b.update(running=False, done=True, ok=(p.returncode == 0), progress=1.0 if p.returncode == 0 else b['progress'])
-        threading.Thread(target=run, daemon=True).start()
+            code=None
+            try:
+                options={'start_new_session':True} if os.name!='nt' else {'creationflags':subprocess.CREATE_NEW_PROCESS_GROUP}
+                process=subprocess.Popen([sys.executable,'-m','dx_studio','build',self.pr.path,'--output',candidate,'--settings',snapshot],cwd=KIT_ROOT,env=self.env(),
+                                         stdout=subprocess.PIPE,stderr=subprocess.STDOUT,text=True,**options)
+                with self.build_lock:self.build_process=process;cancel=b['cancel_requested']
+                if cancel:self._terminate_build(process)
+                for line in process.stdout:
+                    line=line.rstrip()
+                    if line.startswith('Done ->'):line='Video encoded; finishing export'
+                    with self.build_lock:
+                        b['log']=(b['log']+[line])[-40:]
+                        if not b['cancel_requested']:
+                            match=re.match(r'frame (\d+)',line)
+                            if match:b.update(state='rendering',progress=.08+.88*int(match.group(1))/max(1,n))
+                            elif line.startswith('mastered'):b['progress']=.08
+                            elif line.startswith('muxing'):b.update(state='muxing',progress=.97)
+                code=process.wait()
+            except Exception as error:
+                with self.build_lock:b['log']=(b['log']+[f'{type(error).__name__}: {error}'])[-40:]
+            finally:
+                with self.build_lock:
+                    cancelled=b['cancel_requested']
+                    ok=code==0 and not cancelled
+                    try:
+                        if ok:
+                            os.replace(candidate,self.pr.output);b['log']=(b['log']+['Saved '+os.path.basename(self.pr.output)])[-40:]
+                        elif os.path.isfile(candidate):os.unlink(candidate)
+                    except OSError as error:
+                        ok=False;b['log']=(b['log']+[str(error)])[-40:]
+                    b.update(running=False,done=True,ok=ok,cancelled=cancelled,
+                             state='done' if ok else 'cancelled' if cancelled else 'failed',progress=1.0 if ok else b['progress'])
+                    try:
+                        if os.path.isfile(snapshot):os.unlink(snapshot)
+                    except OSError:pass
+                    self.build_process=None
+        self.build_thread=threading.Thread(target=run,daemon=True);self.build_thread.start()
 
     def state(self):
         pr = self.pr
@@ -303,7 +365,7 @@ def make_handler(ed=None, workspace=None):
                     with editor.preview(json.loads(q.get('solo',['[]'])[0])): h = editor.pr.hits(float(q.get('t', ['0'])[0]))
                     return self._json(h)
                 if u.path == '/api/status':
-                    return self._json({'audio_version': editor.audio_version, 'audio_busy': editor.audio_busy, 'build': editor.build})
+                    return self._json({'audio_version': editor.audio_version, 'audio_busy': editor.audio_busy, 'build': editor.build, 'has_video':os.path.isfile(editor.pr.output)})
                 if u.path.startswith('/thumb/'): return self._send(200, editor.thumb(unquote(u.path[7:])), 'image/png', {'Cache-Control': 'max-age=3600'})
                 if u.path == '/audio': return self._file(editor.audio_path, 'audio/wav')
                 if u.path == '/video': return self._file(editor.pr.output, 'video/mp4')
@@ -382,11 +444,15 @@ def make_handler(ed=None, workspace=None):
                     return self._json(editor.restore(body.get('id'), body['revision']))
                 if u.path == '/api/revert': editor.apply(copy.deepcopy(editor.saved)); return self._json({'values': editor.pr.values})
                 if u.path == '/api/reset': editor.apply(copy.deepcopy(editor.pr.defaults)); return self._json({'values': editor.pr.values})
+                if u.path == '/api/build/cancel':
+                    body=self._body()
+                    if not isinstance(body.get('id'),str):raise ValueError('The current export ID is required')
+                    return self._json({'ok':True,'build':editor.cancel_build(body['id'])})
                 if u.path == '/api/build':
                     body = self._body()
                     if 'revision' in body and 'values' in body: editor.start_build(body['values'], body['revision'])
                     else: editor.start_build(body)
-                    return self._json({'ok': True, 'revision': editor.revision})
+                    return self._json({'ok': True, 'revision': editor.revision, 'build':dict(editor.build)})
                 self._send(404, b'not found', 'text/plain')
             except Exception as e:
                 from .history import SaveConflict
@@ -411,4 +477,12 @@ def serve(path=None, port=None, open_browser=None):
         threading.Timer(0.8, lambda: webbrowser.open(url)).start()
     try: srv.serve_forever()
     except KeyboardInterrupt: print('\nStopped.')
-    finally: srv.server_close()
+    finally:
+        editors=list(workspace.editors.values())
+        for editor in editors:
+            editor.cancel_build()
+            if editor._audio_timer:editor._audio_timer.cancel()
+        deadline=time.monotonic()+4
+        for editor in editors:
+            if editor.build_thread:editor.build_thread.join(max(0,deadline-time.monotonic()))
+        srv.server_close()

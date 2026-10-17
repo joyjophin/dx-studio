@@ -6,7 +6,7 @@ Items live in settings under "__media":
      "box": [x, y, w, h], "t0": 3.0, "dur": 3.0, "loop": true, "muted": false, "volume": 1.0, "radius": 0}
 File paths are relative to the project's assets folder. Videos are decoded once into .build/media/<id>/.
 """
-import os, json, subprocess, shutil, uuid, hashlib, io
+import os, json, subprocess, shutil, uuid, hashlib, io, tempfile
 from pathlib import Path
 from collections import OrderedDict
 from ._cairo import cairo
@@ -16,7 +16,7 @@ from .core import hexc, clamp, P, eo, lerp, back_ease
 from .text import tw, text, ktext
 import math
 from .layers import Layer
-from .paths import contained
+from .paths import contained, file_lock
 
 IMAGE_EXT = {'.png', '.jpg', '.jpeg', '.webp'}
 GIF_EXT = {'.gif'}
@@ -41,9 +41,12 @@ class MediaLibrary:
         if not kind: raise ValueError(f'Unsupported file type: {filename}. Use PNG, JPG, WEBP, GIF or MP4.')
         os.makedirs(os.path.join(self.assets, 'Media'), exist_ok=True)
         base, ext = os.path.splitext(os.path.basename(filename)); name = base+ext; k = 1
-        while os.path.exists(os.path.join(self.assets, 'Media', name)): k += 1; name = f'{base}-{k}{ext}'
-        path = contained(self.assets, 'Media/'+name)
-        open(path, 'wb').write(data)
+        while True:
+            path=contained(self.assets,'Media/'+name)
+            try:
+                with open(path,'xb') as stream:stream.write(data)
+                break
+            except FileExistsError:k+=1;name=f'{base}-{k}{ext}'
         try:
             return self.item_for('Media/'+name, t, center)
         except Exception:
@@ -142,16 +145,21 @@ class MediaLibrary:
                 acc += (im.info.get('duration') or 100)/1000; frames.append((to_surface(fr), acc, fr.width, fr.height))
             self._gif[p] = frames
         return self._gif[p]
-    def cache_key(self, item): return hashlib.sha256(repr((self.source_key(item),self.pr.fps)).encode()).hexdigest()[:24]
+    def cache_key(self, item): return hashlib.sha256(repr(('atomic-v2',self.source_key(item),self.pr.fps)).encode()).hexdigest()[:24]
     def frames_dir(self, item): return contained(self.cache_dir, self.cache_key(item))
     def decode_video(self, item):
-        d = self.frames_dir(item)
-        if os.path.isfile(os.path.join(d,'.complete')): return d
-        os.makedirs(d, exist_ok=True)
-        for stale in Path(d).glob('f_*.jpg'): stale.unlink()
-        subprocess.run(['ffmpeg', '-hide_banner', '-loglevel', 'error', '-y', '-i', self.path(item),
-                        '-vf', f"fps={self.pr.fps},scale='min(1080,iw)':-2", '-q:v', '3', os.path.join(d, 'f_%05d.jpg')], check=True)
-        Path(d,'.complete').touch()
+        d=self.frames_dir(item)
+        with file_lock(d+'.lock'):
+            if os.path.isfile(os.path.join(d,'.complete')):return d
+            work=tempfile.mkdtemp(prefix='.decode-',dir=self.cache_dir)
+            try:
+                subprocess.run(['ffmpeg','-hide_banner','-loglevel','error','-y','-i',self.path(item),
+                                '-vf',f"fps={self.pr.fps},scale='min(1080,iw)':-2",'-q:v','3',os.path.join(work,'f_%05d.jpg')],check=True)
+                Path(work,'.complete').touch()
+                if os.path.isdir(d):shutil.rmtree(d)  # Interrupted caches never became visible as complete.
+                os.replace(work,d)
+            finally:
+                if os.path.isdir(work):shutil.rmtree(work)
         return d
     def video_frame(self, item, lt):
         d = self.decode_video(item)
@@ -171,10 +179,15 @@ class MediaLibrary:
         """the video's own audio as a mono 48 kHz wav (cached); None if it has no audio"""
         if item.get('kind') != 'video' or not item.get('has_audio'): return None
         out = contained(self.cache_dir, self.cache_key(item)+'.wav')
-        if not os.path.exists(out):
-            os.makedirs(self.cache_dir, exist_ok=True)
-            r = subprocess.run(['ffmpeg', '-hide_banner', '-loglevel', 'error', '-y', '-i', self.path(item), '-vn', '-ac', '1', '-ar', '48000', out])
-            if r.returncode: return None
+        with file_lock(out+'.lock'):
+            if os.path.exists(out):return out
+            temporary=out+'.'+uuid.uuid4().hex+'.wav'
+            try:
+                result=subprocess.run(['ffmpeg','-hide_banner','-loglevel','error','-y','-i',self.path(item),'-vn','-ac','1','-ar','48000',temporary])
+                if result.returncode:return None
+                os.replace(temporary,out)
+            finally:
+                if os.path.exists(temporary):os.unlink(temporary)
         return out
 
     # ---- drawing

@@ -183,7 +183,7 @@
     <button class="btn ghost" id="bReset" title="Go back to the project's original values">Reset to original</button>
     <button class="btn" id="bVersions" title="Save and restore named versions">Versions</button>
     <button class="btn" id="bSave" title="Save immediately (⌘S). Changes also autosave.">Save now</button>
-    <button class="btn small" id="bView">View</button><button class="btn primary" id="bBuild">Build video</button>
+    <button class="btn small" id="bExportStatus" hidden>Last export</button><button class="btn small" id="bView">View</button><button class="btn primary" id="bBuild">Build video</button>
   </header>
   <div class="recovery-bar" id="recoveryBar" hidden><span id="recoverySummary"></span><button class="btn small" id="bRecovery">Review drafts</button><button class="btn small" id="bReload" hidden>Reload saved project</button></div>
   <main><div id="inspectorResize" class="panel-resize" role="separator" aria-label="Resize inspector" aria-orientation="vertical" aria-valuemin="280" aria-valuemax="600" tabindex="0"></div>
@@ -223,12 +223,12 @@
   <div class="row"><span class="sub">Remove</span> <input class="num" id="rpA" type="number" step="0.05"> <span class="sub">to</span> <input class="num" id="rpB" type="number" step="0.05"> <button class="btn small primary" id="rpDelGo">Remove</button></div>
   <div id="rpList"></div>
 </div><input type="file" id="mediaFile" accept="image/png,image/jpeg,image/webp,image/gif,video/mp4,video/quicktime,video/webm,.mp4,.mov,.webm,.gif,.png,.jpg,.jpeg,.webp" multiple style="display:none"><div class="err" id="err"></div>
-<div class="modal" id="modal"><div class="card">
+<div class="modal" id="modal" role="dialog" aria-modal="true" aria-label="Export progress"><div class="card">
   <h2 id="mTitle">Building video…</h2><div class="sub" id="mSub"></div>
-  <div class="bar"><div id="mBar"></div></div><div class="log" id="mLog"></div>
+  <div class="bar" id="exportProgress" role="progressbar" aria-label="Export progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div id="mBar"></div></div><details id="exportDetails"><summary>Export details</summary><div class="log" id="mLog"></div></details>
   <div class="row" style="justify-content:flex-end;margin-top:14px">
     <a class="btn" id="mOpen" href="/video" target="_blank" style="display:none;text-decoration:none">Open video</a>
-    <button class="btn primary" id="mClose" style="display:none">Close</button>
+    <button class="btn" id="mCancel">Cancel export</button><button class="btn primary" id="mClose" style="display:none">Close</button>
   </div>
 </div></div>
 <dialog class="history-dialog" id="versionsDialog" aria-labelledby="versionsTitle">
@@ -271,7 +271,7 @@ let t = 0, playing = false, playT0 = 0, playStart = 0, ver = 0, audioVer = 0, pl
 let selClip = null;      // {key, i}
 let selTime = null;      // time-param key
 let place = null;        // {kind:'param', key} | {kind:'clip', key, i, field}
-let session = null, pendingDrafts = [];
+let session = null, pendingDrafts = [], BUILD_STATE=null;
 const APP_BASE = location.pathname.match(/^\/project\/[a-f0-9]{24}/)?.[0] || '';
 const projectURL = path => APP_BASE + path;
 const $ = s => document.querySelector(s), el = (tag, cls, html) => { const e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; };
@@ -1086,14 +1086,29 @@ $('#bReset').onclick = async () => {
   try { await session.flush(); await api('/api/versions/create', {name:'Before resetting to original', revision:session.revision}); commitHistory(); V = clone(D); selClip = null; place = null; rebuildAll(); commitHistory(); }
   catch (error) { showErr(error.message); }
 };
+function renderBuildProgress(b){
+  if(!b)return;
+  $('#exportProgress').setAttribute('aria-valuenow',Math.round((b.progress||0)*100));if(b.done&&!b.ok&&!b.cancelled)$('#exportDetails').open=true;
+  $('#mBar').style.width=Math.round((b.progress||0)*100)+'%';$('#mLog').textContent=(b.log||[]).slice(-6).join('\n');
+  $('#mCancel').style.display=b.running?'inline-block':'none';$('#mCancel').disabled=!!b.cancel_requested;
+  $('#mClose').style.display='inline-block';$('#mClose').textContent=b.running?'Keep editing':'Close';
+  $('#mOpen').style.display=b.ok||b.has_video?'inline-block':'none';$('#mOpen').textContent=b.ok?'Open video':'Open previous video';
+  if(b.running){$('#mTitle').textContent=b.cancel_requested?'Cancelling export…':b.state==='muxing'?'Finishing video…':b.state==='rendering'?'Rendering frames…':'Preparing export…';$('#mSub').textContent='This saved version exports while you keep editing.';}
+  else if(b.done){$('#mTitle').textContent=b.ok?'Video ready':b.cancelled?'Export cancelled':'Build failed';$('#mSub').textContent=b.ok?`Saved as ${PJ.output}.`+(b.revision!==session.revision?' Newer edits have been saved; rebuild to include them.':''):b.has_video?'Your previous completed video is kept.':'Your project edits are kept. Start another export when ready.';}
+}
+function showBuildProgress(){ $('#modal').classList.add('on');$('#exportDetails').open=false;renderBuildProgress(BUILD_STATE);$('#mClose').focus();}
+$('#bExportStatus').onclick=showBuildProgress;
 $('#bBuild').onclick = async () => {
+  if(BUILD_STATE?.running){showBuildProgress();return;}
   try {
-  if (playing) pause(); await session.flush(); const report=await api('/api/preflight');if(!report.ok){showPreflight(report);return;} await api('/api/build', {values:clone(V), revision:session.revision});
-  $('#modal').classList.add('on'); $('#mTitle').textContent = 'Building video…'; $('#mOpen').style.display = $('#mClose').style.display = 'none';
-  $('#mSub').textContent = `Mixing audio and rendering ${Math.round(DUR * FPS).toLocaleString()} frames. This takes a minute or two.`;
+  if (playing) pause(); await session.flush(); const report=await api('/api/preflight');if(!report.ok){showPreflight(report);return;} const result=await api('/api/build', {values:clone(V), revision:session.revision});BUILD_STATE=result.build;
+  showBuildProgress();
+
   } catch (error) { showErr(error.message); }
 };
-$('#mClose').onclick = () => $('#modal').classList.remove('on');
+$('#mCancel').onclick=async()=>{try{$('#mCancel').disabled=true;BUILD_STATE=(await api('/api/build/cancel',{id:BUILD_STATE?.id})).build;$('#mTitle').textContent='Cancelling export…';}catch(error){showErr(error.message);$('#mCancel').disabled=false;}};
+$('#mClose').onclick = () => {$('#modal').classList.remove('on');$('#bBuild').focus();};
+document.addEventListener('keydown',event=>{if(!$('#modal').classList.contains('on'))return;if(event.key==='Escape'){$('#mClose').click();return;}if(event.key==='Tab'){const controls=[...$('#modal').querySelectorAll('button,a')].filter(control=>!control.disabled&&control.offsetParent);if(!controls.length)return;const index=controls.indexOf(document.activeElement),next=(index+(event.shiftKey?-1:1)+controls.length)%controls.length;event.preventDefault();controls[next].focus();}});
 
 // ---------------------------------------------------------------- saved versions and browser drafts
 function showSaveStatus(status) {
@@ -1218,20 +1233,14 @@ async function poll() {
     const st = await api('/api/status');
     $('#audioState').style.display = st.audio_busy ? 'inline-block' : 'none';
     if (HAS_AUDIO && st.audio_version !== audioVer) { audioVer = st.audio_version; if(playing&&playAudio)pause(); audio.src = projectURL('/audio?v=') + audioVer;loadWaveform(); }
-    const b = st.build;
-    if ($('#modal').classList.contains('on')) {
-      $('#mBar').style.width = Math.round(b.progress * 100) + '%'; $('#mLog').textContent = b.log.slice(-6).join('\n');
-      if (b.done) {
-        $('#mTitle').textContent = b.ok ? 'Video ready' : 'Build failed';
-        $('#mSub').textContent = b.ok ? `Saved as ${PJ.output} in the project folder.` : 'See the log above. The error is usually near the bottom.';
-        $('#mOpen').style.display = b.ok ? 'inline-block' : 'none'; $('#mClose').style.display = 'inline-block';
-      }
-    }
+    const b=st.build;b.has_video=st.has_video;BUILD_STATE=b;$('#bBuild').textContent=b.running?'Export progress':'Build video';
+    $('#bExportStatus').hidden=!b.done;$('#bExportStatus').textContent=b.ok?'Last export ready':b.cancelled?'Export cancelled':'Export failed';
+    if($('#modal').classList.contains('on'))renderBuildProgress(b);
   } catch (e) {}
   setTimeout(poll, 1000);
 }
 document.addEventListener('keydown', e => {
-  if (['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName)||document.querySelector('dialog[open]')) return;
+  if (['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName)||document.querySelector('dialog[open]')||$('#modal').classList.contains('on')) return;
   if (e.code === 'Space') { e.preventDefault(); play(); }
   if (e.altKey && e.code.startsWith('Arrow') && selLayer) { e.preventDefault(); nudge(e.code, e.shiftKey ? 10 : 1); return; }
   if (e.code === 'ArrowRight') { e.preventDefault(); if (playing) pause(); setT(t + (e.shiftKey ? 1 : 1 / FPS)); }

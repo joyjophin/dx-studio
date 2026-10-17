@@ -43,6 +43,9 @@ promises. Current capabilities and limits are in [README.md](../README.md).
 - **F03/F04, workspace controls:** panel dividers, accessible size controls, canvas/timeline
   layouts and preview quality choices are implemented. Proxies and scene-range caching
   remain planned. See [view controls](VIEW.md).
+- **X02, dependable jobs:** cancellation, settings snapshots, reloadable progress,
+  isolated intermediates and atomic MP4 publication are implemented. Export profiles,
+  selected ranges, queues and restart-resumable rendering remain planned. See [export jobs](EXPORTS.md).
 - These changes are development work toward v0.5.0. The published v0.1.0 assets
   remain available unchanged.
 

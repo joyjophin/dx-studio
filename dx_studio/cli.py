@@ -7,7 +7,8 @@
     python3 -m dx_studio edit   <project>                 open the visual editor
     python3 -m dx_studio sounds                           list the built-in sound effects
 """
-import os, subprocess, sys, time
+import os, subprocess, sys, time, tempfile
+from pathlib import Path
 from PIL import Image
 
 def _project(path):
@@ -48,22 +49,41 @@ def cmd_audio(path, pr=None):
     raw = os.path.join(pr.path, '.build', 'mix_raw.wav'); os.makedirs(os.path.dirname(raw), exist_ok=True)
     audio.build_mix(pr, raw); print('audio mix ->', raw); return raw
 
-def cmd_build(path):
+def cmd_build(path, output=None, settings=None):
     from . import audio
     t0 = time.time(); pr = _project(path)
+    from .paths import contained
+    if settings:
+        import json
+        with open(contained(pr.path,settings),encoding='utf-8') as stream: snapshot=json.load(stream)
+        if not isinstance(snapshot,dict):raise ValueError('Settings snapshot must be an object')
+        pr.apply(pr.values_from_settings(snapshot))
     from .preflight import require_ready
     require_ready(pr)
+    destination=contained(pr.path,output) if output else pr.output
+    if not destination.lower().endswith('.mp4'):raise ValueError('Export to an .mp4 file')
+    sources={pr.media.path(item) for item in pr.values.get('__media',[]) if item.get('file')}
+    sources.update(contained(pr.path,line['file']) for line in pr.cfg.get('voice',[]) if line.get('file'))
+    music=pr.cfg.get('music')
+    if isinstance(music,dict) and music.get('file'):sources.add(contained(pr.path,music['file']))
+    if str(Path(destination).resolve()) in sources:raise ValueError('The export path is used by a source asset. Choose a separate MP4 path.')
+    os.makedirs(os.path.dirname(destination),exist_ok=True)
     bdir = os.path.join(pr.path, '.build'); os.makedirs(bdir, exist_ok=True)
-    print('mixing audio…', flush=True)
-    raw = cmd_audio(path, pr)
-    mx = pr.cfg.get('mix', {})
-    lufs, peak = audio.master(raw, os.path.join(bdir, 'master.wav'), mx.get('loudness', -14.0), mx.get('peak', -1.2))
-    print(f'mastered: {lufs:.1f} LUFS, peak {peak:.1f} dBFS', flush=True)
-    vid = os.path.join(bdir, 'video.mp4'); render_video(pr, vid); print('done', flush=True)
-    subprocess.run(['ffmpeg', '-hide_banner', '-loglevel', 'error', '-y', '-i', vid, '-i', os.path.join(bdir, 'master.wav'),
-                    '-map', '0:v', '-map', '1:a', '-c:v', 'copy', '-c:a', 'aac', '-b:a', '256k', '-ar', '48000',
-                    '-t', str(pr.duration), '-movflags', '+faststart', pr.output], check=True)
-    print(f'Done -> {pr.output}  ({time.time()-t0:.0f} s)')
+    # Each job owns its intermediates; a failed/cancelled build keeps the previous MP4.
+    with tempfile.TemporaryDirectory(prefix='export-',dir=bdir) as work:
+        print('mixing audio…', flush=True)
+        raw=audio.build_mix(pr,os.path.join(work,'mix.wav'))
+        mx=pr.cfg.get('mix', {})
+        mastered=os.path.join(work,'master.wav')
+        lufs,peak=audio.master(raw,mastered,mx.get('loudness',-14.0),mx.get('peak',-1.2))
+        print(f'mastered: {lufs:.1f} LUFS, peak {peak:.1f} dBFS',flush=True)
+        vid=os.path.join(work,'video.mp4');render_video(pr,vid);print('muxing…',flush=True)
+        final=os.path.join(work,'complete.mp4')
+        subprocess.run(['ffmpeg','-hide_banner','-loglevel','error','-y','-i',vid,'-i',mastered,
+                        '-map','0:v','-map','1:a','-c:v','copy','-c:a','aac','-b:a','256k','-ar','48000',
+                        '-t',str(pr.duration),'-movflags','+faststart',final],check=True)
+        os.replace(final,destination)
+    print(f'Done -> {destination}  ({time.time()-t0:.0f} s)')
 
 def cmd_check(path):
     pr = _project(path)
@@ -97,6 +117,7 @@ def main(argv=None):
         p=sub.add_parser(command);p.add_argument('project', **({'nargs':'?'} if command=='edit' else {}))
         if command=='still': p.add_argument('times',type=float,nargs='*',default=[0.0])
         if command=='edit': p.add_argument('--port',type=int,default=8765);p.add_argument('--no-browser',action='store_true')
+        if command=='build':p.add_argument('--output',help='Output path inside the project');p.add_argument('--settings',help='Settings snapshot inside the project')
         if command=='captions':p.add_argument('--format',choices=['srt','vtt'],default='srt');p.add_argument('--output')
         if command=='pack': p.add_argument('--output',required=True)
     args=ap.parse_args(argv)
@@ -122,7 +143,8 @@ def main(argv=None):
             from .editor import serve
             serve(args.project,port=args.port,open_browser=not args.no_browser);return 0
         if args.command=='still': cmd_still(args.project,args.times or [0.0]);return 0
-        {'check':cmd_check,'audio':cmd_audio,'build':cmd_build}[args.command](args.project)
+        if args.command=='build':cmd_build(args.project,args.output,args.settings);return 0
+        {'check':cmd_check,'audio':cmd_audio}[args.command](args.project)
         return 0
     except (ValueError,FileNotFoundError,RuntimeError) as exc:
         ap.exit(1,f'Error: {exc}\n')

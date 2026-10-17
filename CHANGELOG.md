@@ -32,6 +32,10 @@
 - Adjustable inspector and layer-list dividers, keyboard resizing and canvas/timeline workspace layouts.
 - Saved browser view preferences and preview quality choices, with a delayed rendering status.
 
+- Cancellable export jobs with page-reload progress recovery, settings snapshots and stale-job cancellation protection.
+- Completed MP4s survive failed/cancelled jobs; successful exports publish atomically from isolated intermediates.
+- Concurrent media decodes use locked, completed caches; output paths cannot overwrite referenced sources.
+
 ## 0.1.0 — 2026-10-17
 
 Initial public release of DX Studio (DesignXstream) and DX Editor.

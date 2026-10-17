@@ -30,7 +30,8 @@ replacement, relinking and file checks before export. The [audio workspace](docs
 adds a waveform, listening speed and loopable preview ranges. [Caption tools](docs/CAPTIONS.md)
 add SRT/VTT interchange, phrase split/merge and timing review. [Brand presets](docs/BRAND_PRESETS.md)
 reuse palettes and exposed size settings with field-by-field control. [View controls](docs/VIEW.md)
-resize the workspace and adjust preview quality. These additions are in the current source; the
+resize the workspace and adjust preview quality. [Export jobs](docs/EXPORTS.md)
+can be cancelled while preserving the previous completed MP4. These additions are in the current source; the
 [published v0.1.0](https://github.com/joyjophin/dx-studio/releases/tag/v0.1.0) downloads
 remain the initial release.
 
