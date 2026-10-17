@@ -6,6 +6,12 @@
 - Named setting versions, bounded automatic backups and recoverable restore/reset actions.
 - Revision checks and editor write locks prevent stale saves from silently replacing newer edits.
 - Durable atomic JSON writes and separately tested browser persistence logic.
+- Project home with local recents, cached previews, search, and project creation for 16:9 or 9:16 with presenter space.
+- Project-scoped navigation keeps editing sessions, media and saves separate.
+- Layer search, editable names, multi-selection, inherited locks and preview-only solo.
+- Bulk move, retime, show/hide, duplicate added layers and delete/hide actions.
+- Alignment and equal spacing against the selection, frame or graphics safe zone; safe-zone fitting and a snapping toggle.
+- Nested layer retiming and snapping respect parent timing without applying shifts twice.
 
 
 ## 0.1.0 — 2026-10-17

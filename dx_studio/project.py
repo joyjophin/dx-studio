@@ -128,6 +128,7 @@ class Project:
         for lid in [k for k in values['__layers'] if k.startswith('media_') and k not in ids]: values['__layers'].pop(lid)
         for lid in [k for k in self.defaults['__layers'] if k.startswith('media_') and k not in ids]: self.defaults['__layers'].pop(lid)
         self.layer_meta = self.scene_layer_meta + _L.meta_for(self.media_layers, self.base_duration)
+        self.layer_meta = [dict(m, label=str(values['__layers'].get(m['id'], {}).get('label') or m['label'])[:120]) for m in self.layer_meta]
         if self.has_captions:
             self.captions = _captions.prepare([{'start': c['start'], 'show_end': c['end'], 'end': c['end'], 'text': c['text'], 'hl': c.get('hl') or None}
                                                 for c in sorted(values.get('__captions', []), key=lambda c: c['start']) if c.get('text', '').strip()])

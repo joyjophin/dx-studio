@@ -164,7 +164,7 @@
 <body>
 <div class="app">
   <header>
-    <span class="brandmark">DX STUDIO</span><h1 id="pname">Untitled project</h1><span class="sub">DX Editor</span>
+    <button class="btn small" id="bHome" title="Return to projects">‹ Projects</button><span class="brandmark">DX STUDIO</span><h1 id="pname">Untitled project</h1><span class="sub">DX Editor</span>
     <span id="dirty" class="pill" role="status" aria-live="polite">All changes saved</span>
     <span id="audioState" class="pill" style="display:none">Updating sounds…</span>
     <div class="spacer"></div>
@@ -178,7 +178,7 @@
   <div class="recovery-bar" id="recoveryBar" hidden><span id="recoverySummary"></span><button class="btn small" id="bRecovery">Review drafts</button><button class="btn small" id="bReload" hidden>Reload saved project</button></div>
   <main>
     <div class="stage">
-      <div class="stagebar"><button class="btn small" id="bComposition">Presenter layout</button><button class="btn small" id="bSafe" aria-pressed="false">Safe zones</button></div>
+      <div class="stagebar"><button class="btn small" id="bComposition">Presenter layout</button><button class="btn small" id="bSoloExit" hidden title="Solo affects graphics preview only; exports keep all visible layers">Exit solo</button><button class="btn small" id="bSafe" aria-pressed="false">Safe zones</button></div>
       <div class="frame" id="frame"><img id="img" alt="preview"><svg class="ov" id="ov"></svg><div class="safe" id="safe"></div><div class="pin" id="pin"></div><div class="hint" id="hint"></div></div>
     </div>
     <aside><div class="tabs" id="tabs"></div><div class="panes" id="panes"></div></aside>
@@ -192,7 +192,7 @@
       <button class="btn small" id="bText" title="Add a text layer (T)">+ Text</button>
       <button class="btn small" id="bShape" title="Add a shape layer">+ Shape ▾</button>
       <button class="btn small" id="bMedia" title="Add an image, GIF or video as a new layer">+ Media</button>
-      <button class="btn small" id="bRipple" title="Insert or remove time, shifting everything after it">Ripple ▾</button>
+      <button class="btn small" id="bSnap" aria-pressed="true" title="Toggle snapping (S)">Snapping on</button><button class="btn small" id="bRipple" title="Insert or remove time, shifting everything after it">Ripple ▾</button>
       <div class="zoom">
         <button class="btn small" id="zOut" title="Zoom out">−</button>
         <span class="sub" id="zLab" style="min-width:44px;text-align:center">1×</span>
@@ -239,14 +239,19 @@
 </dialog>
 
 <script src="/editor-session.js"></script>
+<script src="/editor-tools.js"></script>
+<script src="/editor-bulk.js"></script>
 <script>
 let LAY = [], selLayer = null, HITS = [];
+const SELECTED = new Set(), SOLO = new Set(); let PENDING_MULTI = []; let layerSearch = '', alignTarget = 'selection';
 let PJ, SCH, V, SAVED, D, CAPS, STK, BASE, DUR, FPS = 30, HAS_AUDIO = false;
-let t = 0, playing = false, playT0 = 0, playStart = 0, ver = 0, audioVer = 0;
+let t = 0, playing = false, playT0 = 0, playStart = 0, ver = 0, audioVer = 0, playAudio = false;
 let selClip = null;      // {key, i}
 let selTime = null;      // time-param key
 let place = null;        // {kind:'param', key} | {kind:'clip', key, i, field}
 let session = null, pendingDrafts = [];
+const APP_BASE = location.pathname.match(/^\/project\/[a-f0-9]{24}/)?.[0] || '';
+const projectURL = path => APP_BASE + path;
 const $ = s => document.querySelector(s), el = (tag, cls, html) => { const e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; };
 const img = $('#img'), frame = $('#frame'), audio = new Audio(); audio.preload = 'auto';
 const clone = o => JSON.parse(JSON.stringify(o)), r2 = v => Math.round(v * 100) / 100, snap = v => Math.round(v * 20) / 20;
@@ -255,7 +260,7 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({'&': '&amp;', '<': '&lt;', 
 const S = k => SCH.find(e => e.key === k);
 function showErr(m) { const e = $('#err'); e.textContent = m; e.style.display = 'block'; clearTimeout(showErr.t); showErr.t = setTimeout(() => e.style.display = 'none', 6000); }
 async function api(path, body) {
-  const r = await fetch(path, body === undefined ? {} : {method: 'POST', headers: {'Content-Type': 'application/json', 'X-DX-Studio-Client': '1'}, body: JSON.stringify(body)});
+  const r = await fetch(projectURL(path), body === undefined ? {} : {method: 'POST', headers: {'Content-Type': 'application/json', 'X-DX-Studio-Client': '1'}, body: JSON.stringify(body)});
   const j = await r.json(); if (!r.ok || j.ok === false) { const error = new Error(j.error || `Request failed (${r.status})`); error.status = r.status; throw error; } return j;
 }
 
@@ -265,11 +270,11 @@ function frameScale() {
   const h = frame.getBoundingClientRect().height * (window.devicePixelRatio || 1);
   return playing ? Math.min(0.42, Math.max(0.28, h / PJ.height)) : Math.min(0.75, Math.max(0.35, h / PJ.height));
 }
-function nowT() { return playing ? (HAS_AUDIO ? audio.currentTime : playT0 + (performance.now() - playStart) / 1000) : t; }
+function nowT() { return playing ? (playAudio ? audio.currentTime : playT0 + (performance.now() - playStart) / 1000) : t; }
 function requestFrame() {
   if (inflight) { pending = true; return; }
   inflight = true; pending = false;
-  img.src = `/frame?t=${nowT().toFixed(3)}&s=${frameScale().toFixed(2)}&v=${ver}`;
+  img.src = `${APP_BASE}/frame?t=${nowT().toFixed(3)}&s=${frameScale().toFixed(2)}&v=${ver}${soloQuery()}`;
 }
 img.onload = () => { inflight = false; if (pending || playing) requestAnimationFrame(requestFrame); };
 img.onerror = async () => {
@@ -282,6 +287,7 @@ async function pushNow() {
   pushBusy = true; pushAgain = false;
   try { const r = await api('/api/preview', V); if (r.layout) { PJ.layout = r.layout; drawSafetyGuides(); } if (r && r.layers && JSON.stringify(r.layers) !== JSON.stringify(LAY)) { LAY = r.layers; D.__layers = r.layer_defaults; for (const m of LAY) if (!V.__layers[m.id] && r.layer_defaults[m.id]) V.__layers[m.id] = clone(r.layer_defaults[m.id]); renderLayerRows(); renderLayerTree(); if (selLayer && !LM(selLayer)) { selLayer = null; fillInspector(); } } if (PENDING_SELECT && LM(PENDING_SELECT)) { const id = PENDING_SELECT; PENDING_SELECT = null; selectLayer(id, false); } } catch (e) { showErr(e.message || 'Could not update preview'); }
   pushBusy = false; ver++; requestFrame(); if (LAY.length) overlaySoon();
+  if (PENDING_MULTI.length && PENDING_MULTI.every(id=>LM(id))) { SELECTED.clear(); for(const id of PENDING_MULTI) SELECTED.add(id); selLayer=PENDING_MULTI.at(-1); PENDING_MULTI=[]; selectionRefresh(); }
   if (pushAgain) pushNow();
 }
 function changed(immediate) { const d0 = DUR; syncTimeline(); if (Math.abs(DUR - d0) > 1e-6) relayoutTimeline(); markDirty(); clearTimeout(pushTimer); pushTimer = setTimeout(pushNow, immediate ? 0 : 90); if (!APPLYING) historySoon(immediate); }
@@ -293,13 +299,14 @@ function setT(v, fromPlay) {
   t = clampT(v); $('#time').textContent = t.toFixed(2) + ' s';
   if (!fromPlay && TZ > 1 && !IN_DRAG && (t < V0 || t > V0 + SPAN())) scrollView(t - SPAN() * 0.3);
   placePlayhead(); updatePin(); if (LAY.length) { overlaySoon(); syncInspector(); }
-  if (!fromPlay) { if (playing && HAS_AUDIO) audio.currentTime = t; if (playing) { playT0 = t; playStart = performance.now(); } requestFrame(); }
+  if (!fromPlay) { if (playing && playAudio) audio.currentTime = t; if (playing) { playT0 = t; playStart = performance.now(); } requestFrame(); }
 }
 function play() {
   if (playing) return pause();
+  playAudio = HAS_AUDIO && audio.readyState >= 2 && !audio.error;
   playing = true; $('#bPlay').textContent = '❚❚'; playT0 = t; playStart = performance.now();
-  if (HAS_AUDIO) { audio.currentTime = t; audio.play().catch(() => {}); }
-  const loop = () => { if (!playing) return; const n = nowT(); setT(n, true); followPlayhead(); if (n >= DUR - 0.03 || (HAS_AUDIO && audio.ended)) return pause(); requestAnimationFrame(loop); };
+  if (playAudio) { audio.currentTime = t; audio.play().catch(() => {}); }
+  const loop = () => { if (!playing) return; const n = nowT(); setT(n, true); followPlayhead(); if (n >= DUR - 0.03 || (playAudio && audio.ended)) return pause(); requestAnimationFrame(loop); };
   requestAnimationFrame(loop); requestFrame();
 }
 function pause() { playing = false; audio.pause(); $('#bPlay').textContent = '▶'; setT(t); }
@@ -337,7 +344,7 @@ function snapTargets(exclude) {
   for (const c of CAPV()) if (c !== exclude) o.push(O_(c.start), O_(c.end));
   for (const e of SCH.filter(e => e.type === 'clips')) for (const c of V[e.key]) if (c !== exclude) o.push(O_(c.start), O_(Math.min(BASE, c.end)));
   for (const e of SCH.filter(e => e.type === 'time')) if (e.key !== exclude) o.push(O_(+V[e.key]));
-  for (const m of LAY) { const st = LS(m.id); if (st && st !== exclude && shown(m)) { o.push(O_(st.start), O_(Math.min(BASE, st.end))); for (const k of (st.keys || [])) o.push(O_(st.start + k.t)); } }
+  for (const m of LAY) { const st = LS(m.id), offset=layerTimeOffset(m.id); if (st && st !== exclude && shown(m)) { o.push(O_(st.start+offset), O_(Math.min(BASE, st.end+offset))); for (const k of (st.keys || [])) o.push(O_(st.start+offset+k.t)); } }
   return o;
 }
 function snapS(s, exclude, ev) {        // snap a scene time via its output position
@@ -420,7 +427,7 @@ function placePlayhead() {
 function clipLabel(e, c) {
   const f = e.label_field; const v = f ? c[f] : null;
   const ft = f ? (e.fields.find(x => x.key === f) || {}).type : null;
-  return {text: v == null ? e.label : String(v).replace(/^(half|face|body)-/, ''), thumb: ft === 'sticker' && v ? `/thumb/${encodeURIComponent(v)}` : null, full: v == null ? e.label : String(v)};
+  return {text: v == null ? e.label : String(v).replace(/^(half|face|body)-/, ''), thumb: ft === 'sticker' && v ? `${APP_BASE}/thumb/${encodeURIComponent(v)}` : null, full: v == null ? e.label : String(v)};
 }
 function buildLanes() {
   if (LAY.length) renderLayerRows();
@@ -537,9 +544,9 @@ function control(f, get, set, opts = {}) {
   } else if (f.type === 'sticker') {
     const cur = el('div', 'stk'); const im = el('img'); const nm = el('span', 'sub'); cur.append(im, nm);
     const g = el('div', 'grid');
-    for (const a of STK) { const b = el('button', 'gi'); b.title = a; b.dataset.v = a; b.innerHTML = `<img src="/thumb/${encodeURIComponent(a)}" loading="lazy">`; b.onclick = () => { set(a); box._sync(); }; g.appendChild(b); }
+    for (const a of STK) { const b = el('button', 'gi'); b.title = a; b.dataset.v = a; b.innerHTML = `<img src="${APP_BASE}/thumb/${encodeURIComponent(a)}" loading="lazy">`; b.onclick = () => { set(a); box._sync(); }; g.appendChild(b); }
     box.style.width = '100%'; box.style.flexDirection = 'column'; box.style.alignItems = 'stretch'; box.append(cur, g);
-    box._sync = () => { const x = get(); im.src = x ? `/thumb/${encodeURIComponent(x)}` : ''; nm.textContent = x || '—'; g.querySelectorAll('.gi').forEach(b => b.classList.toggle('on', b.dataset.v === x)); };
+    box._sync = () => { const x = get(); im.src = x ? `${APP_BASE}/thumb/${encodeURIComponent(x)}` : ''; nm.textContent = x || '—'; g.querySelectorAll('.gi').forEach(b => b.classList.toggle('on', b.dataset.v === x)); };
     box._sync();
     if (!STK.length) box.append(el('div', 'sub', 'No stickers found in assets/Avatars.'));
   } else if (f.type === 'point') {
@@ -764,7 +771,7 @@ function syncCapEditor() { CAPSYNC && CAPSYNC(); }
 function applyState(st) {
   PJ = st.project; SCH = st.schema; LAY = st.layers || []; V = st.values; D = st.defaults; STK = st.stickers; HAS_AUDIO = st.has_audio;
   CAPS = st.captions; BASE = PJ.base_duration || PJ.duration; FPS = PJ.fps;
-  if (HAS_AUDIO && !audio.src) audio.src = '/audio?v=' + audioVer;
+  if (HAS_AUDIO && !audio.src) audio.src = projectURL('/audio?v=') + audioVer;
 }
 async function uploadFiles(files, pos) {
   if (!files || !files.length) return;
@@ -772,7 +779,7 @@ async function uploadFiles(files, pos) {
   for (const f of files) {
     const q = `name=${encodeURIComponent(f.name)}&t=${ST().toFixed(2)}` + (pos ? `&x=${Math.round(pos[0])}&y=${Math.round(pos[1])}` : '');
     showErr(`Adding ${f.name}…`);
-    const r = await fetch('/api/upload?' + q, {method: 'POST', headers: {'X-DX-Studio-Client': '1'}, body: f}); const j = await r.json();
+    const r = await fetch(projectURL('/api/upload?' + q), {method: 'POST', headers: {'X-DX-Studio-Client': '1'}, body: f}); const j = await r.json();
     if (!j.ok) { showErr(j.error || 'Could not add that file'); continue; }
     $('#err').style.display = 'none'; applyState(j.state); lastId = j.id;
   }
@@ -817,7 +824,7 @@ function siblingsOf(id) {
   if (isItem(id)) return LAY.filter(x => isItem(x.id));
   return LAY.filter(x => x.parent === m.parent && !isItem(x.id));
 }
-function zorder(id, op) {
+function zorder(id, op) { if(isLayerLocked(id))return;
   const sib = siblingsOf(id); if (sib.length < 2) return;
   const cur = sib.map((m, i) => [m, LS(m.id).order ?? i]).sort((a, b) => a[1] - b[1] || sib.indexOf(a[0]) - sib.indexOf(b[0])).map(x => x[0]);
   let i = cur.findIndex(m => m.id === id); const [me] = cur.splice(i, 1);
@@ -841,10 +848,10 @@ function arrangeSection(I, id) {
   I.appendChild(el('div', 'sub', 'Nudge with ⌥ + arrow keys (⇧ for 10 px). Hold ⌥ while dragging to turn off snapping.'));
 }
 // ---- nudge
-function nudge(code, px) {
+function nudge(code, px) { if(SELECTED.size>1){bulkNudge(code,px);return;} if(isLayerLocked(selLayer))return;
   const h = HITS.find(x => x.id === selLayer); const b = h ? h.base : [1, 0, 0, 1]; const det = b[0] * b[3] - b[2] * b[1] || 1;
   const dx = code === 'ArrowLeft' ? -px : code === 'ArrowRight' ? px : 0, dy = code === 'ArrowUp' ? -px : code === 'ArrowDown' ? px : 0;
-  const st = LS(selLayer), cur = transformAt(st, ST() - st.start);
+  const st = LS(selLayer), cur = transformAt(st, layerRelativeTime(selLayer));
   setTransform(selLayer, {x: Math.round(cur.x + (b[3] * dx - b[2] * dy) / det), y: Math.round(cur.y + (-b[1] * dx + b[0] * dy) / det)}); overlaySoon();
 }
 // ---- clipboard
@@ -880,16 +887,16 @@ function pasteSel() {
 function pasteStyle() {
   if (!CLIPBOARD || !CLIPBOARD.state) return toast('Copy a layer first');
   if (!selLayer) return toast('Select a layer to paste the style onto');
-  const st = LS(selLayer); for (const k of PROPS) if (k in CLIPBOARD.state) st[k] = clone(CLIPBOARD.state[k]);
+  for(const id of selectedRoots()){const st=LS(id);for(const k of PROPS)if(k in CLIPBOARD.state)st[k]=clone(CLIPBOARD.state[k]);}
   changed(true); fillInspector(); renderLayerRows(); overlaySoon(); toast('Style pasted');
 }
-function duplicateSel() {
+function duplicateSel() { if(LASTSEL==='layer'&&SELECTED.size>1){bulkDuplicate();return;} if(LASTSEL==='layer'&&selLayer&&isLayerLocked(selLayer))return;
   if (LASTSEL === 'layer' && isItem(selLayer)) { const st = LS(selLayer); placeItemCopy(mediaItem(selLayer), st, st.start, true); toast('Duplicated'); }
   else if (LASTSEL === 'layer' && selLayer) toast('Scene elements can’t be duplicated; copy their style instead');
   else if (LASTSEL === 'cap' && CAPV()[selCap]) { const c = clone(CAPV()[selCap]), len = c.end - c.start; c.start = r2(Math.min(BASE - len, c.end)); c.end = r2(c.start + len); CAPV().push(c); CAPV().sort((a, b) => a.start - b.start); changed(true); selectCap(CAPV().indexOf(c), true); }
   else if (LASTSEL === 'clip' && selClip) { const c = clone(V[selClip.key][selClip.i]), len = Math.min(BASE, c.end) - c.start; c.start = r2(Math.min(BASE - 0.5, Math.min(BASE, c.end))); c.end = r2(Math.min(BASE, c.start + len)); V[selClip.key].push(c); buildLanes(); selectClip(selClip.key, V[selClip.key].length - 1, true); changed(true); }
 }
-function deleteSel() {
+function deleteSel() { if(LASTSEL==='layer'&&SELECTED.size>1){bulkDelete();return;} if(LASTSEL==='layer'&&selLayer&&isLayerLocked(selLayer))return;
   if (LASTSEL === 'layer' && selLayer) {
     if (isItem(selLayer)) { const id = selLayer; V.__media = V.__media.filter(m => m.id !== id); delete V.__layers[id]; LAY = LAY.filter(m => m.id !== id); selLayer = null; renderLayerRows(); renderLayerTree(); fillInspector(); drawOverlay(); changed(true); toast('Deleted'); }
     else { LS(selLayer).visible = false; renderLayerRows(); renderLayerTree(); syncInspector(); changed(true); toast('Hidden: scene elements can be hidden, not deleted'); }
@@ -898,6 +905,7 @@ function deleteSel() {
 }
 function handleEditKeys(e) {
   const mod = e.metaKey || e.ctrlKey;
+  if(mod&&e.key==='a'&&document.querySelector('.tab.on')?.dataset.p==='Layers'){e.preventDefault();bulkSelectResults();return true;}
   if (mod && e.key === 'c') { e.preventDefault(); copySel(); return true; }
   if (mod && e.altKey && (e.key === 'v' || e.code === 'KeyV')) { e.preventDefault(); pasteStyle(); return true; }
   if (mod && e.key === 'v') { e.preventDefault(); pasteSel(); return true; }
@@ -1004,6 +1012,8 @@ function applyHistory(snap) {
   V = JSON.parse(snap);
   if (selClip && !(V[selClip.key] && V[selClip.key][selClip.i])) { selClip = null; place = null; }
   if (selLayer && !(V.__layers && V.__layers[selLayer])) selLayer = null;
+  for(const id of SELECTED)if(!V.__layers?.[id])SELECTED.delete(id);
+  if(!selLayer)selLayer=[...SELECTED].at(-1)||null;
   if (selCap != null && !CAPV()[selCap]) selCap = null;
   syncTimeline(); t = clampT(t); relayoutTimeline(); buildPanels(); buildLanes(); if (LAY.length) { renderLayerTree(); fillInspector(); }
   const tab = [...document.querySelectorAll('.tab')].find(b => b.dataset.p === activeTab); if (tab) tab.click();
@@ -1024,6 +1034,7 @@ function confirmChange(message, action) {
     dialog.showModal(); $('#confirmCancel').focus();
   });
 }
+$('#bHome').onclick = async () => { try { if (playing) pause(); await session.flush(); location.href = '/home'; } catch (error) { showErr(error.message); } };
 $('#bSave').onclick = async () => { try { await session.flush(); toast('All changes saved'); } catch (error) { showErr(error.message); } };
 $('#bReset').onclick = async () => {
   if (!await confirmChange('Reset editable settings to the original values? A version of your current settings will be kept.', 'Reset settings')) return;
@@ -1075,7 +1086,7 @@ async function listVersions() {
         await session.flush();
         const result = await api('/api/versions/restore', {id:version.id, revision:session.revision});
         commitHistory(); applyState(result.state); session.adopt(V,result.state.revision);
-        selClip = null; selLayer = null; place = null; applyHistory(JSON.stringify(V)); commitHistory();
+        selClip = null; selLayer = null; place = null; SELECTED.clear(); SOLO.clear();refreshSolo(); applyHistory(JSON.stringify(V)); commitHistory();
         $('#versionsMessage').textContent = 'Version restored. The previous settings are kept below.';
         await listVersions();
       } catch (error) { $('#versionsMessage').textContent = error.message; }
@@ -1110,7 +1121,7 @@ function showRecovery() {
         await session.flush(); await api('/api/versions/create', {name:'Before browser draft recovery', revision:session.revision});
         commitHistory(); V = {...clone(D), ...Object.fromEntries(Object.entries(draft.values).filter(([key]) => key in D))};
         V.__layers = {...clone(D.__layers), ...V.__layers};
-        selClip = null; selLayer = null; place = null; applyHistory(JSON.stringify(V)); commitHistory();
+        selClip = null; selLayer = null; place = null; SELECTED.clear(); SOLO.clear();refreshSolo(); applyHistory(JSON.stringify(V)); commitHistory();
         await session.flush(); session.discard(draft.key); updateRecoveryBar(); $('#recoveryDialog').close(); toast('Draft recovered and saved');
       } catch (error) { $('#recoveryMessage').textContent = error.message; }
       finally { recover.disabled = false; }
@@ -1153,13 +1164,15 @@ function drawSafetyGuides() {
   }
   updateCompositionInfo();
 }
+$('#bSoloExit').onclick = () => { SOLO.clear();refreshSolo(); };
+$('#bSnap').onclick = () => { SNAP_ON=!SNAP_ON;$('#bSnap').setAttribute('aria-pressed',String(SNAP_ON));$('#bSnap').textContent=SNAP_ON?'Snapping on':'Snapping off'; };
 $('#bSafe').onclick = () => setGuides($('#safe').style.display !== 'block');
 $('#bComposition').onclick = () => { const b=[...document.querySelectorAll('.tab')].find(x=>x.dataset.p==='Composition'); if (b) b.click(); setGuides(true); };
 async function poll() {
   try {
     const st = await api('/api/status');
     $('#audioState').style.display = st.audio_busy ? 'inline-block' : 'none';
-    if (HAS_AUDIO && st.audio_version !== audioVer) { audioVer = st.audio_version; audio.src = '/audio?v=' + audioVer; }
+    if (HAS_AUDIO && st.audio_version !== audioVer) { audioVer = st.audio_version; if(playing&&playAudio)pause(); audio.src = projectURL('/audio?v=') + audioVer; }
     const b = st.build;
     if ($('#modal').classList.contains('on')) {
       $('#mBar').style.width = Math.round(b.progress * 100) + '%'; $('#mLog').textContent = b.log.slice(-6).join('\n');
@@ -1173,11 +1186,12 @@ async function poll() {
   setTimeout(poll, 1000);
 }
 document.addEventListener('keydown', e => {
-  if (['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName)) return;
+  if (['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName)||document.querySelector('dialog[open]')) return;
   if (e.code === 'Space') { e.preventDefault(); play(); }
   if (e.altKey && e.code.startsWith('Arrow') && selLayer) { e.preventDefault(); nudge(e.code, e.shiftKey ? 10 : 1); return; }
   if (e.code === 'ArrowRight') { e.preventDefault(); if (playing) pause(); setT(t + (e.shiftKey ? 1 : 1 / FPS)); }
   if (e.code === 'ArrowLeft') { e.preventDefault(); if (playing) pause(); setT(t - (e.shiftKey ? 1 : 1 / FPS)); }
+  if(e.key.toLowerCase()==='s'&&!e.metaKey&&!e.ctrlKey){$('#bSnap').click();return;}
   if (handleEditKeys(e)) return;
   if (!e.metaKey && !e.ctrlKey && (e.key === '=' || e.key === '+')) setZoom(TZ * 1.6);
   if (!e.metaKey && !e.ctrlKey && e.key === '-') setZoom(TZ / 1.6);
@@ -1202,7 +1216,7 @@ const TK = ['x', 'y', 'scale', 'rotation', 'opacity'], PRESETS = ['none', 'fade'
 const LS = id => V.__layers[id], LM = id => LAY.find(l => l.id === id);
 const EXP = new Set(['stage']);          // expanded parents
 const hasKids = id => LAY.some(m => m.parent === id);
-function shown(m) { let p = m.parent; while (p) { if (!EXP.has(p)) return false; p = LM(p).parent; } return true; }
+function shown(m) { if(layerSearch.trim())return true; let p = m.parent; while (p) { if (!EXP.has(p)) return false; p = LM(p).parent; } return true; }
 function expandTo(id) { let m = LM(id); while (m && m.parent) { EXP.add(m.parent); m = LM(m.parent); } }
 function toggleExp(id) { EXP.has(id) ? EXP.delete(id) : EXP.add(id); renderLayerRows(); renderLayerTree(); placePlayhead(); }
 function isDescendant(cid, pid) { let m = LM(cid); while (m && m.parent) { if (m.parent === pid) return true; m = LM(m.parent); } return false; }
@@ -1216,8 +1230,8 @@ function transformAt(st, rt) {
     if (a.t <= rt && rt <= b.t) { const u = (rt - a.t) / Math.max(1e-6, b.t - a.t), e = (EASE[b.ease || 'ease'] || EASE.ease)(u); const o = {}; for (const f of TK) o[f] = +a[f] + (+b[f] - +a[f]) * e; return o; } }
 }
 const keyAt = (st, rt) => (st.keys || []).find(k => Math.abs(k.t - rt) < 0.5 / FPS);
-function setTransform(id, patch) {                     // auto-key: with keyframes, edits land on a keyframe at the playhead
-  const st = LS(id), rt = r2(ST() - st.start);
+function setTransform(id, patch) { if(isLayerLocked(id))return;                     // auto-key: with keyframes, edits land on a keyframe at the playhead
+  const st = LS(id), rt = r2(layerRelativeTime(id));
   if (st.keys && st.keys.length) {
     let k = keyAt(st, rt);
     if (!k) { k = Object.assign({t: rt, ease: 'ease'}, transformAt(st, rt)); st.keys.push(k); st.keys.sort((a, b) => a.t - b.t); }
@@ -1225,32 +1239,33 @@ function setTransform(id, patch) {                     // auto-key: with keyfram
   } else Object.assign(st, patch);
   renderLayerRows(); syncInspector(); changed();
 }
-function selectLayer(id, jump) {
-  selLayer = id; LASTSEL = 'layer'; expandTo(id); renderLayerTree(); fillInspector(); renderLayerRows(); overlaySoon();
+function selectLayer(id, jump, additive=false, preserve=false) {
+  if(additive){if(SELECTED.has(id))SELECTED.delete(id);else SELECTED.add(id);}else if(!preserve||!SELECTED.has(id)){SELECTED.clear();SELECTED.add(id);}
+  selLayer = SELECTED.has(id)?id:[...SELECTED].at(-1)||null; LASTSEL = 'layer'; if(!selLayer){selectionRefresh();return;} expandTo(id); renderLayerTree(); fillInspector(); renderLayerRows(); overlaySoon();
   setTimeout(() => { const on = document.querySelector('#lrows .lanelab.on'); if (on) on.scrollIntoView({block: 'nearest'}); const tr = document.querySelector('#ltree .lrow.on'); if (tr) tr.scrollIntoView({block: 'nearest'}); }, 0);
-  if (jump) { const st = LS(id); if (ST() < st.start || ST() > st.end) goS(st.start + 0.4); }
+  if (jump) { const st = LS(id); if (ST() < st.start+layerTimeOffset(id) || ST() > st.end+layerTimeOffset(id)) goS(st.start + layerTimeOffset(id) + 0.4); }
   const tab = [...document.querySelectorAll('.tab')].find(b => b.dataset.p === 'Layers'); if (tab && !tab.classList.contains('on')) tab.click();
 }
 // ---- timeline rows
 function renderLayerRows() {
   const R = $('#lrows'); if (!R) return; R.innerHTML = '';
   for (const m of LAY) {
-    if (!shown(m)) continue;
-    const st = LS(m.id);
-    const lab = el('div', 'lanelab' + (m.id === selLayer ? ' on' : ''));
+    if (!shown(m)||!matchesLayer(m)) continue;
+    const st = LS(m.id), inherited=layerTimeOffset(m.id);
+    const lab = el('div', 'lanelab' + (SELECTED.has(m.id) ? ' on' : ''));
     const eye = el('button', 'eye' + (st.visible ? '' : ' off'), st.visible ? '●' : '○'); eye.title = st.visible ? 'Hide' : 'Show';
-    eye.onclick = ev => { ev.stopPropagation(); st.visible = !st.visible; renderLayerRows(); renderLayerTree(); syncInspector(); changed(true); };
+    eye.disabled=isLayerLocked(m.id); eye.onclick = ev => { ev.stopPropagation(); if(isLayerLocked(m.id))return; st.visible = !st.visible; renderLayerRows(); renderLayerTree(); syncInspector(); changed(true); };
     const chev = el('button', 'eye', hasKids(m.id) ? (EXP.has(m.id) ? '▾' : '▸') : '&nbsp;'); chev.style.width = '12px';
     if (hasKids(m.id)) chev.onclick = ev => { ev.stopPropagation(); toggleExp(m.id); };
-    lab.append(el('span', null, '&nbsp;'.repeat(m.depth * 2)), chev, eye, el('span', null, esc(m.label))); lab.title = m.label; lab.onclick = () => selectLayer(m.id, true);
+    lab.append(el('span', null, '&nbsp;'.repeat(m.depth * 2)), chev, eye, el('span', null, esc(m.label))); lab.title = m.label; lab.onclick = e => selectLayer(m.id, true, e.shiftKey||e.metaKey||e.ctrlKey);
     const lane = el('div', 'lane');
-    const bar = el('div', 'lbar' + (m.id === selLayer ? ' on' : '') + (st.visible ? '' : ' hid'));
-    bar.style.left = pct(st.start); bar.style.width = pwS(st.start, Math.max(st.start + 0.1, Math.min(BASE, st.end)));
+    const bar = el('div', 'lbar' + (SELECTED.has(m.id) ? ' on' : '') + (st.visible ? '' : ' hid'));
+    bar.style.left = pct(st.start+inherited); bar.style.width = pwS(st.start+inherited, Math.max(st.start+inherited + 0.1, Math.min(BASE, st.end+inherited)));
     bar.innerHTML = '<div class="h l"></div><div class="h r"></div>';
     bar.onpointerdown = ev => layerBarDrag(ev, m.id, ev.target.classList.contains('l') ? 'l' : ev.target.classList.contains('r') ? 'r' : 'm');
     lane.appendChild(bar);
     for (const k of (st.keys || [])) {
-      const d = el('div', 'kf' + (Math.abs(st.start + k.t - ST()) < 0.5 / FPS ? ' on' : '')); d.style.left = pct(st.start + k.t); d.title = `keyframe @ ${(st.start + k.t).toFixed(2)} s`;
+      const d = el('div', 'kf' + (Math.abs(st.start + inherited + k.t - ST()) < 0.5 / FPS ? ' on' : '')); d.style.left = pct(st.start + inherited + k.t); d.title = `keyframe @ ${(st.start + inherited + k.t).toFixed(2)} s`;
       d.onpointerdown = ev => keyDrag(ev, m.id, k); lane.appendChild(d);
     }
     lane.addEventListener('pointerdown', ev => { if (ev.target !== lane) return; if (playing) pause(); setT(x2t(ev.clientX)); dragWith(e2 => setT(x2t(e2.clientX))); });
@@ -1258,22 +1273,24 @@ function renderLayerRows() {
   }
 }
 function layerBarDrag(e, id, mode) {
-  e.preventDefault(); e.stopPropagation(); if (playing) pause(); selectLayer(id, false);
+  e.preventDefault(); e.stopPropagation(); if(isLayerLocked(id))return; if (playing) pause(); selectLayer(id, false, false, true);
+  if(mode==='m'&&SELECTED.size>1){bulkTimelineDrag(e);return;}
   const st = LS(id), t0 = x2s(e.clientX), s0 = st.start, e0 = st.end;
-  const desc = LAY.filter(m => isDescendant(m.id, id)).map(m => [LS(m.id), LS(m.id).start, LS(m.id).end]);
+  const inherited=layerTimeOffset(id);
   dragWith(ev => {
     const dt = x2s(ev.clientX) - t0;
-    if (mode === 'm') { let d = snap(Math.max(-s0, Math.min(BASE - 0.1 - s0, dt))); d = snapSpan(s0 + d, e0 - s0, st, ev) - s0; st.start = r2(s0 + d); st.end = r2(Math.min(BASE, e0 + d));
-      for (const [ds, a0, b0] of desc) { ds.start = r2(Math.max(0, a0 + d)); ds.end = r2(Math.min(BASE, b0 + d)); } }
-    if (mode === 'l') st.start = r2(snapS(snap(Math.max(0, Math.min(st.end - 0.1, s0 + dt))), st, ev));
-    if (mode === 'r') st.end = r2(snapS(snap(Math.max(st.start + 0.1, Math.min(BASE, e0 + dt))), st, ev));
-    renderLayerRows(); syncInspector(); goS(mode === 'r' ? st.end - 0.1 : st.start + 0.3); changed();
+    if (mode === 'm') { let d = snap(Math.max(-s0-inherited, Math.min(BASE - 0.1 - s0-inherited, dt))); d = snapSpan(s0 + inherited + d, e0 - s0, st, ev) - s0 - inherited; st.start = r2(s0 + d); st.end = r2(Math.min(BASE-inherited, e0 + d));
+      // Children inherit this shift in the renderer; do not apply it twice.
+    }
+    if (mode === 'l') st.start = r2(snapS(snap(Math.max(0, Math.min(st.end+inherited - 0.1, s0+inherited + dt))), st, ev)-inherited);
+    if (mode === 'r') st.end = r2(snapS(snap(Math.max(st.start+inherited + 0.1, Math.min(BASE, e0+inherited + dt))), st, ev)-inherited);
+    renderLayerRows(); syncInspector(); goS((mode === 'r' ? st.end - 0.1 : st.start + 0.3)+inherited); changed();
   }, () => changed(true));
 }
 function keyDrag(e, id, k) {
-  e.preventDefault(); e.stopPropagation(); if (playing) pause(); selectLayer(id, false);
-  const st = LS(id), t0 = x2s(e.clientX), k0 = k.t; goS(st.start + k.t);
-  dragWith(ev => { k.t = r2(Math.max(0, Math.min(st.end - st.start, snap(k0 + x2s(ev.clientX) - t0)))); st.keys.sort((a, b) => a.t - b.t); renderLayerRows(); goS(st.start + k.t); changed(); },
+  e.preventDefault(); e.stopPropagation(); if(isLayerLocked(id))return; if (playing) pause(); selectLayer(id, false, false, true);
+  const st = LS(id), t0 = x2s(e.clientX), k0 = k.t; goS(st.start + layerTimeOffset(id) + k.t);
+  dragWith(ev => { k.t = r2(Math.max(0, Math.min(st.end - st.start, snap(k0 + x2s(ev.clientX) - t0)))); st.keys.sort((a, b) => a.t - b.t); renderLayerRows(); goS(st.start + layerTimeOffset(id) + k.t); changed(); },
            () => changed(true));
 }
 // ---- Layers tab: tree + inspector
@@ -1281,6 +1298,7 @@ function layersPanel() {
   const w = el('div'); w.appendChild(el('p', 'note', 'Click an element on the preview (or pick it here) to select it. Drag it to move, drag a corner to scale, the top handle to rotate. Add keyframes to animate it. Its bar on the timeline sets when it’s on screen and moves its whole animation.'));
   const addm = el('button', 'btn small', '+ Add image / GIF / video'); addm.onclick = () => $('#mediaFile').click(); addm.style.marginBottom = '8px';
   w.append(addm, el('span', 'sub', '  or drop files onto the preview'));
+  bulkToolbar(w);
   const tree = el('div', 'ltree'); tree.id = 'ltree'; w.appendChild(tree);
   const insp = el('div', 'insp'); insp.id = 'insp'; w.appendChild(insp);
   setTimeout(() => { renderLayerTree(); fillInspector(); }, 0); return w;
@@ -1288,24 +1306,30 @@ function layersPanel() {
 function renderLayerTree() {
   const T = $('#ltree'); if (!T) return; T.innerHTML = '';
   for (const m of LAY) {
-    if (!shown(m)) continue;
-    const st = LS(m.id), r = el('div', 'lrow' + (m.id === selLayer ? ' on' : ''));
+    if (!shown(m)||!matchesLayer(m)) continue;
+    const st = LS(m.id), r = el('div', 'lrow' + (SELECTED.has(m.id) ? ' on' : ''));
     const eye = el('button', 'eye' + (st.visible ? '' : ' off'), st.visible ? '●' : '○');
-    eye.onclick = ev => { ev.stopPropagation(); st.visible = !st.visible; renderLayerTree(); renderLayerRows(); syncInspector(); changed(true); };
+    eye.disabled=isLayerLocked(m.id); eye.onclick = ev => { ev.stopPropagation(); if(isLayerLocked(m.id))return; st.visible = !st.visible; renderLayerTree(); renderLayerRows(); syncInspector(); changed(true); };
     const chev = el('button', 'eye', hasKids(m.id) ? (EXP.has(m.id) ? '▾' : '▸') : '&nbsp;'); chev.style.width = '14px';
     if (hasKids(m.id)) chev.onclick = ev => { ev.stopPropagation(); toggleExp(m.id); };
-    r.append(el('span', null, '&nbsp;'.repeat(m.depth * 3)), chev, eye, el('span', null, esc(m.label)), el('span', 'grp', esc(m.group)));
-    r.onclick = () => selectLayer(m.id, true); T.appendChild(r);
+    const choose=el('input');choose.type='checkbox';choose.checked=SELECTED.has(m.id);choose.setAttribute('aria-label','Select '+m.label);choose.onclick=e=>{e.stopPropagation();selectLayer(m.id,false,true);};
+    const lock=el('button','eye',isLayerLocked(m.id)?'▣':'◇');lock.title=isLayerLocked(m.id)?'Unlock '+m.label:'Lock '+m.label;lock.setAttribute('aria-label',lock.title);lock.onclick=e=>{e.stopPropagation();LS(m.id).locked=!LS(m.id).locked;bulkChanged();};
+    r.append(choose,el('span', null, '&nbsp;'.repeat(m.depth * 2)), chev, eye,lock, el('span', null, esc(m.label)), el('span', 'grp', esc(m.group)));
+    r.onclick = e => selectLayer(m.id, true, e.shiftKey||e.metaKey||e.ctrlKey); T.appendChild(r);
   }
 }
 let INSP = {};
 function fillInspector() {
   const I = $('#insp'); if (!I) return; I.innerHTML = ''; INSP = {};
   if (!selLayer) { I.appendChild(el('div', 'sub', 'No layer selected.')); return; }
-  const m = LM(selLayer), st = LS(selLayer);
+  if(SELECTED.size>1){bulkInspector(I);return;}
+  const m = LM(selLayer), st = LS(selLayer); if(!m||!st){SELECTED.clear();selLayer=null;return;}
   const head = el('div', 'row'); head.append(el('b', null, esc(m.label)));
   const rb = el('button', 'btn small', 'Reset layer'); rb.onclick = () => { V.__layers[m.id] = clone(D.__layers[m.id]); fillInspector(); renderLayerRows(); renderLayerTree(); changed(true); };
-  head.append(rb); I.appendChild(head); if (m.help) I.appendChild(el('div', 'sub', esc(m.help)));
+  rb.disabled=isLayerLocked(m.id); head.append(rb); I.appendChild(head); if (m.help) I.appendChild(el('div', 'sub', esc(m.help)));
+  const lockButton=el('button','btn small',isLayerLocked(m.id)?'Unlock layer':'Lock layer');lockButton.onclick=()=>{LS(m.id).locked=!LS(m.id).locked;bulkChanged();};I.append(lockButton);
+  if(isLayerLocked(m.id)){I.append(el('p','note','This layer or its parent is locked. Unlock the parent to edit its children.'));return;}
+  const rename=el('input','txt');rename.setAttribute('aria-label','Layer name');rename.value=m.label;rename.maxLength=120;rename.oninput=()=>{LS(m.id).label=rename.value.trim()||'Untitled layer';m.label=LS(m.id).label;head.firstChild.textContent=m.label;changed();renderLayerTree();renderLayerRows();drawOverlay();};I.append(rename);
   const num = (label, get, set, o = {}) => {
     const f = el('div', 'field'), box = el('div', 'ctl');
     if (o.range) { const r = el('input'); r.type = 'range'; r.min = o.min; r.max = o.max; r.step = o.step; r.oninput = () => { i.value = r.value; set(parseFloat(r.value)); }; box.append(r); f._r = r; }
@@ -1316,11 +1340,11 @@ function fillInspector() {
   I.appendChild(el('h3', null, 'On screen'));
   const vis = el('div', 'field'); const vc = el('input'); vc.type = 'checkbox'; vc.onchange = () => { st.visible = vc.checked; renderLayerRows(); renderLayerTree(); changed(true); };
   vis.append(el('label', null, 'Visible'), vc); I.appendChild(vis); INSP.vis = {_sync: () => vc.checked = st.visible};
-  INSP.start = num('Starts (s)', () => st.start.toFixed(2), v => { st.start = r2(v); renderLayerRows(); changed(); }, {step: 0.05});
-  INSP.end = num('Ends (s)', () => st.end.toFixed(2), v => { st.end = r2(v); renderLayerRows(); changed(); }, {step: 0.05});
+  INSP.start = num('Starts (s)', () => (st.start+layerTimeOffset(m.id)).toFixed(2), v => { st.start = r2(v-layerTimeOffset(m.id)); renderLayerRows(); changed(); }, {step: 0.05});
+  INSP.end = num('Ends (s)', () => (st.end+layerTimeOffset(m.id)).toFixed(2), v => { st.end = r2(v-layerTimeOffset(m.id)); renderLayerRows(); changed(); }, {step: 0.05});
   I.appendChild(el('div', 'sub', 'Moving the start shifts the element’s whole built-in animation.'));
   I.appendChild(el('h3', null, 'Transform'));
-  const cur = () => transformAt(st, ST() - st.start);
+  const cur = () => transformAt(st, layerRelativeTime(m.id));
   INSP.x = num('Move x', () => Math.round(cur().x), v => setTransform(m.id, {x: v}), {step: 1, unit: 'px'});
   INSP.y = num('Move y', () => Math.round(cur().y), v => setTransform(m.id, {y: v}), {step: 1, unit: 'px'});
   INSP.scale = num('Scale', () => r2(cur().scale), v => setTransform(m.id, {scale: v}), {range: true, min: 0.1, max: 3, step: 0.01});
@@ -1329,9 +1353,9 @@ function fillInspector() {
   // keyframes
   I.appendChild(el('h3', null, 'Keyframes'));
   const kb = el('div', 'kbar'); I.appendChild(kb); INSP.keys = {_sync: () => {
-    kb.innerHTML = ''; const rt = r2(ST() - st.start), on = keyAt(st, rt), n = (st.keys || []).length;
+    kb.innerHTML = ''; const rt = r2(layerRelativeTime(m.id)), on = keyAt(st, rt), n = (st.keys || []).length;
     const prev = el('button', 'btn small', '‹'), next = el('button', 'btn small', '›'); prev.title = 'Previous keyframe'; next.title = 'Next keyframe';
-    const ks = (st.keys || []).map(k => st.start + k.t).sort((a, b) => a - b);
+    const ks = (st.keys || []).map(k => st.start + layerTimeOffset(m.id) + k.t).sort((a, b) => a - b);
     prev.onclick = () => { const p2 = ks.filter(x => x < ST() - 1e-3).pop(); if (p2 != null) goS(p2); };
     next.onclick = () => { const n2 = ks.find(x => x > ST() + 1e-3); if (n2 != null) goS(n2); };
     const add = el('button', 'btn small' + (on ? ' on' : ''), on ? '◆ Remove keyframe' : '◇ Add keyframe here');
@@ -1363,6 +1387,8 @@ function fillInspector() {
   if (m.id.startsWith('media_')) { const it = mediaItem(m.id); if (it && it.kind === 'text') textSection(I, it); else if (it && it.kind === 'shape') shapeSection(I, it); else mediaSection(I, m.id); }
   const own = m.params.map(k => S(k)).filter(Boolean);
   if (own.length) { I.appendChild(el('h3', null, 'Content')); for (const e of own) I.appendChild(paramField(e)); }
+  bulkArrangePanel(I);
+  const soloButton=el('button','btn small','Solo graphics');soloButton.onclick=bulkSolo;I.append(soloButton);
   syncInspector();
 }
 function syncInspector() { for (const f of Object.values(INSP)) f._sync && f._sync(); }
@@ -1371,13 +1397,13 @@ let hitsTimer = null, hitsFor = '';
 function overlaySoon() { clearTimeout(hitsTimer); hitsTimer = setTimeout(loadHits, 60); }
 async function loadHits() {
   const key = t.toFixed(3) + ':' + ver; if (key === hitsFor && !dragging) return drawOverlay();
-  hitsFor = key; try { HITS = await (await fetch('/api/hits?t=' + t.toFixed(3))).json(); } catch (e) { HITS = []; }
+  hitsFor = key; try { HITS = await (await fetch(projectURL('/api/hits?t=' + t.toFixed(3) + soloQuery()))).json(); } catch (e) { HITS = []; }
   drawOverlay();
 }
 function drawOverlay() {
   const ov = $('#ov'); ov.setAttribute('viewBox', `0 0 ${PJ.width} ${PJ.height}`); ov.innerHTML = '';
   if (!selLayer || activePaneHasPlace()) return;
-  const h = HITS.find(x => x.id === selLayer); if (!h) return;
+  const h = HITS.find(x => x.id === selLayer); if (!h) { drawBulkOutlines(ov,PJ.width/frame.getBoundingClientRect().width); return; }
   const sc = PJ.width / frame.getBoundingClientRect().width;       // keep handle size constant on screen
   const c = h.corners, pts = c.map(p => p.join(',')).join(' ');
   const poly = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
@@ -1395,17 +1421,17 @@ function drawOverlay() {
   const lab = document.createElementNS('http://www.w3.org/2000/svg', 'text');
   lab.setAttribute('x', c[0][0]); lab.setAttribute('y', c[0][1] - 10 * sc); lab.setAttribute('fill', '#7846EB'); lab.setAttribute('font-size', 13 * sc); lab.setAttribute('font-weight', 700); lab.setAttribute('font-family', 'Inter, sans-serif');
   lab.textContent = LM(selLayer).label; ov.appendChild(lab);
-  h._rh = rh;
+  h._rh = rh; drawBulkOutlines(ov,sc);
 }
 let GUIDES = [];
 function bbox(c) { const xs = c.map(p => p[0]), ys = c.map(p => p[1]); return [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)]; }
 function snapMove(h, dx, dy, ev) {
-  GUIDES = []; if (ev.altKey) return [dx, dy];
+  GUIDES = []; if (!SNAP_ON || ev.altKey) return [dx, dy];
   const sc = PJ.width / frame.getBoundingClientRect().width, thr = 8 * sc;
   const [x0, y0, x1, y1] = bbox(h.corners), mx = [x0 + dx, (x0 + x1) / 2 + dx, x1 + dx], my = [y0 + dy, (y0 + y1) / 2 + dy, y1 + dy];
   const tx = [0, PJ.width / 2, PJ.width], ty = [0, PJ.height / 2, PJ.height];
   if (PJ.safe_area && PJ.safe_area.content) { const r = PJ.safe_area.content; tx.push(r[0], r[2]); ty.push(r[1], r[3]); }
-  for (const o of HITS) { if (o.id === h.id || isDescendant(o.id, h.id) || isDescendant(h.id, o.id)) continue; const [a, b2, c2, d2] = bbox(o.corners); tx.push(a, (a + c2) / 2, c2); ty.push(b2, (b2 + d2) / 2, d2); }
+  for (const o of HITS) { if (SELECTED.has(o.id) || o.id === h.id || isDescendant(o.id, h.id) || isDescendant(h.id, o.id)) continue; const [a, b2, c2, d2] = bbox(o.corners); tx.push(a, (a + c2) / 2, c2); ty.push(b2, (b2 + d2) / 2, d2); }
   let bx = null, by = null;
   for (const m of mx) for (const x of tx) if (Math.abs(x - m) < thr && (bx === null || Math.abs(x - m) < Math.abs(bx[0] - bx[1]))) bx = [x, m];
   for (const m of my) for (const y of ty) if (Math.abs(y - m) < thr && (by === null || Math.abs(y - m) < Math.abs(by[0] - by[1]))) by = [y, m];
@@ -1418,7 +1444,7 @@ const fxy = e => { const r = frame.getBoundingClientRect(); return [(e.clientX -
 let dragging = false;
 async function layerPointerDown(e) {
   if (playing) pause(); e.preventDefault();
-  const key = t.toFixed(3) + ':' + ver; if (key !== hitsFor) { hitsFor = key; HITS = await (await fetch('/api/hits?t=' + t.toFixed(3))).json(); }
+  const key = t.toFixed(3) + ':' + ver; if (key !== hitsFor) { hitsFor = key; HITS = await (await fetch(projectURL('/api/hits?t=' + t.toFixed(3) + soloQuery()))).json(); }
   const p = fxy(e), sc = PJ.width / frame.getBoundingClientRect().width;
   let h = selLayer ? HITS.find(x => x.id === selLayer) : null, mode = null;
   if (h) {
@@ -1429,10 +1455,12 @@ async function layerPointerDown(e) {
   }
   if (!mode) {                                        // select the top-most element under the pointer
     const hit = [...HITS].reverse().find(x => inPoly(p, x.corners));
-    if (!hit) { selLayer = null; renderLayerTree(); fillInspector(); renderLayerRows(); drawOverlay(); return; }
-    selectLayer(hit.id, false); h = hit; mode = 'move'; drawOverlay();
+    if (!hit) { SELECTED.clear(); selLayer = null; renderLayerTree(); fillInspector(); renderLayerRows(); drawOverlay(); return; }
+    selectLayer(hit.id, false, e.shiftKey||e.metaKey||e.ctrlKey, true); if(!SELECTED.has(hit.id))return; h = hit; mode = 'move'; drawOverlay();
   }
-  const st = LS(h.id), t0 = transformAt(st, ST() - st.start), c = h.center, b = h.base, det = b[0] * b[3] - b[2] * b[1] || 1;
+  if(isLayerLocked(h.id))return;
+  if(mode==='move'&&SELECTED.size>1){bulkCanvasDrag(e,p,h);return;}
+  const st = LS(h.id), t0 = transformAt(st, layerRelativeTime(h.id)), c = h.center, b = h.base, det = b[0] * b[3] - b[2] * b[1] || 1;
   const a0 = Math.atan2(p[1] - c[1], p[0] - c[0]), d0 = Math.hypot(p[0] - c[0], p[1] - c[1]) || 1;
   dragging = true;
   dragWith(ev => {
@@ -1460,6 +1488,7 @@ window.addEventListener('resize', () => drawOverlay());
     onStatus:showSaveStatus, onSaved:saved => { SAVED = saved; }});
   BASE = PJ.base_duration || PJ.duration; FPS = PJ.fps; syncTimeline(); HAS_AUDIO = st.has_audio; audioVer = st.audio_version;
   document.title = PJ.name + ' · DX Editor'; $('#pname').textContent = PJ.name; if (PJ.description) $('#pname').title = PJ.description;
+  $('#mOpen').href = projectURL('/video');
   frame.style.aspectRatio = `${PJ.width} / ${PJ.height}`;
   const fitStage = () => {
     const stage = frame.parentElement;
@@ -1469,7 +1498,7 @@ window.addEventListener('resize', () => drawOverlay());
   };
   new ResizeObserver(fitStage).observe(frame.parentElement); fitStage();
   drawSafetyGuides(); setGuides(!!(PJ.layout && PJ.layout.presenter));
-  if (HAS_AUDIO) audio.src = '/audio?v=' + audioVer;
+  if (HAS_AUDIO) audio.src = projectURL('/audio?v=') + audioVer;
   buildTimeline(); buildPanels(); markDirty(); if (LAY.length) overlaySoon();
   SNAP = JSON.stringify(V); updUndo(); relayoutTimeline();
   const firstText = SCH.find(e => e.at != null);
