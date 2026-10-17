@@ -24,3 +24,7 @@ environment. Avoid network access in core rendering and tests.
 By contributing, you agree to license your contribution under MIT. Font changes
 must comply with the included OFL. Be respectful and specific in reviews; critique
 the work rather than the contributor. Security reporting: see SECURITY.md.
+
+Autosave session tests use the Node built-in test runner through pytest when Node
+is available (including the GitHub hosted runner). Node is not required to use DX
+Studio. See [saving and recovery](docs/SAVING.md) for the development workflow.

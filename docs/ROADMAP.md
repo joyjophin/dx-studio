@@ -17,6 +17,14 @@ promises. Current capabilities and limits are in [README.md](../README.md).
   feature plan guides prioritisation; individual items need acceptance checks
   before being included in the release. No release date is committed.
 
+## Development progress toward v0.5.0
+
+- **F01, saving foundation:** autosave, browser draft recovery and named editable-setting
+  versions are implemented on `feat/project-recovery` for review. Automatic backups,
+  restore safeguards and stale-save protection are included. See [saving and recovery](SAVING.md).
+- The recent-project home and project thumbnails portion of F01 remains planned.
+- Next: project navigation, then faster timeline/layer editing (F02).
+
 ## Recommended sequence
 
 1. **Dependable editing:** autosave/recovery, practical timeline and canvas

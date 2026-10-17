@@ -1,9 +1,9 @@
 include LICENSE THIRD_PARTY_NOTICES.md README.md SKILL.md CHANGELOG.md CONTRIBUTING.md SECURITY.md
-recursive-include dx_studio *.py *.html *.ttf *.txt *.json
+recursive-include dx_studio *.py *.html *.js *.ttf *.txt *.json
 recursive-include docs *.md *.svg *.png *.jpg *.gif
 recursive-include reference *.md
 recursive-include kits *.py
 recursive-include scripts *.py *.sh
-recursive-include tests *.py
+recursive-include tests *.py *.cjs
 prune **/__pycache__
 global-exclude *.pyc .DS_Store

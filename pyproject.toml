@@ -33,7 +33,7 @@ dx-studio = "dx_studio.cli:main"
 include = ["dx_studio*"]
 
 [tool.setuptools.package-data]
-dx_studio = ["editor.html", "fonts/*.ttf", "fonts/OFL.txt", "templates/*/*.py", "templates/*/*.json"]
+dx_studio = ["editor.html", "*.js", "fonts/*.ttf", "fonts/OFL.txt", "templates/*/*.py", "templates/*/*.json"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

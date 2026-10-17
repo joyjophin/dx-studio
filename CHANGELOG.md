@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased — toward 0.5.0
+
+- Autosave editable settings with explicit save/failure status and browser draft recovery.
+- Named setting versions, bounded automatic backups and recoverable restore/reset actions.
+- Revision checks and editor write locks prevent stale saves from silently replacing newer edits.
+- Durable atomic JSON writes and separately tested browser persistence logic.
+
+
 ## 0.1.0 — 2026-10-17
 
 Initial public release of DX Studio (DesignXstream) and DX Editor.

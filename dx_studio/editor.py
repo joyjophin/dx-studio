@@ -5,7 +5,7 @@
 Panels and timeline lanes are generated from the scene's SCHEMA. The preview is rendered by the
 project's own scene code, so what you see is exactly what gets built.
 """
-import copy, io, json, os, re, subprocess, sys, threading, time, webbrowser
+import copy, hashlib, io, json, os, re, subprocess, sys, threading, time, webbrowser
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 from urllib.parse import urlparse, parse_qs, unquote
 import numpy as np
@@ -20,7 +20,17 @@ class Editor:
         self.pr = Project(path)
         self.lock = threading.RLock()
         self.saved = copy.deepcopy(self.pr.values)
-        self.audio_version = 0; self.audio_busy = False
+        from .history import SettingsHistory
+        self.history = SettingsHistory(self.pr.path)
+        self.revision = self.history.revision()
+        source = hashlib.sha256()
+        for name in ('project.json', self.pr.cfg.get('scene', 'scene.py'), self.pr.cfg.get('captions', 'captions.json')):
+            file = os.path.join(self.pr.path, name)
+            if os.path.isfile(file):
+                with open(file, 'rb') as stream: source.update(stream.read())
+        self.source_revision = source.hexdigest()
+        self._audio_timer = None
+        self.audio_version = 0; self.audio_busy = False; self._audio_again = False
         self.build = {'running': False, 'progress': 0.0, 'log': [], 'done': False, 'ok': None}
         self._thumbs = {}
 
@@ -54,27 +64,78 @@ class Editor:
         b = io.BytesIO(); Image.fromarray(a[..., [2, 1, 0]].copy(), 'RGB').save(b, 'JPEG', quality=84); return b.getvalue()
 
     def apply(self, values):
+        if not isinstance(values, dict): raise ValueError('Editable values must be an object')
         clean = copy.deepcopy(self.pr.defaults)
         clean.update({k: v for k, v in values.items() if k in clean})
-        with self.lock: self.pr.apply(clean)
+        with self.lock:
+            before = copy.deepcopy(self.pr.values)
+            try: self.pr.apply(clean)
+            except Exception:
+                self.pr.apply(before)
+                raise
 
     def regen_audio(self):
-        if self.audio_busy or not self.has_audio(): return
-        self.audio_busy = True
+        with self.lock:
+            if self.audio_busy:
+                self._audio_again = True
+                return
+            if not self.has_audio(): return
+            self.audio_busy = True; self._audio_again = False
         def run():
             try: subprocess.run([sys.executable, '-m', 'dx_studio', 'audio', self.pr.path], cwd=KIT_ROOT, env=self.env(),
                                 stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-            finally: self.audio_version += 1; self.audio_busy = False
+            finally:
+                with self.lock:
+                    self.audio_version += 1; self.audio_busy = False
+                    again = self._audio_again
+                if again: self.regen_audio()
         threading.Thread(target=run, daemon=True).start()
 
-    def save(self):
-        with self.lock: self.pr.save_settings()
-        self.saved = copy.deepcopy(self.pr.values); self.regen_audio()
+    def save(self, values=None, revision=None, autosave=False):
+        with self.lock, self.history.writing():
+            self.history.check(revision)
+            if values is not None: self.apply(values)
+            if self.pr.settings_diff() != self.history.read_settings():
+                self.history.before_save(self.source_revision)
+                self.pr.save_settings()
+            self.saved = copy.deepcopy(self.pr.values)
+            self.revision = self.history.revision()
+            result = {'ok': True, 'revision': self.revision, 'values': copy.deepcopy(self.saved)}
+        if self._audio_timer: self._audio_timer.cancel()
+        if autosave:
+            self._audio_timer = threading.Timer(2, self.regen_audio)
+            self._audio_timer.daemon = True; self._audio_timer.start()
+        else: self.regen_audio()
+        return result
 
-    def start_build(self):
+    def version(self, name, revision):
+        with self.lock, self.history.writing():
+            self.history.check(revision)
+            return self.history.snapshot(self.history.read_settings(), self.source_revision, name)
+
+    def restore(self, version_id, revision):
+        with self.lock, self.history.writing():
+            self.history.check(revision)
+            record = self.history.get(version_id)
+            values = self.pr.values_from_settings(record['settings'])
+            before = copy.deepcopy(self.pr.values)
+            self.apply(values)
+            try:
+                self.history.snapshot(self.history.read_settings(), self.source_revision, 'Before restoring ' + record['name'][:95], 'before-restore')
+                self.pr.save_settings()
+            except Exception:
+                self.pr.apply(before)
+                raise
+            self.saved = copy.deepcopy(self.pr.values)
+            self.revision = self.history.revision()
+            state = self.state()
+        self.regen_audio()
+        return {'ok': True, 'state': state}
+
+    def start_build(self, values=None, revision=None):
         b = self.build
         if b['running']: return
-        self.save(); n = int(round(self.pr.duration*self.pr.fps))
+        self.save(values, revision); n = int(round(self.pr.duration*self.pr.fps))
         b.update(running=True, progress=0.0, log=[], done=False, ok=None)
         def run():
             p = subprocess.Popen([sys.executable, '-m', 'dx_studio', 'build', self.pr.path], cwd=KIT_ROOT, env=self.env(),
@@ -90,13 +151,21 @@ class Editor:
 
     def state(self):
         pr = self.pr
-        return {'project': {'name': pr.name, 'description': pr.cfg.get('description', ''), 'width': pr.width, 'height': pr.height,
+        return {'project': {'name': pr.name, 'id': hashlib.sha256(pr.path.encode()).hexdigest()[:24], 'description': pr.cfg.get('description', ''), 'width': pr.width, 'height': pr.height,
                             'fps': pr.fps, 'duration': pr.duration, 'base_duration': pr.base_duration, 'chapters': pr.cfg.get('chapters', []),
                             'safe_area': pr.cfg.get('safe_area'), 'layout': pr.layout, 'composition_supported': pr.composition_supported, 'output': os.path.basename(pr.output), 'folder': pr.path},
                 'schema': pr.schema, 'layers': pr.layer_meta, 'values': pr.values, 'saved': self.saved, 'defaults': pr.defaults,
                 'captions': [{k: c[k] for k in ('start', 'show_end', 'text')} for c in pr.captions],
                 'stickers': self.stickers(), 'has_audio': self.has_audio(), 'audio_version': self.audio_version,
-                'has_captions': pr.has_captions}
+                'has_captions': pr.has_captions, 'revision': self.revision, 'source_revision': self.source_revision}
+
+    def open_state(self):
+        # New/reloaded tabs start from disk, never from another tab's preview.
+        with self.lock, self.history.writing():
+            self.pr.apply(self.pr.load_settings())
+            self.saved = copy.deepcopy(self.pr.values)
+            self.revision = self.history.revision()
+            return copy.deepcopy(self.state())
 
 def make_handler(ed):
     class H(BaseHTTPRequestHandler):
@@ -133,8 +202,10 @@ def make_handler(ed):
             u = urlparse(self.path); q = parse_qs(u.query)
             try:
                 if u.path == '/': return self._send(200, open(os.path.join(HERE, 'editor.html'), 'rb').read(), 'text/html; charset=utf-8')
+                if u.path == '/editor-session.js': return self._send(200, open(os.path.join(HERE, 'editor-session.js'), 'rb').read(), 'text/javascript; charset=utf-8')
                 if u.path == '/frame': return self._send(200, ed.frame(float(q.get('t', ['0'])[0]), min(1.0, max(0.05, float(q.get('s', ['0.45'])[0])))), 'image/jpeg')
-                if u.path == '/api/state': return self._json(ed.state())
+                if u.path == '/api/state': return self._json(ed.open_state())
+                if u.path == '/api/versions': return self._json({'versions': ed.history.list(), 'source_revision': ed.source_revision})
                 if u.path == '/api/hits':
                     with ed.lock: h = ed.pr.hits(float(q.get('t', ['0'])[0]))
                     return self._json(h)
@@ -168,12 +239,32 @@ def make_handler(ed):
                         vals = copy.deepcopy(ed.pr.values); vals['__media'] = vals.get('__media', []) + [item]
                         ed.pr.apply(vals)
                     return self._json({'ok': True, 'id': item['id'], 'state': ed.state()})
-                if u.path == '/api/save': ed.apply(self._body()); ed.save(); return self._json({'ok': True})
+                if u.path == '/api/save':
+                    body = self._body()
+                    if 'revision' in body and 'values' in body:
+                        if not isinstance(body['revision'], str): raise ValueError('A saved project revision is required')
+                        return self._json(ed.save(body['values'], body['revision'], autosave=bool(body.get('autosave'))))
+                    return self._json(ed.save(body))
+                if u.path == '/api/versions/create':
+                    body = self._body()
+                    if not isinstance(body.get('revision'), str): raise ValueError('A saved project revision is required')
+                    return self._json({'ok': True, 'version': ed.version(body.get('name'), body['revision'])})
+                if u.path == '/api/versions/restore':
+                    body = self._body()
+                    if not isinstance(body.get('revision'), str): raise ValueError('A saved project revision is required')
+                    return self._json(ed.restore(body.get('id'), body['revision']))
                 if u.path == '/api/revert': ed.apply(copy.deepcopy(ed.saved)); return self._json({'values': ed.pr.values})
                 if u.path == '/api/reset': ed.apply(copy.deepcopy(ed.pr.defaults)); return self._json({'values': ed.pr.values})
-                if u.path == '/api/build': ed.apply(self._body()); ed.start_build(); return self._json({'ok': True})
+                if u.path == '/api/build':
+                    body = self._body()
+                    if 'revision' in body and 'values' in body: ed.start_build(body['values'], body['revision'])
+                    else: ed.start_build(body)
+                    return self._json({'ok': True, 'revision': ed.revision})
                 self._send(404, b'not found', 'text/plain')
             except Exception as e:
+                from .history import SaveConflict
+                if isinstance(e, SaveConflict): return self._json({'ok': False, 'error': str(e), 'conflict': True}, 409)
+                if isinstance(e, ValueError): return self._json({'ok': False, 'error': str(e)}, 400)
                 import traceback; traceback.print_exc()
                 self._json({'ok': False, 'error': f'{type(e).__name__}: {e}'}, 500)
     return H

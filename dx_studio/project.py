@@ -1,5 +1,5 @@
 """dx_studio.project: load a project folder (project.json + scene.py), its editable parameters and its render."""
-import copy, importlib.util, json, os, sys, math, tempfile
+import copy, importlib.util, json, os, sys, math
 from .paths import contained
 from .composition import layout_for, PRESENTER_PRESETS
 from ._cairo import cairo
@@ -84,18 +84,20 @@ class Project:
     @property
     def settings_path(self): return os.path.join(self.path, 'settings.json')
     def load_settings(self):
+        user = json.load(open(self.settings_path)) if os.path.exists(self.settings_path) else {}
+        return self.values_from_settings(user)
+    def values_from_settings(self, user):
         vals = copy.deepcopy(self.defaults)
-        if os.path.exists(self.settings_path):
-            user = migrate_settings(json.load(open(self.settings_path)), self.schema)
-            for k, v in user.items():
-                if k not in vals: continue
-                if k == '__layers':                       # merge per layer so new layers keep their defaults
-                    for lid, st in v.items():
-                        if lid in vals[k]: vals[k][lid].update(st)
-                        else: vals[k][lid] = dict(st)           # media layers: completed in apply()
-                else: vals[k] = v
+        user = migrate_settings(copy.deepcopy(user), self.schema)
+        for k, v in user.items():
+            if k not in vals: continue
+            if k == '__layers':                       # merge per layer so new layers keep their defaults
+                for lid, st in v.items():
+                    if lid in vals[k]: vals[k][lid].update(st)
+                    else: vals[k][lid] = dict(st)           # media layers: completed in apply()
+            else: vals[k] = v
         return vals
-    def save_settings(self, values=None):
+    def settings_diff(self, values=None):
         values = self.values if values is None else values
         changed = {k: v for k, v in values.items() if v != self.defaults.get(k) and k != '__layers'}
         if '__layers' in values:
@@ -103,12 +105,10 @@ class Project:
                   for lid, st in values['__layers'].items()}
             lc = {lid: st for lid, st in lc.items() if st}
             if lc: changed['__layers'] = lc
-        fd, tmp = tempfile.mkstemp(dir=self.path, prefix='.settings-', suffix='.tmp')
-        try:
-            with os.fdopen(fd, 'w') as f: json.dump(changed, f, indent=2, ensure_ascii=False)
-            os.replace(tmp, self.settings_path)
-        finally:
-            if os.path.exists(tmp): os.remove(tmp)
+        return changed
+    def save_settings(self, values=None):
+        from .history import atomic_json
+        atomic_json(self.settings_path, self.settings_diff(values))
     def apply(self, values):
         from . import layers as _L
         layout = layout_for(self.width,self.height,values.get('__composition','none'),self.cfg.get('safe_area'))
