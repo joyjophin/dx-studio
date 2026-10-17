@@ -163,6 +163,7 @@ def test_bad_history_file_does_not_hide_named_version(tmp_path):
     ed = Editor(create(tmp_path/'demo'))
     version = ed.version('Readable', ed.revision)
     (ed.history.directory/('f'*32+'.json')).write_text('broken')
+    (ed.history.directory/('d'*32+'.json')).write_text('[]')
     bad = dict(version, id='e'*32, created_at=None)
     (ed.history.directory/('e'*32+'.json')).write_text(json.dumps(bad))
     assert ed.history.list()[0]['id'] == version['id']

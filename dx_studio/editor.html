@@ -1005,7 +1005,7 @@ function applyHistory(snap) {
   if (selClip && !(V[selClip.key] && V[selClip.key][selClip.i])) { selClip = null; place = null; }
   if (selLayer && !(V.__layers && V.__layers[selLayer])) selLayer = null;
   if (selCap != null && !CAPV()[selCap]) selCap = null;
-  syncTimeline(); relayoutTimeline(); buildPanels(); buildLanes(); if (LAY.length) { renderLayerTree(); fillInspector(); }
+  syncTimeline(); t = clampT(t); relayoutTimeline(); buildPanels(); buildLanes(); if (LAY.length) { renderLayerTree(); fillInspector(); }
   const tab = [...document.querySelectorAll('.tab')].find(b => b.dataset.p === activeTab); if (tab) tab.click();
   if (selClip) refreshClipPanel(selClip.key);
   markDirty(); updatePin(); pushNow(); APPLYING = false; updUndo();

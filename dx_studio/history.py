@@ -96,7 +96,7 @@ class SettingsHistory:
         path = Path(contained(self.project, f'.dx-studio/versions/{version_id}.json'))
         if not path.exists(): raise ValueError('Version not found')
         record = json.loads(path.read_text(encoding='utf-8'))
-        if record.get('format_version') != 1 or record.get('id') != version_id or not isinstance(record.get('settings'), dict):
+        if not isinstance(record, dict) or record.get('format_version') != 1 or record.get('id') != version_id or not isinstance(record.get('settings'), dict):
             raise ValueError('Unsupported or damaged version')
         if any(not isinstance(record.get(key), str) for key in ('name', 'kind', 'created_at', 'source_revision')):
             raise ValueError('Damaged version metadata')
