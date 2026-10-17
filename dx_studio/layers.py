@@ -40,7 +40,7 @@ def walk(layers, parent=None, depth=0):
         yield from walk(L.children, L, depth+1)
 
 def default_state(L, duration):
-    return {'start': L.start, 'end': float(L.end if L.end is not None else duration), 'visible': True,
+    return {'start': L.start, 'end': float(L.end if L.end is not None else duration), 'visible': True, 'locked': L.locked,
             'x': 0.0, 'y': 0.0, 'scale': 1.0, 'rotation': 0.0, 'opacity': 1.0,
             'enter': 'none', 'enter_dur': 0.4, 'exit': 'none', 'exit_dur': 0.3, 'keys': []}
 
@@ -142,12 +142,12 @@ def measure_layers(t, p, layers, width, height, _state=None, _c=None, out=None):
             _c.restore(); continue
         b = _box(L, lt)
         present = st.get('visible', True) and (L.alive(lt) if L.alive else True)
-        if b and present and not L.locked:
+        if b and present and not st.get('locked', L.locked):
             pts = [_c.user_to_device(x, y) for x, y in ((b[0], b[1]), (b[0]+b[2], b[1]), (b[0]+b[2], b[1]+b[3]), (b[0], b[1]+b[3]))]
             ctr = _c.user_to_device(b[0]+b[2]/2, b[1]+b[3]/2)
             out.append({'id': L.id, 'corners': [list(q) for q in pts], 'center': list(ctr),
                         'base': [base.xx, base.yx, base.xy, base.yy]})
-        if L.children and st.get('visible', True):
+        if L.children and st.get('visible', True) and not st.get('locked', L.locked):
             _c.save()
             if L.child_ctx: L.child_ctx(_c, lt)
             measure_layers(lt, p, L.children, width, height, state, _c, out)

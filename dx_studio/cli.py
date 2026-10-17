@@ -89,7 +89,7 @@ def main(argv=None):
     from .composition import PRESENTER_PRESETS
     new.add_argument('--presenter',choices=list(PRESENTER_PRESETS),default='none',help='Reserve space for a talking head')
     for command in ['check','audio','build','edit','still','pack']:
-        p=sub.add_parser(command);p.add_argument('project')
+        p=sub.add_parser(command);p.add_argument('project', **({'nargs':'?'} if command=='edit' else {}))
         if command=='still': p.add_argument('times',type=float,nargs='*',default=[0.0])
         if command=='edit': p.add_argument('--port',type=int,default=8765);p.add_argument('--no-browser',action='store_true')
         if command=='pack': p.add_argument('--output',required=True)

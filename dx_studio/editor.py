@@ -5,7 +5,7 @@
 Panels and timeline lanes are generated from the scene's SCHEMA. The preview is rendered by the
 project's own scene code, so what you see is exactly what gets built.
 """
-import copy, hashlib, io, json, os, re, subprocess, sys, threading, time, webbrowser
+import contextlib, copy, hashlib, io, json, os, re, subprocess, sys, threading, time, webbrowser
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 from urllib.parse import urlparse, parse_qs, unquote
 import numpy as np
@@ -56,8 +56,35 @@ class Editor:
             im.thumbnail((140, 140)); b = io.BytesIO(); im.save(b, 'PNG'); self._thumbs[name] = b.getvalue()
         return self._thumbs[name]
 
-    def frame(self, t, scale):
+    @contextlib.contextmanager
+    def preview(self, solo=None):
         with self.lock:
+            if not solo:
+                yield
+                return
+            if not isinstance(solo,list) or len(solo)>200 or any(not isinstance(x,str) for x in solo): raise ValueError('Invalid solo selection')
+            parents = {m['id']:m['parent'] for m in self.pr.layer_meta}
+            keep = set(solo) & parents.keys()
+            for identifier in list(keep):
+                parent = parents[identifier]
+                while parent:
+                    keep.add(parent); parent = parents.get(parent)
+            for identifier in parents:
+                parent = identifier
+                while parent:
+                    if parent in solo: keep.add(identifier); break
+                    parent = parents.get(parent)
+            original = copy.deepcopy(self.pr.values)
+            isolated = copy.deepcopy(original)
+            for identifier,state in isolated['__layers'].items():
+                if identifier not in keep: state['visible'] = False
+            try:
+                self.pr.apply(isolated)
+                yield
+            finally: self.pr.apply(original)
+
+    def frame(self, t, scale, solo=None):
+        with self.preview(solo):
             s = self.pr.render(t, scale)
             w, h = s.get_width(), s.get_height()
             a = np.frombuffer(bytes(s.get_data()), np.uint8).reshape(h, s.get_stride()//4, 4)[:, :w, :]
@@ -167,7 +194,7 @@ class Editor:
             self.revision = self.history.revision()
             return copy.deepcopy(self.state())
 
-def make_handler(ed):
+def make_handler(ed=None, workspace=None):
     class H(BaseHTTPRequestHandler):
         def log_message(self, *a): pass
         def _send(self, code, body, ctype, extra=None):
@@ -197,25 +224,63 @@ def make_handler(ed):
             if mutation and self.headers.get('X-DX-Studio-Client') != '1':
                 self._json({'ok': False, 'error': 'Missing editor request header'}, 403); return False
             return True
+        def _project_editor(self):
+            if workspace and self.path.startswith('/project/'):
+                parts = self.path.split('/', 3)
+                if len(parts) < 4: raise ValueError('Open a project from the project home')
+                self.path = '/' + parts[3]
+                return workspace.editor(parts[2])
+            return ed
+
+        def _library_get(self, u):
+            if not workspace: return False
+            if u.path == '/home' or (u.path == '/' and ed is None):
+                self._send(200, open(os.path.join(HERE,'home.html'),'rb').read(), 'text/html; charset=utf-8'); return True
+            if u.path == '/api/library':
+                self._json({'projects':workspace.library.list(), 'default_folder':os.path.join(os.path.expanduser('~'),'DX Studio Projects')}); return True
+            if u.path == '/api/library/thumbnail':
+                identifier = parse_qs(u.query).get('id',[''])[0]
+                workspace.library.find(identifier)
+                thumbnail = workspace.thumbnail(identifier)
+                self._send(200 if thumbnail else 404, thumbnail or b'No preview yet', 'image/jpeg' if thumbnail else 'text/plain'); return True
+            return False
+
+        def _library_post(self, u):
+            if not workspace or not u.path.startswith('/api/library/'): return False
+            body = self._body()
+            if u.path == '/api/library/open': editor = workspace.open(body.get('path',''))
+            elif u.path == '/api/library/create': editor = workspace.create(body)
+            elif u.path == '/api/library/forget':
+                workspace.library.forget(body.get('id')); self._json({'ok':True}); return True
+            else: return False
+            self._json({'ok':True,'url':'/project/'+editor.state()['project']['id']+'/'}); return True
+
         def do_GET(self):
             if not self._allowed(): return
             u = urlparse(self.path); q = parse_qs(u.query)
             try:
+                if self._library_get(u): return
+                editor = self._project_editor()
+                u = urlparse(self.path); q = parse_qs(u.query)
                 if u.path == '/': return self._send(200, open(os.path.join(HERE, 'editor.html'), 'rb').read(), 'text/html; charset=utf-8')
+                if u.path == '/editor-bulk.js': return self._send(200, open(os.path.join(HERE, 'editor-bulk.js'), 'rb').read(), 'text/javascript; charset=utf-8')
+                if u.path == '/editor-tools.js': return self._send(200, open(os.path.join(HERE, 'editor-tools.js'), 'rb').read(), 'text/javascript; charset=utf-8')
                 if u.path == '/editor-session.js': return self._send(200, open(os.path.join(HERE, 'editor-session.js'), 'rb').read(), 'text/javascript; charset=utf-8')
-                if u.path == '/frame': return self._send(200, ed.frame(float(q.get('t', ['0'])[0]), min(1.0, max(0.05, float(q.get('s', ['0.45'])[0])))), 'image/jpeg')
-                if u.path == '/api/state': return self._json(ed.open_state())
-                if u.path == '/api/versions': return self._json({'versions': ed.history.list(), 'source_revision': ed.source_revision})
+                if editor is None: return self._send(404,b'Open a project first','text/plain')
+                if u.path == '/frame': return self._send(200, editor.frame(float(q.get('t', ['0'])[0]), min(1.0, max(0.05, float(q.get('s', ['0.45'])[0]))), json.loads(q.get('solo',['[]'])[0])), 'image/jpeg')
+                if u.path == '/api/state': return self._json(editor.open_state())
+                if u.path == '/api/versions': return self._json({'versions': editor.history.list(), 'source_revision': editor.source_revision})
                 if u.path == '/api/hits':
-                    with ed.lock: h = ed.pr.hits(float(q.get('t', ['0'])[0]))
+                    with editor.preview(json.loads(q.get('solo',['[]'])[0])): h = editor.pr.hits(float(q.get('t', ['0'])[0]))
                     return self._json(h)
                 if u.path == '/api/status':
-                    return self._json({'audio_version': ed.audio_version, 'audio_busy': ed.audio_busy, 'build': ed.build})
-                if u.path.startswith('/thumb/'): return self._send(200, ed.thumb(unquote(u.path[7:])), 'image/png', {'Cache-Control': 'max-age=3600'})
-                if u.path == '/audio': return self._file(ed.audio_path, 'audio/wav')
-                if u.path == '/video': return self._file(ed.pr.output, 'video/mp4')
+                    return self._json({'audio_version': editor.audio_version, 'audio_busy': editor.audio_busy, 'build': editor.build})
+                if u.path.startswith('/thumb/'): return self._send(200, editor.thumb(unquote(u.path[7:])), 'image/png', {'Cache-Control': 'max-age=3600'})
+                if u.path == '/audio': return self._file(editor.audio_path, 'audio/wav')
+                if u.path == '/video': return self._file(editor.pr.output, 'video/mp4')
                 self._send(404, b'not found', 'text/plain')
             except (BrokenPipeError, ConnectionResetError): pass
+            except (ValueError, FileNotFoundError) as e: self._json({'ok':False,'error':str(e)},400)
             except Exception as e:
                 import traceback; traceback.print_exc()
                 self._send(500, f'{type(e).__name__}: {e}'.encode(), 'text/plain')
@@ -223,43 +288,46 @@ def make_handler(ed):
             if not self._allowed(mutation=True): return
             try: size = int(self.headers.get('Content-Length', '0'))
             except ValueError: return self._json({'ok':False, 'error':'Invalid Content-Length'}, 400)
-            limit = 256*1024*1024 if urlparse(self.path).path == '/api/upload' else 4*1024*1024
+            limit = 256*1024*1024 if urlparse(self.path).path.endswith('/api/upload') else 4*1024*1024
             if size < 0 or size > limit: return self._json({'ok':False, 'error':'Request too large'}, 413)
             u = urlparse(self.path)
             try:
+                if self._library_post(u): return
+                editor = self._project_editor(); u = urlparse(self.path)
+                if editor is None: return self._json({'ok':False,'error':'Open a project first'},404)
                 if u.path == '/api/preview':
-                    ed.apply(self._body())
-                    return self._json({'ok': True, 'layers': ed.pr.layer_meta, 'layout': ed.pr.layout, 'layer_defaults': ed.pr.defaults.get('__layers', {})})
+                    editor.apply(self._body())
+                    return self._json({'ok': True, 'layers': editor.pr.layer_meta, 'layout': editor.pr.layout, 'layer_defaults': editor.pr.defaults.get('__layers', {})})
                 if u.path == '/api/upload':
                     q = parse_qs(u.query); n = int(self.headers.get('Content-Length', 0)); data = self.rfile.read(n)
                     name = unquote(q.get('name', ['file'])[0]); t = float(q.get('t', ['0'])[0])
                     ctr = (float(q['x'][0]), float(q['y'][0])) if 'x' in q else None
-                    with ed.lock:
-                        item = ed.pr.media.import_file(name, data, t, ctr)
-                        vals = copy.deepcopy(ed.pr.values); vals['__media'] = vals.get('__media', []) + [item]
-                        ed.pr.apply(vals)
-                    return self._json({'ok': True, 'id': item['id'], 'state': ed.state()})
+                    with editor.lock:
+                        item = editor.pr.media.import_file(name, data, t, ctr)
+                        vals = copy.deepcopy(editor.pr.values); vals['__media'] = vals.get('__media', []) + [item]
+                        editor.pr.apply(vals)
+                    return self._json({'ok': True, 'id': item['id'], 'state': editor.state()})
                 if u.path == '/api/save':
                     body = self._body()
                     if 'revision' in body and 'values' in body:
                         if not isinstance(body['revision'], str): raise ValueError('A saved project revision is required')
-                        return self._json(ed.save(body['values'], body['revision'], autosave=bool(body.get('autosave'))))
-                    return self._json(ed.save(body))
+                        return self._json(editor.save(body['values'], body['revision'], autosave=bool(body.get('autosave'))))
+                    return self._json(editor.save(body))
                 if u.path == '/api/versions/create':
                     body = self._body()
                     if not isinstance(body.get('revision'), str): raise ValueError('A saved project revision is required')
-                    return self._json({'ok': True, 'version': ed.version(body.get('name'), body['revision'])})
+                    return self._json({'ok': True, 'version': editor.version(body.get('name'), body['revision'])})
                 if u.path == '/api/versions/restore':
                     body = self._body()
                     if not isinstance(body.get('revision'), str): raise ValueError('A saved project revision is required')
-                    return self._json(ed.restore(body.get('id'), body['revision']))
-                if u.path == '/api/revert': ed.apply(copy.deepcopy(ed.saved)); return self._json({'values': ed.pr.values})
-                if u.path == '/api/reset': ed.apply(copy.deepcopy(ed.pr.defaults)); return self._json({'values': ed.pr.values})
+                    return self._json(editor.restore(body.get('id'), body['revision']))
+                if u.path == '/api/revert': editor.apply(copy.deepcopy(editor.saved)); return self._json({'values': editor.pr.values})
+                if u.path == '/api/reset': editor.apply(copy.deepcopy(editor.pr.defaults)); return self._json({'values': editor.pr.values})
                 if u.path == '/api/build':
                     body = self._body()
-                    if 'revision' in body and 'values' in body: ed.start_build(body['values'], body['revision'])
-                    else: ed.start_build(body)
-                    return self._json({'ok': True, 'revision': ed.revision})
+                    if 'revision' in body and 'values' in body: editor.start_build(body['values'], body['revision'])
+                    else: editor.start_build(body)
+                    return self._json({'ok': True, 'revision': editor.revision})
                 self._send(404, b'not found', 'text/plain')
             except Exception as e:
                 from .history import SaveConflict
@@ -269,18 +337,17 @@ def make_handler(ed):
                 self._json({'ok': False, 'error': f'{type(e).__name__}: {e}'}, 500)
     return H
 
-def serve(path, port=None, open_browser=None):
-    ed = Editor(path)
-    if ed.has_audio() and not os.path.exists(ed.audio_path):
-        print('Preparing preview audio (first run only)…', flush=True)
-        subprocess.run([sys.executable, '-m', 'dx_studio', 'audio', ed.pr.path], cwd=KIT_ROOT, env=ed.env(), stdout=subprocess.DEVNULL)
+def serve(path=None, port=None, open_browser=None):
+    from .library import Workspace
+    workspace = Workspace()
+    ed = workspace.open(path) if path else None
     port = port or int(os.environ.get('EDITOR_PORT', '8765')); srv = None
     for p in range(port, port+10):
-        try: srv = ThreadingHTTPServer(('127.0.0.1', p), make_handler(ed)); break
+        try: srv = ThreadingHTTPServer(('127.0.0.1', p), make_handler(ed, workspace)); break
         except OSError: continue
     if srv is None: sys.exit(f'No free port between {port} and {port+9}')
     url = f'http://localhost:{p}'
-    print(f'Editing "{ed.pr.name}" at {url}   (Ctrl+C to stop)', flush=True)
+    print((f'Editing {ed.pr.name}' if ed else 'DX Studio projects') + f' at {url}   (Ctrl+C to stop)', flush=True)
     if open_browser if open_browser is not None else not os.environ.get('NO_BROWSER'):
         threading.Timer(0.8, lambda: webbrowser.open(url)).start()
     try: srv.serve_forever()

@@ -19,11 +19,15 @@ promises. Current capabilities and limits are in [README.md](../README.md).
 
 ## Development progress toward v0.5.0
 
-- **F01, saving foundation:** autosave, browser draft recovery and named editable-setting
-  versions are implemented on `feat/project-recovery` for review. Automatic backups,
-  restore safeguards and stale-save protection are included. See [saving and recovery](SAVING.md).
-- The recent-project home and project thumbnails portion of F01 remains planned.
-- Next: project navigation, then faster timeline/layer editing (F02).
+- **F01, saving and project home:** autosave, browser draft recovery, named setting
+  versions, automatic backups and stale-save protection are implemented. The project
+  home adds creation, folder opening, searchable recents and thumbnails. See
+  [saving and recovery](SAVING.md) and [workspace controls](WORKSPACE.md).
+- **F02, everyday layer editing:** search, renaming, multi-selection, bulk movement
+  and timing, lock/solo, alignment, distribution and snapping controls are implemented.
+  This is a first increment; richer clip trimming/splitting and grouping remain planned.
+- These changes are development work toward v0.5.0. The published v0.1.0 assets
+  remain available unchanged.
 
 ## Recommended sequence
 
