@@ -14,6 +14,11 @@
 - Nested layer retiming and snapping respect parent timing without applying shifts twice.
 
 
+- Media library with search/type/usage filters, metadata, thumbnails and reusable imports.
+- Replace or relink imported media while keeping layer edits; sources remain available for undo and saved versions.
+- Source-aware video/audio caches and graphics-safe placement for new imported media.
+- Missing-media placeholders and actionable file preflight before editor or CLI exports.
+
 ## 0.1.0 — 2026-10-17
 
 Initial public release of DX Studio (DesignXstream) and DX Editor.

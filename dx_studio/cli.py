@@ -51,6 +51,8 @@ def cmd_audio(path, pr=None):
 def cmd_build(path):
     from . import audio
     t0 = time.time(); pr = _project(path)
+    from .preflight import require_ready
+    require_ready(pr)
     bdir = os.path.join(pr.path, '.build'); os.makedirs(bdir, exist_ok=True)
     print('mixing audio…', flush=True)
     raw = cmd_audio(path, pr)
@@ -65,6 +67,9 @@ def cmd_build(path):
 
 def cmd_check(path):
     pr = _project(path)
+    from .preflight import require_ready
+    report = require_ready(pr)
+    for finding in report['findings']: print('warning:',finding['message'])
     kinds = {}
     for e in pr.schema: kinds[e['type']] = kinds.get(e['type'], 0)+1
     print(f"{pr.name}: {pr.width}x{pr.height} @ {pr.fps} fps, {pr.duration:.1f} s")

@@ -25,7 +25,8 @@ adjust the timing in DX Editor, then rebuild from the same source.
 
 Development toward **v0.5** adds a [project home and bulk layer tools](docs/WORKSPACE.md):
 create or reopen projects, search and rename layers, select several at once, lock,
-solo, align and space them. These additions are in the current source; the
+solo, align and space them. A [media library](docs/MEDIA.md) adds reusable imports,
+replacement, relinking and file checks before export. These additions are in the current source; the
 [published v0.1.0](https://github.com/joyjophin/dx-studio/releases/tag/v0.1.0) downloads
 remain the initial release.
 

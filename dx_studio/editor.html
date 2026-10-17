@@ -37,6 +37,7 @@
   .safe{position:absolute;inset:0;pointer-events:none;display:none} .safe div{position:absolute;border:1.5px dashed rgba(120,70,235,.6);border-radius:4px}
   .stagebar{position:absolute;top:14px;right:16px;display:flex;gap:6px;z-index:2}
   aside{background:var(--panel);border-left:1px solid var(--line);display:flex;flex-direction:column;min-height:0}
+  .asset-card{display:flex;flex-direction:column;gap:6px;padding:12px;margin:10px 0;border:1px solid var(--line);border-radius:12px;overflow-wrap:anywhere}.asset-thumb{width:100%;height:130px;object-fit:contain;background:#f4f3fa;border-radius:8px}.asset-card .sub{margin:0}#mediaStatus{margin:10px 0}
   .tabs{display:flex;gap:2px;padding:8px 10px 0;border-bottom:1px solid var(--line);overflow-x:auto}
   .tab{border:none;background:none;padding:9px 11px 10px;color:var(--muted);font-weight:600;border-bottom:2px solid transparent;margin-bottom:-1px;white-space:nowrap}
   .tab.on{color:var(--vio);border-bottom-color:var(--vio)}
@@ -238,9 +239,13 @@
   <div class="row" style="justify-content:flex-end;margin-top:20px"><button class="btn" id="confirmCancel">Cancel</button><button class="btn primary" id="confirmAccept">Continue</button></div>
 </dialog>
 
+<input type="file" id="libraryFile" accept="image/png,image/jpeg,image/webp,image/gif,video/mp4,video/quicktime,video/webm,.m4v" multiple hidden>
+<dialog id="relinkDialog"><h2>Relink media</h2><p class="sub" id="relinkMessage"></p><label for="relinkPath">Full path to the replacement file</label><input class="txt" id="relinkPath" placeholder="/path/to/your/footage.mp4"><div class="kbar"><button class="btn" id="relinkCancel">Cancel</button><button class="btn primary" id="relinkApply">Copy and relink</button></div></dialog>
+<dialog id="preflightDialog"><h2 id="preflightTitle">Export file check</h2><div id="preflightList"></div><button class="btn" id="preflightClose">Close</button></dialog>
 <script src="/editor-session.js"></script>
 <script src="/editor-tools.js"></script>
 <script src="/editor-bulk.js"></script>
+<script src="/editor-media.js"></script>
 <script>
 let LAY = [], selLayer = null, HITS = [];
 const SELECTED = new Set(), SOLO = new Set(); let PENDING_MULTI = []; let layerSearch = '', alignTarget = 'selection';
@@ -285,7 +290,7 @@ let pushTimer = null, pushBusy = false, pushAgain = false;
 async function pushNow() {
   if (pushBusy) { pushAgain = true; return; }
   pushBusy = true; pushAgain = false;
-  try { const r = await api('/api/preview', V); if (r.layout) { PJ.layout = r.layout; drawSafetyGuides(); } if (r && r.layers && JSON.stringify(r.layers) !== JSON.stringify(LAY)) { LAY = r.layers; D.__layers = r.layer_defaults; for (const m of LAY) if (!V.__layers[m.id] && r.layer_defaults[m.id]) V.__layers[m.id] = clone(r.layer_defaults[m.id]); renderLayerRows(); renderLayerTree(); if (selLayer && !LM(selLayer)) { selLayer = null; fillInspector(); } } if (PENDING_SELECT && LM(PENDING_SELECT)) { const id = PENDING_SELECT; PENDING_SELECT = null; selectLayer(id, false); } } catch (e) { showErr(e.message || 'Could not update preview'); }
+  try { const r = await api('/api/preview', V); if(r.has_audio!==undefined){HAS_AUDIO=r.has_audio;if(HAS_AUDIO&&!audio.src)audio.src=projectURL('/audio?v=')+audioVer;} if (r.layout) { PJ.layout = r.layout; drawSafetyGuides(); } if (r && r.layers && JSON.stringify(r.layers) !== JSON.stringify(LAY)) { LAY = r.layers; D.__layers = r.layer_defaults; for (const m of LAY) if (!V.__layers[m.id] && r.layer_defaults[m.id]) V.__layers[m.id] = clone(r.layer_defaults[m.id]); renderLayerRows(); renderLayerTree(); if (selLayer && !LM(selLayer)) { selLayer = null; fillInspector(); } else if(document.activeElement?.getAttribute('aria-label')!=='Layer name') fillInspector(); } if (PENDING_SELECT && LM(PENDING_SELECT)) { const id = PENDING_SELECT; PENDING_SELECT = null; selectLayer(id, false); } } catch (e) { showErr(e.message || 'Could not update preview'); }
   pushBusy = false; ver++; requestFrame(); if (LAY.length) overlaySoon();
   if (PENDING_MULTI.length && PENDING_MULTI.every(id=>LM(id))) { SELECTED.clear(); for(const id of PENDING_MULTI) SELECTED.add(id); selLayer=PENDING_MULTI.at(-1); PENDING_MULTI=[]; selectionRefresh(); }
   if (pushAgain) pushNow();
@@ -490,13 +495,15 @@ const PANEL_NOTE = {
   Text: 'On-screen text. Words that are also spoken stay as recorded, so keep them in sync with the narration. Clicking a field jumps to where it appears.',
   Colours: 'Tints, shadows and backgrounds derived from these colours update with them.',
 };
-function panels() { const out = []; for (const e of SCH) if (!out.includes(e.panel)) out.push(e.panel); return out; }
+function panels() { const out = []; for (const e of SCH) if (!out.includes(e.panel)) out.push(e.panel); out.splice(Math.max(0,out.indexOf('Layers')+1),0,'Media'); return out; }
 function buildPanels() {
   const T = $('#tabs'), P = $('#panes'); T.innerHTML = ''; P.innerHTML = '';
-  panels().forEach((name, n) => {
+  const names=panels();
+  names.forEach((name, n) => {
     const b = el('button', 'tab' + (n ? '' : ' on')); b.textContent = name; b.dataset.p = name; T.appendChild(b);
     const pane = el('div', 'pane' + (n ? '' : ' on')); pane.dataset.p = name; P.appendChild(pane);
     b.onclick = () => { b.scrollIntoView({block:'nearest',inline:'nearest'}); document.querySelectorAll('.tab').forEach(x => x.classList.toggle('on', x === b)); document.querySelectorAll('.pane').forEach(x => x.classList.toggle('on', x === pane)); updatePin(); if (LAY.length) drawOverlay(); };
+    if (name === 'Media') { pane.appendChild(mediaPanel()); return; }
     if (PANEL_NOTE[name]) pane.appendChild(el('p', 'note', PANEL_NOTE[name]));
     if (name === 'Composition' && !PJ.composition_supported) pane.appendChild(el('p','warn','This custom scene shows guides only. Ask your assistant to adapt its setup() to project.layout before relying on automatic reflow.'));
     let group = null;
@@ -786,6 +793,10 @@ async function uploadFiles(files, pos) {
   if (!lastId) return;
   buildTimeline(); rebuildAll(); markDirty(); commitHistory(); selectLayer(lastId, true);
 }
+$('#libraryFile').onchange=e=>{importLibraryFiles([...e.target.files]);e.target.value='';};
+$('#relinkCancel').onclick=()=>$('#relinkDialog').close();
+$('#relinkApply').onclick=relinkMedia;
+$('#preflightClose').onclick=()=>$('#preflightDialog').close();
 $('#bMedia').onclick = () => $('#mediaFile').click();
 $('#mediaFile').onchange = e => { uploadFiles([...e.target.files]); e.target.value = ''; };
 frame.addEventListener('dragover', e => { e.preventDefault(); frame.classList.add('dropping'); });
@@ -795,6 +806,7 @@ function mediaItem(id) { return (V.__media || []).find(m => m.id === id); }
 function mediaSection(I, id) {
   const it = mediaItem(id); if (!it) return;
   I.appendChild(el('h3', null, 'Media file'));
+  addMediaSourceActions(I,id);
   I.appendChild(el('div', 'sub', `${esc(it.name)} · ${it.kind.toUpperCase()}`));
   const chk = (label, key) => { const f = el('div', 'field'), c = el('input'); c.type = 'checkbox'; c.checked = !!it[key]; c.onchange = () => { it[key] = c.checked; changed(true); }; f.append(el('label', null, label), c); I.appendChild(f); };
   if (it.kind !== 'image') chk('Loop', 'loop');
@@ -1043,7 +1055,7 @@ $('#bReset').onclick = async () => {
 };
 $('#bBuild').onclick = async () => {
   try {
-  if (playing) pause(); await session.flush(); await api('/api/build', {values:clone(V), revision:session.revision});
+  if (playing) pause(); await session.flush(); const report=await api('/api/preflight');if(!report.ok){showPreflight(report);return;} await api('/api/build', {values:clone(V), revision:session.revision});
   $('#modal').classList.add('on'); $('#mTitle').textContent = 'Building video…'; $('#mOpen').style.display = $('#mClose').style.display = 'none';
   $('#mSub').textContent = `Mixing audio and rendering ${Math.round(DUR * FPS).toLocaleString()} frames. This takes a minute or two.`;
   } catch (error) { showErr(error.message); }

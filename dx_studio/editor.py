@@ -162,7 +162,10 @@ class Editor:
     def start_build(self, values=None, revision=None):
         b = self.build
         if b['running']: return
-        self.save(values, revision); n = int(round(self.pr.duration*self.pr.fps))
+        self.save(values, revision)
+        from .preflight import require_ready
+        with self.lock: require_ready(self.pr)
+        n = int(round(self.pr.duration*self.pr.fps))
         b.update(running=True, progress=0.0, log=[], done=False, ok=None)
         def run():
             p = subprocess.Popen([sys.executable, '-m', 'dx_studio', 'build', self.pr.path], cwd=KIT_ROOT, env=self.env(),
@@ -263,12 +266,21 @@ def make_handler(ed=None, workspace=None):
                 editor = self._project_editor()
                 u = urlparse(self.path); q = parse_qs(u.query)
                 if u.path == '/': return self._send(200, open(os.path.join(HERE, 'editor.html'), 'rb').read(), 'text/html; charset=utf-8')
+                if u.path == '/editor-media.js': return self._send(200, open(os.path.join(HERE, 'editor-media.js'), 'rb').read(), 'text/javascript; charset=utf-8')
                 if u.path == '/editor-bulk.js': return self._send(200, open(os.path.join(HERE, 'editor-bulk.js'), 'rb').read(), 'text/javascript; charset=utf-8')
                 if u.path == '/editor-tools.js': return self._send(200, open(os.path.join(HERE, 'editor-tools.js'), 'rb').read(), 'text/javascript; charset=utf-8')
                 if u.path == '/editor-session.js': return self._send(200, open(os.path.join(HERE, 'editor-session.js'), 'rb').read(), 'text/javascript; charset=utf-8')
                 if editor is None: return self._send(404,b'Open a project first','text/plain')
                 if u.path == '/frame': return self._send(200, editor.frame(float(q.get('t', ['0'])[0]), min(1.0, max(0.05, float(q.get('s', ['0.45'])[0]))), json.loads(q.get('solo',['[]'])[0])), 'image/jpeg')
                 if u.path == '/api/state': return self._json(editor.open_state())
+                if u.path == '/api/media':
+                    with editor.lock: return self._json({'assets':editor.pr.media.catalog()})
+                if u.path == '/api/preflight':
+                    from .preflight import inspect_project
+                    with editor.lock: return self._json(inspect_project(editor.pr))
+                if u.path == '/api/media/thumbnail':
+                    with editor.lock: data = editor.pr.media.thumbnail(q.get('file',[''])[0])
+                    return self._send(200,data,'image/jpeg')
                 if u.path == '/api/versions': return self._json({'versions': editor.history.list(), 'source_revision': editor.source_revision})
                 if u.path == '/api/hits':
                     with editor.preview(json.loads(q.get('solo',['[]'])[0])): h = editor.pr.hits(float(q.get('t', ['0'])[0]))
@@ -297,13 +309,26 @@ def make_handler(ed=None, workspace=None):
                 if editor is None: return self._json({'ok':False,'error':'Open a project first'},404)
                 if u.path == '/api/preview':
                     editor.apply(self._body())
-                    return self._json({'ok': True, 'layers': editor.pr.layer_meta, 'layout': editor.pr.layout, 'layer_defaults': editor.pr.defaults.get('__layers', {})})
+                    return self._json({'ok': True, 'layers': editor.pr.layer_meta, 'layout': editor.pr.layout, 'layer_defaults': editor.pr.defaults.get('__layers', {}), 'has_audio':editor.has_audio()})
+                if u.path == '/api/media/prepare':
+                    body = self._body()
+                    with editor.lock: item = editor.pr.media.item_for(body.get('file',''),float(body.get('t',0)))
+                    return self._json({'ok':True,'item':item})
+                if u.path == '/api/media/relink':
+                    from pathlib import Path
+                    body = self._body(); source = Path(body.get('path','')).expanduser().resolve()
+                    from .media import kind_of
+                    if not kind_of(source.name): raise ValueError('Choose an image, GIF or video file')
+                    if source.stat().st_size > 256*1024*1024: raise ValueError('Use a file smaller than 256 MB')
+                    with editor.lock: item = editor.pr.media.import_file(source.name,source.read_bytes(),float(body.get('t',0)))
+                    return self._json({'ok':True,'item':item})
                 if u.path == '/api/upload':
                     q = parse_qs(u.query); n = int(self.headers.get('Content-Length', 0)); data = self.rfile.read(n)
                     name = unquote(q.get('name', ['file'])[0]); t = float(q.get('t', ['0'])[0])
                     ctr = (float(q['x'][0]), float(q['y'][0])) if 'x' in q else None
                     with editor.lock:
                         item = editor.pr.media.import_file(name, data, t, ctr)
+                        if q.get('library',['0'])[0]=='1': return self._json({'ok':True,'item':item})
                         vals = copy.deepcopy(editor.pr.values); vals['__media'] = vals.get('__media', []) + [item]
                         editor.pr.apply(vals)
                     return self._json({'ok': True, 'id': item['id'], 'state': editor.state()})
@@ -332,7 +357,7 @@ def make_handler(ed=None, workspace=None):
             except Exception as e:
                 from .history import SaveConflict
                 if isinstance(e, SaveConflict): return self._json({'ok': False, 'error': str(e), 'conflict': True}, 409)
-                if isinstance(e, ValueError): return self._json({'ok': False, 'error': str(e)}, 400)
+                if isinstance(e, (ValueError, FileNotFoundError)): return self._json({'ok': False, 'error': str(e)}, 400)
                 import traceback; traceback.print_exc()
                 self._json({'ok': False, 'error': f'{type(e).__name__}: {e}'}, 500)
     return H
