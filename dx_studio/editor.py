@@ -266,6 +266,7 @@ def make_handler(ed=None, workspace=None):
                 editor = self._project_editor()
                 u = urlparse(self.path); q = parse_qs(u.query)
                 if u.path == '/': return self._send(200, open(os.path.join(HERE, 'editor.html'), 'rb').read(), 'text/html; charset=utf-8')
+                if u.path == '/editor-audio.js': return self._send(200, open(os.path.join(HERE, 'editor-audio.js'), 'rb').read(), 'text/javascript; charset=utf-8')
                 if u.path == '/editor-media.js': return self._send(200, open(os.path.join(HERE, 'editor-media.js'), 'rb').read(), 'text/javascript; charset=utf-8')
                 if u.path == '/editor-bulk.js': return self._send(200, open(os.path.join(HERE, 'editor-bulk.js'), 'rb').read(), 'text/javascript; charset=utf-8')
                 if u.path == '/editor-tools.js': return self._send(200, open(os.path.join(HERE, 'editor-tools.js'), 'rb').read(), 'text/javascript; charset=utf-8')
@@ -273,6 +274,11 @@ def make_handler(ed=None, workspace=None):
                 if editor is None: return self._send(404,b'Open a project first','text/plain')
                 if u.path == '/frame': return self._send(200, editor.frame(float(q.get('t', ['0'])[0]), min(1.0, max(0.05, float(q.get('s', ['0.45'])[0]))), json.loads(q.get('solo',['[]'])[0])), 'image/jpeg')
                 if u.path == '/api/state': return self._json(editor.open_state())
+                if u.path == '/api/waveform':
+                    from .waveform import cached_peaks
+                    if editor.audio_busy: return self._json({'ready':False,'message':'Preparing preview audio…'})
+                    try: return self._json(cached_peaks(editor.audio_path))
+                    except (OSError,RuntimeError): return self._json({'ready':False,'message':'Preview audio is being updated. Try again shortly.'})
                 if u.path == '/api/media':
                     with editor.lock: return self._json({'assets':editor.pr.media.catalog()})
                 if u.path == '/api/preflight':

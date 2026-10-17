@@ -31,6 +31,9 @@ promises. Current capabilities and limits are in [README.md](../README.md).
 - **X01, initial file preflight:** missing/unreadable imported media and configured
   audio files are checked before export. Frame analysis and broader quality checks
   remain planned. See [media and file checks](MEDIA.md).
+- **V01, listening foundation:** preview-mix waveforms, playback speed, monitor
+  volume/mute and loopable audition ranges are implemented. Recording, take management
+  and transcript editing remain planned. See [audio workspace](AUDIO_WORKSPACE.md).
 - These changes are development work toward v0.5.0. The published v0.1.0 assets
   remain available unchanged.
 
