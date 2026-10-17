@@ -149,22 +149,33 @@
   .safe .guide.presenter{border:2px dashed #D46B26;background:repeating-linear-gradient(135deg,rgba(212,107,38,.12) 0 8px,rgba(212,107,38,.04) 8px 16px)}
   .safe .guide span{display:inline-block;margin:5px;padding:3px 7px;background:#fff;color:#182126;font-size:11px;line-height:1.3;border-radius:4px;white-space:nowrap}
   .composition-summary{font-size:12px;color:var(--muted);line-height:1.6;padding:10px;background:var(--soft);border-radius:8px;margin-top:12px}
+  header{flex-wrap:wrap;padding:10px 18px;gap:8px}
+  .app{grid-template-rows:auto auto minmax(0,1fr) auto}
+  .recovery-bar{display:flex;gap:12px;align-items:center;padding:9px 18px;background:#FFF4E8;border-bottom:1px solid #F4D6BC;font-size:12px}
+  .recovery-bar[hidden]{display:none}.recovery-bar span{flex:1}
+  .history-dialog{width:min(620px,calc(100vw - 40px));max-height:85vh;border:1px solid var(--line);border-radius:16px;padding:24px;color:var(--ink);box-shadow:0 20px 80px #18212630}
+  .history-dialog::backdrop{background:#18212666}.history-dialog h2{margin:0 0 8px;font-size:20px}
+  .version-list{margin-top:16px;max-height:42vh;overflow:auto}.version-row{display:flex;gap:12px;align-items:center;border-top:1px solid var(--line);padding:12px 0}
+  .version-row .details{flex:1;min-width:0;overflow-wrap:anywhere}.version-row small{display:block;color:var(--muted);margin-top:4px}
+  .history-message{min-height:20px;color:var(--warn);font-size:12px;margin:10px 0}
+  :focus-visible{outline:2px solid var(--vio);outline-offset:3px}
 </style>
 </head>
 <body>
 <div class="app">
   <header>
     <span class="brandmark">DX STUDIO</span><h1 id="pname">Untitled project</h1><span class="sub">DX Editor</span>
-    <span id="dirty" class="pill">All changes saved</span>
+    <span id="dirty" class="pill" role="status" aria-live="polite">All changes saved</span>
     <span id="audioState" class="pill" style="display:none">Updating sounds…</span>
     <div class="spacer"></div>
     <button class="btn" id="bUndo" title="Undo (⌘Z)" disabled>↶ Undo</button>
     <button class="btn" id="bRedo" title="Redo (⇧⌘Z)" disabled>↷ Redo</button>
     <button class="btn ghost" id="bReset" title="Go back to the project's original values">Reset to original</button>
-    <button class="btn" id="bRevert" title="Throw away unsaved changes">Revert</button>
-    <button class="btn" id="bSave" title="Save (⌘S)">Save</button>
+    <button class="btn" id="bVersions" title="Save and restore named versions">Versions</button>
+    <button class="btn" id="bSave" title="Save immediately (⌘S). Changes also autosave.">Save now</button>
     <button class="btn primary" id="bBuild">Build video</button>
   </header>
+  <div class="recovery-bar" id="recoveryBar" hidden><span id="recoverySummary"></span><button class="btn small" id="bRecovery">Review drafts</button><button class="btn small" id="bReload" hidden>Reload saved project</button></div>
   <main>
     <div class="stage">
       <div class="stagebar"><button class="btn small" id="bComposition">Presenter layout</button><button class="btn small" id="bSafe" aria-pressed="false">Safe zones</button></div>
@@ -210,7 +221,24 @@
     <button class="btn primary" id="mClose" style="display:none">Close</button>
   </div>
 </div></div>
+<dialog class="history-dialog" id="versionsDialog" aria-labelledby="versionsTitle">
+  <h2 id="versionsTitle">Project versions</h2>
+  <p class="sub">Changes save automatically. Named versions keep editable text, captions, layout and timing. Scene code and source media are not copied.</p>
+  <form id="versionForm" class="row"><input class="txt" id="versionName" aria-label="Version name" placeholder="e.g. Before sponsor changes" maxlength="120" required><button class="btn primary" id="bVersionCreate">Save version</button></form>
+  <p class="history-message" id="versionsMessage" role="status"></p><div class="version-list" id="versionsList"></div>
+  <div class="row" style="justify-content:flex-end;margin-top:14px"><button class="btn" id="bVersionsClose">Close</button></div>
+</dialog>
+<dialog class="history-dialog" id="recoveryDialog" aria-labelledby="recoveryTitle">
+  <h2 id="recoveryTitle">Recover browser drafts</h2><p class="sub">These edits did not finish saving to the project. Recover a draft or download a copy before discarding it. Recovery keeps a backup of the current saved project.</p>
+  <p class="history-message" id="recoveryMessage" role="status"></p><div class="version-list" id="recoveryList"></div>
+  <div class="row" style="justify-content:flex-end;margin-top:14px"><button class="btn" id="bRecoveryClose">Keep current project</button></div>
+</dialog>
+<dialog class="history-dialog" id="confirmDialog" aria-labelledby="confirmTitle">
+  <h2 id="confirmTitle">Confirm change</h2><p id="confirmText"></p>
+  <div class="row" style="justify-content:flex-end;margin-top:20px"><button class="btn" id="confirmCancel">Cancel</button><button class="btn primary" id="confirmAccept">Continue</button></div>
+</dialog>
 
+<script src="/editor-session.js"></script>
 <script>
 let LAY = [], selLayer = null, HITS = [];
 let PJ, SCH, V, SAVED, D, CAPS, STK, BASE, DUR, FPS = 30, HAS_AUDIO = false;
@@ -218,6 +246,7 @@ let t = 0, playing = false, playT0 = 0, playStart = 0, ver = 0, audioVer = 0;
 let selClip = null;      // {key, i}
 let selTime = null;      // time-param key
 let place = null;        // {kind:'param', key} | {kind:'clip', key, i, field}
+let session = null, pendingDrafts = [];
 const $ = s => document.querySelector(s), el = (tag, cls, html) => { const e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; };
 const img = $('#img'), frame = $('#frame'), audio = new Audio(); audio.preload = 'auto';
 const clone = o => JSON.parse(JSON.stringify(o)), r2 = v => Math.round(v * 100) / 100, snap = v => Math.round(v * 20) / 20;
@@ -227,7 +256,7 @@ const S = k => SCH.find(e => e.key === k);
 function showErr(m) { const e = $('#err'); e.textContent = m; e.style.display = 'block'; clearTimeout(showErr.t); showErr.t = setTimeout(() => e.style.display = 'none', 6000); }
 async function api(path, body) {
   const r = await fetch(path, body === undefined ? {} : {method: 'POST', headers: {'Content-Type': 'application/json', 'X-DX-Studio-Client': '1'}, body: JSON.stringify(body)});
-  const j = await r.json(); if (!r.ok) throw new Error(j.error || `Request failed (${r.status})`); if (j && j.ok === false) showErr(j.error || 'Something went wrong'); return j;
+  const j = await r.json(); if (!r.ok || j.ok === false) { const error = new Error(j.error || `Request failed (${r.status})`); error.status = r.status; throw error; } return j;
 }
 
 // ---------------------------------------------------------------- preview
@@ -256,7 +285,7 @@ async function pushNow() {
   if (pushAgain) pushNow();
 }
 function changed(immediate) { const d0 = DUR; syncTimeline(); if (Math.abs(DUR - d0) > 1e-6) relayoutTimeline(); markDirty(); clearTimeout(pushTimer); pushTimer = setTimeout(pushNow, immediate ? 0 : 90); if (!APPLYING) historySoon(immediate); }
-function markDirty() { const d = !same(V, SAVED); const p = $('#dirty'); p.textContent = d ? 'Unsaved changes' : 'All changes saved'; p.classList.toggle('dirty', d); }
+function markDirty() { if (session) session.changed(V); }
 
 // ---------------------------------------------------------------- time & playback
 const clampT = v => Math.max(0, Math.min(DUR - 0.02, v));
@@ -734,6 +763,7 @@ function syncCapEditor() { CAPSYNC && CAPSYNC(); }
 // ---------------------------------------------------------------- media (images, GIFs, videos as layers)
 function applyState(st) {
   PJ = st.project; SCH = st.schema; LAY = st.layers || []; V = st.values; D = st.defaults; STK = st.stickers; HAS_AUDIO = st.has_audio;
+  CAPS = st.captions; BASE = PJ.base_duration || PJ.duration; FPS = PJ.fps;
   if (HAS_AUDIO && !audio.src) audio.src = '/audio?v=' + audioVer;
 }
 async function uploadFiles(files, pos) {
@@ -986,15 +1016,121 @@ $('#bUndo').onclick = undo; $('#bRedo').onclick = redo;
 
 // ---------------------------------------------------------------- header actions
 function rebuildAll() { const at = (document.querySelector('.tab.on') || {}).dataset?.p; buildPanels(); const tb = [...document.querySelectorAll('.tab')].find(x => x.dataset.p === at); if (tb) tb.click(); buildLanes(); if (LAY.length) { renderLayerTree(); fillInspector(); } markDirty(); updatePin(); ver++; requestFrame(); }
-$('#bSave').onclick = async () => { clearTimeout(pushTimer); await api('/api/save', V); SAVED = clone(V); markDirty(); };
-$('#bRevert').onclick = async () => { commitHistory(); const r = await api('/api/revert', {}); V = r.values; selClip = null; place = null; rebuildAll(); commitHistory(); };
-$('#bReset').onclick = async () => { if (!confirm('Reset everything to the original version? Nothing is saved until you press Save.')) return; commitHistory(); const r = await api('/api/reset', {}); V = r.values; selClip = null; place = null; rebuildAll(); commitHistory(); };
+function confirmChange(message, action) {
+  return new Promise(resolve => {
+    const dialog = $('#confirmDialog'); dialog.returnValue = ''; $('#confirmText').textContent = message; $('#confirmAccept').textContent = action;
+    dialog.onclose = () => resolve(dialog.returnValue === 'accept');
+    $('#confirmCancel').onclick = () => dialog.close('cancel'); $('#confirmAccept').onclick = () => dialog.close('accept');
+    dialog.showModal(); $('#confirmCancel').focus();
+  });
+}
+$('#bSave').onclick = async () => { try { await session.flush(); toast('All changes saved'); } catch (error) { showErr(error.message); } };
+$('#bReset').onclick = async () => {
+  if (!await confirmChange('Reset editable settings to the original values? A version of your current settings will be kept.', 'Reset settings')) return;
+  try { await session.flush(); await api('/api/versions/create', {name:'Before resetting to original', revision:session.revision}); commitHistory(); V = clone(D); selClip = null; place = null; rebuildAll(); commitHistory(); }
+  catch (error) { showErr(error.message); }
+};
 $('#bBuild').onclick = async () => {
-  if (playing) pause(); clearTimeout(pushTimer); await api('/api/build', V); SAVED = clone(V); markDirty();
+  try {
+  if (playing) pause(); await session.flush(); await api('/api/build', {values:clone(V), revision:session.revision});
   $('#modal').classList.add('on'); $('#mTitle').textContent = 'Building video…'; $('#mOpen').style.display = $('#mClose').style.display = 'none';
   $('#mSub').textContent = `Mixing audio and rendering ${Math.round(DUR * FPS).toLocaleString()} frames. This takes a minute or two.`;
+  } catch (error) { showErr(error.message); }
 };
 $('#mClose').onclick = () => $('#modal').classList.remove('on');
+
+// ---------------------------------------------------------------- saved versions and browser drafts
+function showSaveStatus(status) {
+  const badge = $('#dirty'); badge.textContent = status.message;
+  badge.classList.toggle('dirty', status.kind !== 'saved');
+  badge.title = status.recoveryAvailable ? 'Edits autosave to settings.json. Pending edits also have a browser recovery copy.' : 'Browser recovery storage is unavailable. Keep this tab open until all changes are saved.';
+  if (status.kind === 'conflict') {
+    $('#recoveryBar').hidden = false; $('#bReload').hidden = false;
+    $('#recoverySummary').textContent = 'Saving paused: another window or application changed this project. Your browser draft is retained.';
+  }
+}
+function updateRecoveryBar() {
+  pendingDrafts = session.drafts();
+  if (session.blocked) return;
+  $('#bReload').hidden = true; $('#recoveryBar').hidden = !pendingDrafts.length;
+  $('#recoverySummary').textContent = `${pendingDrafts.length} browser draft${pendingDrafts.length === 1 ? '' : 's'} available to recover.`;
+}
+function versionRow(name, detail) {
+  const row = el('div','version-row'), text = el('div','details'), title = el('strong'), small = el('small');
+  title.textContent = name; small.textContent = detail; text.append(title,small); row.append(text); return row;
+}
+async function listVersions() {
+  const data = await api('/api/versions'), list = $('#versionsList'); list.replaceChildren();
+  if (!data.versions.length) list.append(el('p','sub','No versions yet. Save one before trying a new direction.'));
+  for (const version of data.versions) {
+    const changedSource = version.source_revision !== data.source_revision;
+    const detail = new Date(version.created_at).toLocaleString() + (version.kind === 'named' ? ' · Named version' : ' · Backup') + (changedSource ? ' · Scene files have changed' : '');
+    const row = versionRow(version.name, detail), button = el('button','btn small','Restore');
+    button.setAttribute('aria-label','Restore ' + version.name);
+    button.onclick = async () => {
+      const warning = changedSource ? ' Scene files changed since this version; matching editable settings will be restored against the current scene.' : '';
+      if (!await confirmChange(`Restore “${version.name}”? Your current saved settings will be kept as a backup.${warning}`, 'Restore version')) return;
+      button.disabled = true;
+      try {
+        await session.flush();
+        const result = await api('/api/versions/restore', {id:version.id, revision:session.revision});
+        commitHistory(); applyState(result.state); session.adopt(V,result.state.revision);
+        selClip = null; selLayer = null; place = null; applyHistory(JSON.stringify(V)); commitHistory();
+        $('#versionsMessage').textContent = 'Version restored. The previous settings are kept below.';
+        await listVersions();
+      } catch (error) { $('#versionsMessage').textContent = error.message; }
+      finally { button.disabled = false; }
+    };
+    row.append(button); list.append(row);
+  }
+}
+$('#bVersions').onclick = async () => {
+  if (playing) pause(); $('#versionsMessage').textContent = ''; $('#versionsDialog').showModal();
+  try { await session.flush(); await listVersions(); } catch (error) { $('#versionsMessage').textContent = error.message; }
+};
+$('#bVersionsClose').onclick = () => $('#versionsDialog').close();
+$('#versionForm').onsubmit = async event => {
+  event.preventDefault(); const button = $('#bVersionCreate'); button.disabled = true;
+  try {
+    await session.flush(); await api('/api/versions/create', {name:$('#versionName').value,revision:session.revision});
+    $('#versionName').value = ''; $('#versionsMessage').textContent = 'Named version saved.'; await listVersions();
+  } catch (error) { $('#versionsMessage').textContent = error.message; }
+  finally { button.disabled = false; }
+};
+function showRecovery() {
+  updateRecoveryBar(); const list = $('#recoveryList'); list.replaceChildren(); $('#recoveryMessage').textContent = '';
+  for (const draft of pendingDrafts) {
+    const changedSource = draft.source_revision !== session.sourceRevision;
+    const row = versionRow('Unsaved browser draft', new Date(draft.updated_at).toLocaleString() + (draft.revision !== session.revision ? ' · Saved project has changed since this draft' : '') + (changedSource ? ' · Scene files have changed' : ''));
+    const recover = el('button','btn small primary','Recover'), download = el('button','btn small','Download'), discard = el('button','btn small','Discard');
+    recover.onclick = async () => {
+      if (changedSource && !await confirmChange('Scene files have changed. Recover matching settings against the current scene? Download the draft first if you want to keep its original values.', 'Recover draft')) return;
+      recover.disabled = true;
+      try {
+        await session.flush(); await api('/api/versions/create', {name:'Before browser draft recovery', revision:session.revision});
+        commitHistory(); V = {...clone(D), ...Object.fromEntries(Object.entries(draft.values).filter(([key]) => key in D))};
+        V.__layers = {...clone(D.__layers), ...V.__layers};
+        selClip = null; selLayer = null; place = null; applyHistory(JSON.stringify(V)); commitHistory();
+        await session.flush(); session.discard(draft.key); updateRecoveryBar(); $('#recoveryDialog').close(); toast('Draft recovered and saved');
+      } catch (error) { $('#recoveryMessage').textContent = error.message; }
+      finally { recover.disabled = false; }
+    };
+    download.onclick = () => {
+      const url = URL.createObjectURL(new Blob([JSON.stringify(draft,null,2)],{type:'application/json'})), link = el('a');
+      link.href = url; link.download = 'dx-studio-recovery.json'; link.click(); setTimeout(() => URL.revokeObjectURL(url),1000);
+    };
+    discard.onclick = async () => { if (await confirmChange('Discard this browser draft? Download a copy first if you want to keep it. This cannot be undone.', 'Discard draft')) { session.discard(draft.key); showRecoveryList(); } };
+    row.append(recover,download,discard); list.append(row);
+  }
+  if (!pendingDrafts.length) list.append(el('p','sub','No unsaved browser drafts.'));
+  if (!$('#recoveryDialog').open) $('#recoveryDialog').showModal();
+}
+function showRecoveryList() { updateRecoveryBar(); showRecovery(); }
+$('#bRecovery').onclick = showRecovery;
+$('#bRecoveryClose').onclick = () => $('#recoveryDialog').close();
+$('#bReload').onclick = async () => { if (await confirmChange('Reload the saved project? Pending edits remain available as a browser draft for review after reload.', 'Reload project')) { session.dispose(); location.reload(); } };
+window.addEventListener('beforeunload', event => { if (session?.dirty && !session.disposed) { session.remember(); event.preventDefault(); event.returnValue = ''; } });
+document.addEventListener('visibilitychange', () => { if (document.hidden && session?.dirty) session.flush().catch(() => {}); });
 function setGuides(on) {
   $('#safe').style.display = on ? 'block' : 'none';
   $('#bSafe').classList.toggle('on',on); $('#bSafe').setAttribute('aria-pressed',String(on));
@@ -1042,14 +1178,13 @@ document.addEventListener('keydown', e => {
   if (e.altKey && e.code.startsWith('Arrow') && selLayer) { e.preventDefault(); nudge(e.code, e.shiftKey ? 10 : 1); return; }
   if (e.code === 'ArrowRight') { e.preventDefault(); if (playing) pause(); setT(t + (e.shiftKey ? 1 : 1 / FPS)); }
   if (e.code === 'ArrowLeft') { e.preventDefault(); if (playing) pause(); setT(t - (e.shiftKey ? 1 : 1 / FPS)); }
-  if ((e.metaKey || e.ctrlKey) && e.key === 's') { e.preventDefault(); $('#bSave').click(); }
   if (handleEditKeys(e)) return;
   if (!e.metaKey && !e.ctrlKey && (e.key === '=' || e.key === '+')) setZoom(TZ * 1.6);
   if (!e.metaKey && !e.ctrlKey && e.key === '-') setZoom(TZ / 1.6);
   if ((e.metaKey || e.ctrlKey) && (e.key === 'z' || e.key === 'Z')) { e.preventDefault(); e.shiftKey ? redo() : undo(); }
   if (e.ctrlKey && e.key === 'y') { e.preventDefault(); redo(); }
 });
-document.addEventListener('keydown', e => { if ((e.metaKey || e.ctrlKey) && e.key === 's') e.preventDefault(); }, true);
+document.addEventListener('keydown', e => { if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 's') { e.preventDefault(); $('#bSave').click(); } }, true);
 $('#zIn').onclick = () => setZoom(TZ * 1.6); $('#zOut').onclick = () => setZoom(TZ / 1.6); $('#zFit').onclick = () => { TZ = 1; V0 = 0; relayoutTimeline(); };
 $('#zScroll').oninput = e => scrollView(e.target.value / 1000 * (DUR - SPAN()));
 document.querySelector('.tl').addEventListener('wheel', e => {
@@ -1058,7 +1193,6 @@ document.querySelector('.tl').addEventListener('wheel', e => {
 }, {passive: false});
 $('#bPlay').onclick = play; $('#bPrev').onclick = () => { if (playing) pause(); setT(t - 1 / FPS); }; $('#bNext').onclick = () => { if (playing) pause(); setT(t + 1 / FPS); };
 window.addEventListener('resize', () => { placePlayhead(); requestFrame(); });
-window.addEventListener('beforeunload', e => { if (!same(V, SAVED)) { e.preventDefault(); e.returnValue = ''; } });
 
 
 // ================================================================ LAYERS
@@ -1321,6 +1455,9 @@ window.addEventListener('resize', () => drawOverlay());
 (async () => {
   const st = await api('/api/state');
   PJ = st.project; SCH = st.schema; LAY = st.layers || []; V = st.values; SAVED = st.saved; D = st.defaults; CAPS = st.captions; STK = st.stickers;
+  let recoveryStorage = null; try { recoveryStorage = window.localStorage; } catch (_) {}
+  session = new DXEditorSession({api, storage:recoveryStorage, projectId:PJ.id, revision:st.revision, sourceRevision:st.source_revision, values:V,
+    onStatus:showSaveStatus, onSaved:saved => { SAVED = saved; }});
   BASE = PJ.base_duration || PJ.duration; FPS = PJ.fps; syncTimeline(); HAS_AUDIO = st.has_audio; audioVer = st.audio_version;
   document.title = PJ.name + ' · DX Editor'; $('#pname').textContent = PJ.name; if (PJ.description) $('#pname').title = PJ.description;
   frame.style.aspectRatio = `${PJ.width} / ${PJ.height}`;
@@ -1337,7 +1474,8 @@ window.addEventListener('resize', () => drawOverlay());
   SNAP = JSON.stringify(V); updUndo(); relayoutTimeline();
   const firstText = SCH.find(e => e.at != null);
   setT(Math.min(BASE / 2, firstText ? firstText.at : 0)); poll();
-})();
+  updateRecoveryBar();
+})().catch(error => showErr('Could not open project: ' + error.message));
 </script>
 </body>
 </html>
