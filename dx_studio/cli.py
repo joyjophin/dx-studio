@@ -93,10 +93,11 @@ def main(argv=None):
     new.add_argument('--template',choices=['explainer','starter'],default='explainer');new.add_argument('--name');new.add_argument('--brand')
     from .composition import PRESENTER_PRESETS
     new.add_argument('--presenter',choices=list(PRESENTER_PRESETS),default='none',help='Reserve space for a talking head')
-    for command in ['check','audio','build','edit','still','pack']:
+    for command in ['check','audio','build','edit','still','pack','captions']:
         p=sub.add_parser(command);p.add_argument('project', **({'nargs':'?'} if command=='edit' else {}))
         if command=='still': p.add_argument('times',type=float,nargs='*',default=[0.0])
         if command=='edit': p.add_argument('--port',type=int,default=8765);p.add_argument('--no-browser',action='store_true')
+        if command=='captions':p.add_argument('--format',choices=['srt','vtt'],default='srt');p.add_argument('--output')
         if command=='pack': p.add_argument('--output',required=True)
     args=ap.parse_args(argv)
     try:
@@ -109,6 +110,13 @@ def main(argv=None):
         if args.command=='pack':
             from .bundle import pack
             print(pack(args.project,args.output));return 0
+        if args.command=='captions':
+            from .subtitles import export
+            from pathlib import Path
+            text=export(_project(args.project),args.format)
+            if args.output:Path(args.output).write_text(text,encoding='utf-8')
+            else:print(text,end='')
+            return 0
         if args.command=='sounds': cmd_sounds();return 0
         if args.command=='edit':
             from .editor import serve

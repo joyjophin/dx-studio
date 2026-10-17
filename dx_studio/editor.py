@@ -266,6 +266,7 @@ def make_handler(ed=None, workspace=None):
                 editor = self._project_editor()
                 u = urlparse(self.path); q = parse_qs(u.query)
                 if u.path == '/': return self._send(200, open(os.path.join(HERE, 'editor.html'), 'rb').read(), 'text/html; charset=utf-8')
+                if u.path == '/editor-captions.js': return self._send(200, open(os.path.join(HERE, 'editor-captions.js'), 'rb').read(), 'text/javascript; charset=utf-8')
                 if u.path == '/editor-audio.js': return self._send(200, open(os.path.join(HERE, 'editor-audio.js'), 'rb').read(), 'text/javascript; charset=utf-8')
                 if u.path == '/editor-media.js': return self._send(200, open(os.path.join(HERE, 'editor-media.js'), 'rb').read(), 'text/javascript; charset=utf-8')
                 if u.path == '/editor-bulk.js': return self._send(200, open(os.path.join(HERE, 'editor-bulk.js'), 'rb').read(), 'text/javascript; charset=utf-8')
@@ -274,6 +275,11 @@ def make_handler(ed=None, workspace=None):
                 if editor is None: return self._send(404,b'Open a project first','text/plain')
                 if u.path == '/frame': return self._send(200, editor.frame(float(q.get('t', ['0'])[0]), min(1.0, max(0.05, float(q.get('s', ['0.45'])[0]))), json.loads(q.get('solo',['[]'])[0])), 'image/jpeg')
                 if u.path == '/api/state': return self._json(editor.open_state())
+                if u.path == '/api/captions/export':
+                    from .subtitles import export
+                    format=q.get('format',['srt'])[0]
+                    with editor.lock: data=export(editor.pr,format).encode('utf-8')
+                    return self._send(200,data,'text/vtt; charset=utf-8' if format=='vtt' else 'application/x-subrip; charset=utf-8',{'Content-Disposition':f'attachment; filename="captions.{format}"'})
                 if u.path == '/api/waveform':
                     from .waveform import cached_peaks
                     if editor.audio_busy: return self._json({'ready':False,'message':'Preparing preview audio…'})
@@ -316,6 +322,11 @@ def make_handler(ed=None, workspace=None):
                 if u.path == '/api/preview':
                     editor.apply(self._body())
                     return self._json({'ok': True, 'layers': editor.pr.layer_meta, 'layout': editor.pr.layout, 'layer_defaults': editor.pr.defaults.get('__layers', {}), 'has_audio':editor.has_audio()})
+                if u.path == '/api/captions/import':
+                    from .subtitles import prepare_import
+                    body=self._body()
+                    with editor.lock: result=prepare_import(body.get('text',''),editor.pr,body.get('timing','output'))
+                    return self._json(result)
                 if u.path == '/api/media/prepare':
                     body = self._body()
                     with editor.lock: item = editor.pr.media.item_for(body.get('file',''),float(body.get('t',0)))

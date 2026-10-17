@@ -34,6 +34,9 @@ promises. Current capabilities and limits are in [README.md](../README.md).
 - **V01, listening foundation:** preview-mix waveforms, playback speed, monitor
   volume/mute and loopable audition ranges are implemented. Recording, take management
   and transcript editing remain planned. See [audio workspace](AUDIO_WORKSPACE.md).
+- **C01, caption revision:** reviewed SRT/VTT imports and exports, search, split/merge,
+  offset tools and timing/density hints are implemented. Word-level alignment,
+  richer styles and pronunciation management remain planned. See [captions](CAPTIONS.md).
 - These changes are development work toward v0.5.0. The published v0.1.0 assets
   remain available unchanged.
 

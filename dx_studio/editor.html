@@ -243,11 +243,14 @@
 <input type="file" id="libraryFile" accept="image/png,image/jpeg,image/webp,image/gif,video/mp4,video/quicktime,video/webm,.m4v" multiple hidden>
 <dialog id="relinkDialog"><h2>Relink media</h2><p class="sub" id="relinkMessage"></p><label for="relinkPath">Full path to the replacement file</label><input class="txt" id="relinkPath" placeholder="/path/to/your/footage.mp4"><div class="kbar"><button class="btn" id="relinkCancel">Cancel</button><button class="btn primary" id="relinkApply">Copy and relink</button></div></dialog>
 <dialog id="preflightDialog"><h2 id="preflightTitle">Export file check</h2><div id="preflightList"></div><button class="btn" id="preflightClose">Close</button></dialog>
+<input type="file" id="captionFile" accept=".srt,.vtt,text/vtt,application/x-subrip" hidden>
+<dialog id="captionImportDialog"><h2>Review subtitle import</h2><label for="captionImportText">SRT or WebVTT text</label><textarea class="txt" id="captionImportText" style="width:100%;min-height:130px" placeholder="1&#10;00:00:01,000 --> 00:00:03,000&#10;Your caption"></textarea><button class="btn small" id="captionImportPreviewButton">Preview cues</button><p id="captionImportSummary" class="note"></p><label for="captionImportTiming">File timing</label><select id="captionImportTiming"><option value="output">Current edited video</option><option value="scene">Original scene timeline</option></select><label for="captionImportMode">Apply captions</label><select id="captionImportMode"><option value="append">Add to existing captions</option><option value="replace">Replace current captions</option></select><pre id="captionImportPreview" style="white-space:pre-wrap;max-height:240px;overflow:auto"></pre><div class="kbar"><button class="btn" id="captionImportCancel">Cancel</button><button class="btn primary" id="captionImportApply" disabled>Apply import</button></div></dialog>
 <script src="/editor-session.js"></script>
 <script src="/editor-tools.js"></script>
 <script src="/editor-bulk.js"></script>
 <script src="/editor-media.js"></script>
 <script src="/editor-audio.js"></script>
+<script src="/editor-captions.js"></script>
 <script>
 let LAY = [], selLayer = null, HITS = [];
 const SELECTED = new Set(), SOLO = new Set(); let PENDING_MULTI = []; let layerSearch = '', alignTarget = 'selection';
@@ -655,7 +658,7 @@ function fillClipEditor(key) {
   del.onclick = () => { V[key].splice(i, 1); selClip = null; place = null; buildLanes(); refreshClipPanel(key); updatePin(); changed(true); };
   const timeRow = el('div', 'field');
   const tbox = el('div', 'ctl');
-  const si = el('input', 'num'), ei = el('input', 'num'); si.type = ei.type = 'number'; si.step = ei.step = 0.05;
+  const si = el('input', 'num'), ei = el('input', 'num'); si.type = ei.type = 'number';si.setAttribute('aria-label','Caption start seconds');ei.setAttribute('aria-label','Caption end seconds'); si.step = ei.step = 0.05;
   si.value = (+c.start).toFixed(2); ei.value = (+c.end).toFixed(2);
   si.oninput = () => { const v = parseFloat(si.value); if (!isNaN(v)) { c.start = r2(v); layoutLane(key); changed(); } };
   ei.oninput = () => { const v = parseFloat(ei.value); if (!isNaN(v)) { c.end = r2(v); layoutLane(key); changed(); } };
@@ -736,6 +739,7 @@ function selectCap(i, jump) {
 function captionsPanel() {
   const w = el('div');
   w.appendChild(el('p', 'note', 'Click a caption on the timeline or in the list to edit it. Drag it to move, drag its edges to change timing, or double-click it to edit the text. The narration itself is not changed, so keep spoken words in sync.'));
+  captionTools(w);
   const add = el('button', 'btn small', '+ Add caption at playhead');
   add.onclick = () => { const arr = CAPV(); const c = {start: r2(ST()), end: r2(Math.min(BASE, ST() + 1.5)), text: 'New caption', hl: null}; arr.push(c); arr.sort((a, b) => a.start - b.start);
     changed(true); selectCap(arr.indexOf(c), false); setTimeout(() => { const x = $('#capText'); if (x) { x.focus(); x.select(); } }, 30); };
@@ -748,7 +752,9 @@ function captionsPanel() {
 function renderCapList() {
   const L = $('#caplist'); if (!L) return; L.innerHTML = '';
   CAPV().forEach((c, i) => {
+    if(CAPTION_SEARCH&&!c.text.toLowerCase().includes(CAPTION_SEARCH.toLowerCase()))return;
     const r = el('div', 'caprow' + (i === selCap ? ' on' : '')); r.innerHTML = `<span class="tm">${c.start.toFixed(2)}–${c.end.toFixed(2)}</span><span>${esc(c.text)}</span>`;
+    const hints=captionHints(c,i);if(hints.length){const badge=el('span','warn');badge.textContent=hints.join(' · ');r.append(badge);}
     r.onclick = () => selectCap(i, true); L.appendChild(r);
   });
   const on = L.querySelector('.caprow.on'); if (on) on.scrollIntoView({block: 'nearest'});
@@ -757,14 +763,14 @@ let CAPSYNC = null;
 function fillCapEditor() {
   const E = $('#capEd'); if (!E) return; E.innerHTML = ''; CAPSYNC = null;
   const c = CAPV()[selCap]; if (!c) { E.style.display = 'none'; return; } E.style.display = 'block';
-  const txt = el('input', 'txt'); txt.id = 'capText'; txt.value = c.text;
-  const hl = el('input', 'txt'); hl.placeholder = 'phrase to highlight (optional)'; hl.value = c.hl || '';
+  const txt = el('input', 'txt'); txt.id = 'capText';txt.setAttribute('aria-label','Caption text'); txt.value = c.text;
+  const hl = el('input', 'txt'); hl.setAttribute('aria-label','Highlighted phrase');hl.placeholder = 'phrase to highlight (optional)'; hl.value = c.hl || '';
   const warn = el('div', 'warn');
   const checkHl = () => { warn.textContent = c.hl && !c.text.includes(c.hl) ? 'The highlight must be a phrase from the caption text; it is ignored until it matches.' : ''; };
   txt.oninput = () => { c.text = txt.value; checkHl(); buildCapLane(); changed(); };
   hl.oninput = () => { c.hl = hl.value.trim() || null; checkHl(); changed(); };
   txt.onblur = () => renderCapList();
-  const si = el('input', 'num'), ei = el('input', 'num'); si.type = ei.type = 'number'; si.step = ei.step = 0.05;
+  const si = el('input', 'num'), ei = el('input', 'num'); si.type = ei.type = 'number';si.setAttribute('aria-label','Caption start seconds');ei.setAttribute('aria-label','Caption end seconds'); si.step = ei.step = 0.05;
   si.oninput = () => { const v = parseFloat(si.value); if (!isNaN(v)) { c.start = r2(v); buildCapLane(); changed(); } };
   ei.oninput = () => { const v = parseFloat(ei.value); if (!isNaN(v)) { c.end = r2(v); buildCapLane(); changed(); } };
   const del = el('button', 'btn small', 'Delete caption');
@@ -773,7 +779,7 @@ function fillCapEditor() {
   const f1 = el('div', 'field stack'); f1.append(el('label', null, 'Text'), txt);
   const f2 = el('div', 'field stack'); f2.append(el('label', null, 'Highlighted phrase'), hl, warn);
   const f3 = el('div', 'field'); const tb = el('div', 'ctl'); tb.append(el('span', 'sub', 'from'), si, el('span', 'sub', 'to'), ei); f3.append(el('label', null, 'On screen (s)'), tb);
-  const f4 = el('div', 'row'); f4.style.marginTop = '8px'; f4.append(jump, del);
+  const f4 = el('div', 'row'); f4.style.marginTop = '8px'; f4.append(jump,mediaButton('Split at playhead',splitCaption),mediaButton('Merge with next',mergeCaption), del);
   E.append(f1, f2, f3, f4); checkHl();
   CAPSYNC = () => { if (document.activeElement !== si) si.value = c.start.toFixed(2); if (document.activeElement !== ei) ei.value = c.end.toFixed(2); };
   CAPSYNC();
@@ -799,6 +805,12 @@ async function uploadFiles(files, pos) {
   if (!lastId) return;
   buildTimeline(); rebuildAll(); markDirty(); commitHistory(); selectLayer(lastId, true);
 }
+$('#captionFile').onchange=e=>{reviewCaptionImport(e.target.files[0]);e.target.value='';};
+$('#captionImportCancel').onclick=()=>$('#captionImportDialog').close();
+$('#captionImportApply').onclick=applyCaptionImport;
+$('#captionImportTiming').onchange=previewCaptionImport;
+$('#captionImportPreviewButton').onclick=previewCaptionImport;
+$('#captionImportText').oninput=()=>{$('#captionImportApply').disabled=true;if(CAPTION_IMPORT){CAPTION_IMPORT.token=(CAPTION_IMPORT.token||0)+1;CAPTION_IMPORT.result=null;}};
 $('#libraryFile').onchange=e=>{importLibraryFiles([...e.target.files]);e.target.value='';};
 $('#relinkCancel').onclick=()=>$('#relinkDialog').close();
 $('#relinkApply').onclick=relinkMedia;

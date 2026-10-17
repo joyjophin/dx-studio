@@ -1,6 +1,6 @@
 const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
 for(const file of ['editor.html','home.html']){const html=fs.readFileSync('dx_studio/'+file,'utf8');for(const match of html.matchAll(/<script>([\s\S]*?)<\/script>/g))new vm.Script(match[1],{filename:file});}
-for(const file of ['editor-bulk.js','editor-tools.js','editor-media.js','editor-audio.js'])new vm.Script(fs.readFileSync('dx_studio/'+file,'utf8'),{filename:file});
+for(const file of ['editor-bulk.js','editor-tools.js','editor-media.js','editor-audio.js','editor-captions.js'])new vm.Script(fs.readFileSync('dx_studio/'+file,'utf8'),{filename:file});
 const tools=require(process.cwd()+'/dx_studio/editor-tools.js');
 assert.deepEqual(tools.roots(['parent','child'],[{id:'parent',parent:null},{id:'child',parent:'parent'}]),['parent']);
 const hit=(id,x,y,w,h,base=[1,0,0,1])=>({id,corners:[[x,y],[x+w,y],[x+w,y+h],[x,y+h]],base});
@@ -24,3 +24,11 @@ vm.runInContext('setAuditionPoint("start");PREVIEW_RATE=1.5;PREVIEW_VOLUME=.4;PR
 assert.equal(preview.audio.playbackRate,1.5);assert.equal(preview.audio.volume,.4);assert.equal(preview.audio.muted,true);
 preview.DUR=1;vm.runInContext('normalizeAudition()',preview);assert.ok(vm.runInContext('AUDITION.start<auditionEnd() && auditionEnd()<=DUR',preview));
 console.log('Preview listening controls and audition bounds remain separate from editable settings.');
+
+const cues=[{start:0,end:4,text:'Make the story keep the layers',hl:'story'},{start:4,end:6,text:'Finish your cut',hl:null}];
+const captionContext={CAPV:()=>cues,selCap:0,ST:()=>2,r2:value=>Math.round(value*100)/100,clone:value=>JSON.parse(JSON.stringify(value)),commitHistory:()=>{},changed:()=>{},buildCapLane:()=>{},renderCapList:()=>{},fillCapEditor:()=>{},toast:()=>{},showErr:message=>{throw new Error(message)},BASE:8};
+vm.createContext(captionContext);vm.runInContext(fs.readFileSync('dx_studio/editor-captions.js','utf8'),captionContext);
+vm.runInContext('splitCaption()',captionContext);assert.equal(cues.length,3);assert.equal(cues[0].end,2);assert.equal(cues[1].start,2);assert.equal(cues.map(c=>c.text).join(' '),'Make the story keep the layers Finish your cut');
+vm.runInContext('mergeCaption()',captionContext);assert.equal(cues.length,2);assert.equal(cues[0].text,'Make the story keep the layers');assert.equal(cues[0].end,4);
+assert.throws(()=>vm.runInContext('shiftCaptions(-1)',captionContext),/outside/);assert.equal(cues[0].start,0);
+console.log('Caption split/merge preserve words; invalid bulk timing shifts leave cues unchanged.');
