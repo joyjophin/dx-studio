@@ -40,6 +40,9 @@ promises. Current capabilities and limits are in [README.md](../README.md).
 - **B01, palette foundation:** included palettes, named reusable colour/size presets,
   field-by-field application and JSON sharing are implemented. Font/logo packaging
   and broader brand rules remain planned. See [brand presets](BRAND_PRESETS.md).
+- **F03/F04, workspace controls:** panel dividers, accessible size controls, canvas/timeline
+  layouts and preview quality choices are implemented. Proxies and scene-range caching
+  remain planned. See [view controls](VIEW.md).
 - These changes are development work toward v0.5.0. The published v0.1.0 assets
   remain available unchanged.
 

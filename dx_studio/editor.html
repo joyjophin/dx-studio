@@ -162,6 +162,13 @@
   .version-row .details{flex:1;min-width:0;overflow-wrap:anywhere}.version-row small{display:block;color:var(--muted);margin-top:4px}
   .history-message{min-height:20px;color:var(--warn);font-size:12px;margin:10px 0}
   :focus-visible{outline:2px solid var(--vio);outline-offset:3px}
+  .app>main{position:relative;grid-template-columns:minmax(0,1fr) min(44vw,var(--inspector-width,370px))}
+  .app .lrows{max-height:min(30vh,var(--layer-rows-height,128px))}.tl{position:relative;padding-top:12px}
+  .panel-resize{position:absolute;z-index:8;top:0;bottom:0;right:min(44vw,var(--inspector-width,370px));width:7px;margin-right:-3px;cursor:col-resize;touch-action:none}
+  .timeline-resize{position:absolute;z-index:8;left:0;right:0;top:0;height:7px;cursor:row-resize;touch-action:none}
+  .panel-resize:hover,.timeline-resize:hover,.panel-resize:focus-visible,.timeline-resize:focus-visible{background:var(--lil);outline:2px solid var(--vio)}
+  .app.inspector-hidden>main{grid-template-columns:minmax(0,1fr) 0}.app.inspector-hidden aside,.app.inspector-hidden .panel-resize{display:none}
+  .app.timeline-hidden #tlgrid,.app.timeline-hidden .timeline-resize{display:none}
 </style>
 </head>
 <body>
@@ -176,18 +183,18 @@
     <button class="btn ghost" id="bReset" title="Go back to the project's original values">Reset to original</button>
     <button class="btn" id="bVersions" title="Save and restore named versions">Versions</button>
     <button class="btn" id="bSave" title="Save immediately (⌘S). Changes also autosave.">Save now</button>
-    <button class="btn primary" id="bBuild">Build video</button>
+    <button class="btn small" id="bView">View</button><button class="btn primary" id="bBuild">Build video</button>
   </header>
   <div class="recovery-bar" id="recoveryBar" hidden><span id="recoverySummary"></span><button class="btn small" id="bRecovery">Review drafts</button><button class="btn small" id="bReload" hidden>Reload saved project</button></div>
-  <main>
+  <main><div id="inspectorResize" class="panel-resize" role="separator" aria-label="Resize inspector" aria-orientation="vertical" aria-valuemin="280" aria-valuemax="600" tabindex="0"></div>
     <div class="stage">
-      <div class="stagebar"><button class="btn small" id="bComposition">Presenter layout</button><button class="btn small" id="bSoloExit" hidden title="Solo affects graphics preview only; exports keep all visible layers">Exit solo</button><button class="btn small" id="bSafe" aria-pressed="false">Safe zones</button></div>
+      <div class="stagebar"><span class="pill" id="previewState" role="status" hidden>Rendering preview…</span><button class="btn small" id="bComposition">Presenter layout</button><button class="btn small" id="bSoloExit" hidden title="Solo affects graphics preview only; exports keep all visible layers">Exit solo</button><button class="btn small" id="bSafe" aria-pressed="false">Safe zones</button></div>
       <div class="frame" id="frame"><img id="img" alt="preview"><svg class="ov" id="ov"></svg><div class="safe" id="safe"></div><div class="pin" id="pin"></div><div class="hint" id="hint"></div></div>
     </div>
     <aside><div class="tabs" id="tabs"></div><div class="panes" id="panes"></div></aside>
   </main>
   <section class="tl">
-    <div class="tlbar">
+    <div id="timelineResize" class="timeline-resize" role="separator" aria-label="Resize layer list" aria-orientation="horizontal" aria-valuemin="48" aria-valuemax="400" tabindex="0"></div><div class="tlbar">
       <button class="play" id="bPlay" title="Play / pause (space)">▶</button>
       <span class="time" id="time">0.00 s</span>
       <button class="btn small" id="bPrev">‹ frame</button><button class="btn small" id="bNext">frame ›</button>
@@ -247,6 +254,7 @@
 <input type="file" id="captionFile" accept=".srt,.vtt,text/vtt,application/x-subrip" hidden>
 <dialog id="captionImportDialog"><h2>Review subtitle import</h2><label for="captionImportText">SRT or WebVTT text</label><textarea class="txt" id="captionImportText" style="width:100%;min-height:130px" placeholder="1&#10;00:00:01,000 --> 00:00:03,000&#10;Your caption"></textarea><button class="btn small" id="captionImportPreviewButton">Preview cues</button><p id="captionImportSummary" class="note"></p><label for="captionImportTiming">File timing</label><select id="captionImportTiming"><option value="output">Current edited video</option><option value="scene">Original scene timeline</option></select><label for="captionImportMode">Apply captions</label><select id="captionImportMode"><option value="append">Add to existing captions</option><option value="replace">Replace current captions</option></select><pre id="captionImportPreview" style="white-space:pre-wrap;max-height:240px;overflow:auto"></pre><div class="kbar"><button class="btn" id="captionImportCancel">Cancel</button><button class="btn primary" id="captionImportApply" disabled>Apply import</button></div></dialog>
 <dialog id="brandImportDialog"><h2>Import brand preset</h2><p class="note" id="brandImportMessage"></p><label for="brandImportText">Preset JSON</label><textarea class="txt" id="brandImportText" style="width:100%;min-height:180px"></textarea><div class="kbar"><button class="btn" id="brandImportCancel">Cancel</button><button class="btn primary" id="brandImportApply">Save and review</button></div></dialog>
+<dialog id="viewDialog"><h2>Make room for your work</h2><div class="kbar"><button class="btn" data-view-preset="balanced">Balanced layout</button><button class="btn" data-view-preset="canvas">Focus canvas</button><button class="btn" data-view-preset="timeline">Focus timeline</button></div><p class="sub">Drag the panel dividers, or use these controls. View preferences stay in this browser.</p><label class="kbar"><input id="viewInspector" type="checkbox" checked>Show inspector</label><label class="kbar"><input id="viewTimeline" type="checkbox" checked>Show timeline</label><label class="kbar" for="viewWidth">Inspector width<input id="viewWidth" type="range" min="280" max="600" step="10" value="370"></label><label class="kbar" for="viewRows">Layer list height<input id="viewRows" type="range" min="48" max="400" step="8" value="128"></label><p id="viewSizes" class="sub"></p><label for="viewQuality">Preview quality</label><select id="viewQuality"><option value="auto">Automatic</option><option value="fast">Fast</option><option value="balanced">Balanced</option><option value="sharp">Sharp</option></select><p class="note">Lower preview quality helps playback on slower computers. Final video exports keep their full project resolution.</p><button class="btn" id="viewClose">Done</button></dialog>
 <script src="/editor-session.js"></script>
 <script src="/editor-tools.js"></script>
 <script src="/editor-bulk.js"></script>
@@ -254,6 +262,7 @@
 <script src="/editor-audio.js"></script>
 <script src="/editor-captions.js"></script>
 <script src="/editor-brand.js"></script>
+<script src="/editor-view.js"></script>
 <script>
 let LAY = [], selLayer = null, HITS = [];
 const SELECTED = new Set(), SOLO = new Set(); let PENDING_MULTI = []; let layerSearch = '', alignTarget = 'selection';
@@ -281,16 +290,16 @@ async function api(path, body) {
 let inflight = false, pending = false;
 function frameScale() {
   const h = frame.getBoundingClientRect().height * (window.devicePixelRatio || 1);
-  return playing ? Math.min(0.42, Math.max(0.28, h / PJ.height)) : Math.min(0.75, Math.max(0.35, h / PJ.height));
+  return viewFrameScale(playing ? Math.min(0.42, Math.max(0.28, h / PJ.height)) : Math.min(0.75, Math.max(0.35, h / PJ.height)));
 }
 function nowT() { return playing ? (playAudio ? audio.currentTime : playT0 + (performance.now() - playStart) / 1000 * PREVIEW_RATE) : t; }
 function requestFrame() {
   if (inflight) { pending = true; return; }
-  inflight = true; pending = false;
+  inflight = true; pending = false;frameLoading();
   img.src = `${APP_BASE}/frame?t=${nowT().toFixed(3)}&s=${frameScale().toFixed(2)}&v=${ver}${soloQuery()}`;
 }
-img.onload = () => { inflight = false; if (pending || playing) requestAnimationFrame(requestFrame); };
-img.onerror = async () => {
+img.onload = () => {frameLoaded(); inflight = false; if (pending || playing) requestAnimationFrame(requestFrame); };
+img.onerror = async () => {frameLoaded();
   inflight = false;
   try { const r = await fetch(img.src); if (!r.ok) showErr('Preview error: ' + (await r.text())); } catch (e) {}
 };
@@ -345,7 +354,7 @@ const goS = s => setT(O_(s));
 let TZ = 1, V0 = 0;                               // timeline zoom and view start (seconds)
 const SPAN = () => DUR / TZ;
 const laneRect = () => $('#tlgrid .lane').getBoundingClientRect();
-const x2t = x => { const r = laneRect(); return V0 + (x - r.left) / r.width * SPAN(); };
+const x2t = x => { const r = laneRect();if(!r.width)return t; return V0 + (x - r.left) / r.width * SPAN(); };
 const x2s = x => S_(x2t(x));                                      // pointer -> scene time
 const pctO = o => ((o - V0) / SPAN() * 100) + '%';                // output time -> css
 const pct = v => pctO(O_(Math.max(0, Math.min(BASE, v))));         // scene time -> css
@@ -1536,7 +1545,7 @@ window.addEventListener('resize', () => drawOverlay());
   new ResizeObserver(fitStage).observe(frame.parentElement); fitStage();
   drawSafetyGuides(); setGuides(!!(PJ.layout && PJ.layout.presenter));
   if (HAS_AUDIO) audio.src = projectURL('/audio?v=') + audioVer;
-  buildTimeline(); buildPanels(); loadWaveform(); markDirty(); if (LAY.length) overlaySoon();
+  buildTimeline(); buildPanels(); setupView(); loadWaveform(); markDirty(); if (LAY.length) overlaySoon();
   SNAP = JSON.stringify(V); updUndo(); relayoutTimeline();
   const firstText = SCH.find(e => e.at != null);
   setT(Math.min(BASE / 2, firstText ? firstText.at : 0)); poll();

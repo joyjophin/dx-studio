@@ -29,6 +29,9 @@
 - Compatible-field matching and scene size limits preserve unrelated content; named presets use atomic writes and a shared writer lock.
 - Explainer captions keep a dark backing when a light text colour is chosen.
 
+- Adjustable inspector and layer-list dividers, keyboard resizing and canvas/timeline workspace layouts.
+- Saved browser view preferences and preview quality choices, with a delayed rendering status.
+
 ## 0.1.0 — 2026-10-17
 
 Initial public release of DX Studio (DesignXstream) and DX Editor.
