@@ -93,7 +93,8 @@ def el_captions(c,t,p):
     if p.show_captions:
         # The size setting is a maximum; shrink to the available caption region.
         size=min(p.caption_size,CAP_W*.052,CAP_H*.34)
-        draw_captions(c,t,CAPS,cx=CAP_X,cy=CAP_Y,backing=p.ink,highlight=p.highlight,size=size,maxw=CAP_W*.88,maxh=CAP_H*.86)
+        backing=p.ink if sum(p.ink[:3])<1.5 else hexc('#182126')
+        draw_captions(c,t,CAPS,cx=CAP_X,cy=CAP_Y,backing=backing,highlight=p.highlight,size=size,maxw=CAP_W*.88,maxh=CAP_H*.86)
 
 def title_box(t): return (TX if ALIGN=='l' else TX-TW/2,TY-TS,TW,TS*2.5)
 def card_box(t): return (CARD_X,CARD_Y,CARD_W,CARD_H)

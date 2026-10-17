@@ -25,6 +25,10 @@
 - Reviewed SRT/VTT file or pasted-text imports, plus sidecar exports matched to the edited timeline.
 - Caption search, phrase split/merge, whole-set timing shifts, density/overlap hints and caption preflight findings.
 
+- Reusable brand presets with included palettes, selected-field application, custom style capture and portable JSON import/export.
+- Compatible-field matching and scene size limits preserve unrelated content; named presets use atomic writes and a shared writer lock.
+- Explainer captions keep a dark backing when a light text colour is chosen.
+
 ## 0.1.0 — 2026-10-17
 
 Initial public release of DX Studio (DesignXstream) and DX Editor.

@@ -28,7 +28,8 @@ create or reopen projects, search and rename layers, select several at once, loc
 solo, align and space them. A [media library](docs/MEDIA.md) adds reusable imports,
 replacement, relinking and file checks before export. The [audio workspace](docs/AUDIO_WORKSPACE.md)
 adds a waveform, listening speed and loopable preview ranges. [Caption tools](docs/CAPTIONS.md)
-add SRT/VTT interchange, phrase split/merge and timing review. These additions are in the current source; the
+add SRT/VTT interchange, phrase split/merge and timing review. [Brand presets](docs/BRAND_PRESETS.md)
+reuse palettes and exposed size settings with field-by-field control. These additions are in the current source; the
 [published v0.1.0](https://github.com/joyjophin/dx-studio/releases/tag/v0.1.0) downloads
 remain the initial release.
 

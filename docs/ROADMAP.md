@@ -37,6 +37,9 @@ promises. Current capabilities and limits are in [README.md](../README.md).
 - **C01, caption revision:** reviewed SRT/VTT imports and exports, search, split/merge,
   offset tools and timing/density hints are implemented. Word-level alignment,
   richer styles and pronunciation management remain planned. See [captions](CAPTIONS.md).
+- **B01, palette foundation:** included palettes, named reusable colour/size presets,
+  field-by-field application and JSON sharing are implemented. Font/logo packaging
+  and broader brand rules remain planned. See [brand presets](BRAND_PRESETS.md).
 - These changes are development work toward v0.5.0. The published v0.1.0 assets
   remain available unchanged.
 

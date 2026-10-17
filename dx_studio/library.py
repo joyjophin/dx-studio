@@ -62,6 +62,8 @@ class ProjectLibrary:
 class Workspace:
     def __init__(self, library=None):
         self.library = library or ProjectLibrary()
+        from .brands import BrandLibrary
+        self.brands = BrandLibrary(self.library.path.parent/'brands.json')
         self.editors = {}
         self.lock = threading.RLock()
 
