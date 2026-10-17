@@ -19,6 +19,9 @@
 - Source-aware video/audio caches and graphics-safe placement for new imported media.
 - Missing-media placeholders and actionable file preflight before editor or CLI exports.
 
+- Preview-mix waveform with seeking, zoom/scroll and cached stereo peaks.
+- Preview-only playback speed, volume/mute and loopable audition ranges with I/O shortcuts.
+
 ## 0.1.0 — 2026-10-17
 
 Initial public release of DX Studio (DesignXstream) and DX Editor.

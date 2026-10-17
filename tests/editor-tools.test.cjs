@@ -1,6 +1,6 @@
 const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
 for(const file of ['editor.html','home.html']){const html=fs.readFileSync('dx_studio/'+file,'utf8');for(const match of html.matchAll(/<script>([\s\S]*?)<\/script>/g))new vm.Script(match[1],{filename:file});}
-for(const file of ['editor-bulk.js','editor-tools.js','editor-media.js'])new vm.Script(fs.readFileSync('dx_studio/'+file,'utf8'),{filename:file});
+for(const file of ['editor-bulk.js','editor-tools.js','editor-media.js','editor-audio.js'])new vm.Script(fs.readFileSync('dx_studio/'+file,'utf8'),{filename:file});
 const tools=require(process.cwd()+'/dx_studio/editor-tools.js');
 assert.deepEqual(tools.roots(['parent','child'],[{id:'parent',parent:null},{id:'child',parent:'parent'}]),['parent']);
 const hit=(id,x,y,w,h,base=[1,0,0,1])=>({id,corners:[[x,y],[x+w,y],[x+w,y+h],[x,y+h]],base});
@@ -17,3 +17,10 @@ vm.createContext(context);vm.runInContext(fs.readFileSync('dx_studio/editor-medi
 vm.runInContext('applyMediaReplacement(["media_a","media_locked"],{file:"Media/b.mp4",name:"b.mp4",kind:"video",has_audio:true})',context);
 assert.equal(old.file,'Media/b.mp4');assert.equal(locked.file,'Media/a.png');assert.deepEqual(old.box,[1,2,300,200]);assert.equal(old.t0,2);assert.equal(old.dur,4);assert.equal(old.volume,.5);assert.equal(old.muted,true);assert.equal(context.V.__layers.media_a,state);
 console.log('Media replacement preserves layout, timing, transforms and locked sources.');
+
+const preview={DUR:10,FPS:30,t:2,audio:{},document:{querySelector:()=>null,querySelectorAll:()=>[]},$:()=>null};
+vm.createContext(preview);vm.runInContext(fs.readFileSync('dx_studio/editor-audio.js','utf8'),preview);
+vm.runInContext('setAuditionPoint("start");PREVIEW_RATE=1.5;PREVIEW_VOLUME=.4;PREVIEW_MUTED=true;syncPreviewAudio()',preview);
+assert.equal(preview.audio.playbackRate,1.5);assert.equal(preview.audio.volume,.4);assert.equal(preview.audio.muted,true);
+preview.DUR=1;vm.runInContext('normalizeAudition()',preview);assert.ok(vm.runInContext('AUDITION.start<auditionEnd() && auditionEnd()<=DUR',preview));
+console.log('Preview listening controls and audition bounds remain separate from editable settings.');

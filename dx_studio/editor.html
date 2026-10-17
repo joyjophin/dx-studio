@@ -37,6 +37,7 @@
   .safe{position:absolute;inset:0;pointer-events:none;display:none} .safe div{position:absolute;border:1.5px dashed rgba(120,70,235,.6);border-radius:4px}
   .stagebar{position:absolute;top:14px;right:16px;display:flex;gap:6px;z-index:2}
   aside{background:var(--panel);border-left:1px solid var(--line);display:flex;flex-direction:column;min-height:0}
+  .waveform{height:44px;overflow:hidden;background:#F1F0FA;cursor:crosshair}.waveform svg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}.waveform-note{font-size:11px;color:var(--muted);padding:14px;display:block}.audition-range{position:absolute;top:0;bottom:0;background:rgba(120,70,235,.14);border-left:2px solid var(--vio);border-right:2px solid var(--vio);pointer-events:none}
   .asset-card{display:flex;flex-direction:column;gap:6px;padding:12px;margin:10px 0;border:1px solid var(--line);border-radius:12px;overflow-wrap:anywhere}.asset-thumb{width:100%;height:130px;object-fit:contain;background:#f4f3fa;border-radius:8px}.asset-card .sub{margin:0}#mediaStatus{margin:10px 0}
   .tabs{display:flex;gap:2px;padding:8px 10px 0;border-bottom:1px solid var(--line);overflow-x:auto}
   .tab{border:none;background:none;padding:9px 11px 10px;color:var(--muted);font-weight:600;border-bottom:2px solid transparent;margin-bottom:-1px;white-space:nowrap}
@@ -246,6 +247,7 @@
 <script src="/editor-tools.js"></script>
 <script src="/editor-bulk.js"></script>
 <script src="/editor-media.js"></script>
+<script src="/editor-audio.js"></script>
 <script>
 let LAY = [], selLayer = null, HITS = [];
 const SELECTED = new Set(), SOLO = new Set(); let PENDING_MULTI = []; let layerSearch = '', alignTarget = 'selection';
@@ -275,7 +277,7 @@ function frameScale() {
   const h = frame.getBoundingClientRect().height * (window.devicePixelRatio || 1);
   return playing ? Math.min(0.42, Math.max(0.28, h / PJ.height)) : Math.min(0.75, Math.max(0.35, h / PJ.height));
 }
-function nowT() { return playing ? (playAudio ? audio.currentTime : playT0 + (performance.now() - playStart) / 1000) : t; }
+function nowT() { return playing ? (playAudio ? audio.currentTime : playT0 + (performance.now() - playStart) / 1000 * PREVIEW_RATE) : t; }
 function requestFrame() {
   if (inflight) { pending = true; return; }
   inflight = true; pending = false;
@@ -303,15 +305,17 @@ const clampT = v => Math.max(0, Math.min(DUR - 0.02, v));
 function setT(v, fromPlay) {
   t = clampT(v); $('#time').textContent = t.toFixed(2) + ' s';
   if (!fromPlay && TZ > 1 && !IN_DRAG && (t < V0 || t > V0 + SPAN())) scrollView(t - SPAN() * 0.3);
-  placePlayhead(); updatePin(); if (LAY.length) { overlaySoon(); syncInspector(); }
+  placePlayhead(); const wave=$('#waveformLane');if(wave)wave.setAttribute('aria-valuenow',t.toFixed(2)); updatePin(); if (LAY.length) { overlaySoon(); syncInspector(); }
   if (!fromPlay) { if (playing && playAudio) audio.currentTime = t; if (playing) { playT0 = t; playStart = performance.now(); } requestFrame(); }
 }
 function play() {
   if (playing) return pause();
+  if(AUDITION.enabled&&(t<AUDITION.start||t>=auditionEnd()))setT(AUDITION.start);
+  syncPreviewAudio();
   playAudio = HAS_AUDIO && audio.readyState >= 2 && !audio.error;
   playing = true; $('#bPlay').textContent = '❚❚'; playT0 = t; playStart = performance.now();
-  if (playAudio) { audio.currentTime = t; audio.play().catch(() => {}); }
-  const loop = () => { if (!playing) return; const n = nowT(); setT(n, true); followPlayhead(); if (n >= DUR - 0.03 || (playAudio && audio.ended)) return pause(); requestAnimationFrame(loop); };
+  if (playAudio) { audio.currentTime = t; audio.play().catch(() => {playAudio=false;}); }
+  const loop = () => { if (!playing) return; const n = nowT(); setT(n, true); followPlayhead(); const limit=AUDITION.enabled?auditionEnd():DUR;if(n>=limit-.5/FPS||(playAudio&&audio.ended)){if(AUDITION.enabled&&AUDITION.loop){setT(AUDITION.start);return requestAnimationFrame(loop);}setT(limit);return pause();} requestAnimationFrame(loop); };
   requestAnimationFrame(loop); requestFrame();
 }
 function pause() { playing = false; audio.pause(); $('#bPlay').textContent = '▶'; setT(t); }
@@ -329,7 +333,7 @@ function rippleMarks() {                 // holds and cuts in output time
     else out.push({kind: 'cut', o: fwd(e.start, later), dur: e.end - e.start, i}); });
   return out;
 }
-function syncTimeline() { DUR = O_(BASE); if (t > DUR - 0.02) t = Math.max(0, DUR - 0.02); }
+function syncTimeline() { DUR = O_(BASE); normalizeAudition(); if (t > DUR - 0.02) t = Math.max(0, DUR - 0.02); }
 const ST = () => EDITS().length ? Math.max(0, Math.min(BASE - 0.001, S_(t))) : t;
 const goS = s => setT(O_(s));
 let TZ = 1, V0 = 0;                               // timeline zoom and view start (seconds)
@@ -380,6 +384,7 @@ function buildTimeline() {
   }
   const sc = el('div', 'scale'); G.append(el('div'), sc); buildScale(sc); drawRippleMarks(sc);
   const scrubbable = [ru, sc];
+  buildWaveformLane(G);
   if (V.__captions) {
     const L = el('div', 'lane'); L.id = 'lane-caps'; G.append(el('div', 'lanelab', 'Captions'), L); scrubbable.push(L);
   } else if (CAPS.length) {
@@ -495,7 +500,7 @@ const PANEL_NOTE = {
   Text: 'On-screen text. Words that are also spoken stay as recorded, so keep them in sync with the narration. Clicking a field jumps to where it appears.',
   Colours: 'Tints, shadows and backgrounds derived from these colours update with them.',
 };
-function panels() { const out = []; for (const e of SCH) if (!out.includes(e.panel)) out.push(e.panel); out.splice(Math.max(0,out.indexOf('Layers')+1),0,'Media'); return out; }
+function panels() { const out = []; for (const e of SCH) if (!out.includes(e.panel)) out.push(e.panel); out.splice(Math.max(0,out.indexOf('Layers')+1),0,'Media','Audio'); return out; }
 function buildPanels() {
   const T = $('#tabs'), P = $('#panes'); T.innerHTML = ''; P.innerHTML = '';
   const names=panels();
@@ -503,6 +508,7 @@ function buildPanels() {
     const b = el('button', 'tab' + (n ? '' : ' on')); b.textContent = name; b.dataset.p = name; T.appendChild(b);
     const pane = el('div', 'pane' + (n ? '' : ' on')); pane.dataset.p = name; P.appendChild(pane);
     b.onclick = () => { b.scrollIntoView({block:'nearest',inline:'nearest'}); document.querySelectorAll('.tab').forEach(x => x.classList.toggle('on', x === b)); document.querySelectorAll('.pane').forEach(x => x.classList.toggle('on', x === pane)); updatePin(); if (LAY.length) drawOverlay(); };
+    if (name === 'Audio') { pane.appendChild(audioPanel()); return; }
     if (name === 'Media') { pane.appendChild(mediaPanel()); return; }
     if (PANEL_NOTE[name]) pane.appendChild(el('p', 'note', PANEL_NOTE[name]));
     if (name === 'Composition' && !PJ.composition_supported) pane.appendChild(el('p','warn','This custom scene shows guides only. Ask your assistant to adapt its setup() to project.layout before relying on automatic reflow.'));
@@ -1184,7 +1190,7 @@ async function poll() {
   try {
     const st = await api('/api/status');
     $('#audioState').style.display = st.audio_busy ? 'inline-block' : 'none';
-    if (HAS_AUDIO && st.audio_version !== audioVer) { audioVer = st.audio_version; if(playing&&playAudio)pause(); audio.src = projectURL('/audio?v=') + audioVer; }
+    if (HAS_AUDIO && st.audio_version !== audioVer) { audioVer = st.audio_version; if(playing&&playAudio)pause(); audio.src = projectURL('/audio?v=') + audioVer;loadWaveform(); }
     const b = st.build;
     if ($('#modal').classList.contains('on')) {
       $('#mBar').style.width = Math.round(b.progress * 100) + '%'; $('#mLog').textContent = b.log.slice(-6).join('\n');
@@ -1203,6 +1209,7 @@ document.addEventListener('keydown', e => {
   if (e.altKey && e.code.startsWith('Arrow') && selLayer) { e.preventDefault(); nudge(e.code, e.shiftKey ? 10 : 1); return; }
   if (e.code === 'ArrowRight') { e.preventDefault(); if (playing) pause(); setT(t + (e.shiftKey ? 1 : 1 / FPS)); }
   if (e.code === 'ArrowLeft') { e.preventDefault(); if (playing) pause(); setT(t - (e.shiftKey ? 1 : 1 / FPS)); }
+  if(!e.metaKey&&!e.ctrlKey&&['i','o'].includes(e.key.toLowerCase())){setAuditionPoint(e.key.toLowerCase()==='i'?'start':'end');return;}
   if(e.key.toLowerCase()==='s'&&!e.metaKey&&!e.ctrlKey){$('#bSnap').click();return;}
   if (handleEditKeys(e)) return;
   if (!e.metaKey && !e.ctrlKey && (e.key === '=' || e.key === '+')) setZoom(TZ * 1.6);
@@ -1511,7 +1518,7 @@ window.addEventListener('resize', () => drawOverlay());
   new ResizeObserver(fitStage).observe(frame.parentElement); fitStage();
   drawSafetyGuides(); setGuides(!!(PJ.layout && PJ.layout.presenter));
   if (HAS_AUDIO) audio.src = projectURL('/audio?v=') + audioVer;
-  buildTimeline(); buildPanels(); markDirty(); if (LAY.length) overlaySoon();
+  buildTimeline(); buildPanels(); loadWaveform(); markDirty(); if (LAY.length) overlaySoon();
   SNAP = JSON.stringify(V); updUndo(); relayoutTimeline();
   const firstText = SCH.find(e => e.at != null);
   setT(Math.min(BASE / 2, firstText ? firstText.at : 0)); poll();
