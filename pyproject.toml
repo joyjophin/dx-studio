@@ -1,0 +1,40 @@
+[build-system]
+requires = ["setuptools>=77", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "dx-studio"
+version = "0.1.0"
+description = "AI-authored explainer videos that stay editable. A renderer, local editor, and agent skill."
+readme = "README.md"
+requires-python = ">=3.10"
+license = "MIT"
+license-files = ["LICENSE", "dx_studio/fonts/OFL.txt", "THIRD_PARTY_NOTICES.md"]
+authors = [{name = "Jophin Joy and DX Studio contributors"}]
+keywords = ["video", "motion-graphics", "explainer", "animation", "ai", "agent-skill"]
+classifiers = ["Development Status :: 3 - Alpha", "Programming Language :: Python :: 3", "Topic :: Multimedia :: Video"]
+dependencies = ["cairocffi>=1.7,<2", "uharfbuzz>=0.39,<1", "fonttools>=4.50,<5", "numpy>=1.26,<3", "scipy>=1.12,<2", "Pillow>=10.3,<14", "soundfile>=0.12,<1"]
+
+[project.urls]
+Homepage = "https://github.com/joyjophin/dx-studio"
+Repository = "https://github.com/joyjophin/dx-studio"
+Issues = "https://github.com/joyjophin/dx-studio/issues"
+Changelog = "https://github.com/joyjophin/dx-studio/blob/main/CHANGELOG.md"
+
+[project.optional-dependencies]
+dev = ["pytest>=8,<10", "build>=1.2,<2"]
+tts = ["kokoro-onnx>=0.4,<1"]
+asr = ["sherpa-onnx>=1.10,<2"]
+
+[project.scripts]
+dx-studio = "dx_studio.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["dx_studio*"]
+
+[tool.setuptools.package-data]
+dx_studio = ["editor.html", "fonts/*.ttf", "fonts/OFL.txt", "templates/*/*.py", "templates/*/*.json"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+filterwarnings = ["ignore:.*mode.*parameter.*deprecated:DeprecationWarning"]

@@ -1,0 +1,26 @@
+[
+  {
+    "start": 0,
+    "show_end": 3.9,
+    "text": "Make the story. Keep the layers.",
+    "hl": "layers"
+  },
+  {
+    "start": 4,
+    "show_end": 7.9,
+    "text": "One small change should stay small.",
+    "hl": "small"
+  },
+  {
+    "start": 8,
+    "show_end": 11.9,
+    "text": "Words, visuals and timing are editable.",
+    "hl": "editable"
+  },
+  {
+    "start": 12,
+    "show_end": 16,
+    "text": "Open your project. Make it yours.",
+    "hl": "yours"
+  }
+]

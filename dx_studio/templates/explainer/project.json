@@ -1,0 +1,49 @@
+{
+  "format_version": 1,
+  "name": "Make the story. Keep the layers.",
+  "description": "A ready-to-render explainer demonstrating editable layers. Choose portrait or landscape at creation.",
+  "width": 1080,
+  "height": 1920,
+  "fps": 30,
+  "duration": 16,
+  "final_hold": 0.8,
+  "scene": "scene.py",
+  "assets": "assets",
+  "captions": "captions.json",
+  "output": "video.mp4",
+  "chapters": [
+    [
+      0,
+      4,
+      "Hook"
+    ],
+    [
+      4,
+      8,
+      "Problem"
+    ],
+    [
+      8,
+      12,
+      "Payoff"
+    ],
+    [
+      12,
+      16,
+      "Next step"
+    ]
+  ],
+  "voice": [],
+  "music": {
+    "bpm": 100,
+    "level": 0.12,
+    "final_at": 13.5,
+    "end_fade_at": 14
+  },
+  "mix": {
+    "duck": 0.5,
+    "duck_deep": 0.3,
+    "loudness": -14,
+    "peak": -1.2
+  }
+}
