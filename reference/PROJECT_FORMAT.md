@@ -130,6 +130,11 @@ def draw(c, t, p):
 
 Every layer automatically gets, in `settings.json` under `__layers`: start/end, visible, x/y offset, scale, rotation, opacity, keyframes (`[{t, x, y, scale, rotation, opacity, ease}]`, `t` relative to the layer's start; eases `ease`, `ease-in`, `ease-out`, `linear`, `back`, `hold`), and entrance/exit presets (`fade`, `pop`, `zoom`, `slide-up/down/left/right`) with durations.
 
+Current development editors also save optional display `label` and `locked` fields.
+Labels do not change stable IDs. Locks cover direct layer editing, including descendants
+of a locked parent; global parameters and scene source still affect those layers.
+Read [EDITOR_HANDOFF](EDITOR_HANDOFF.md) before revising a manually edited project.
+
 A sound cue can name its layer, `{"sound": "stamp", "at": p.T_ST1, "layer": "card_b"}`, so the sound moves when the layer is moved and goes silent when it's hidden.
 
 ## Captions and media are editable automatically

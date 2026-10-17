@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased — toward 0.5.0
+## 0.5.0.dev0 — unreleased development toward 0.5.0
 
 - Autosave editable settings with explicit save/failure status and browser draft recovery.
 - Named setting versions, bounded automatic backups and recoverable restore/reset actions.
@@ -35,6 +35,9 @@
 - Cancellable export jobs with page-reload progress recovery, settings snapshots and stale-job cancellation protection.
 - Completed MP4s survive failed/cancelled jobs; successful exports publish atomically from isolated intermediates.
 - Concurrent media decodes use locked, completed caches; output paths cannot overwrite referenced sources.
+
+- Assistant handoff guidance preserves manual edits, stable identities, media needed by versions and output-timed sidecars.
+- Development package/CLI versions are distinct from v0.1; release packaging uses versioned directories and refuses to overwrite existing artifacts.
 
 ## 0.1.0 — 2026-10-17
 

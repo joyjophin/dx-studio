@@ -23,7 +23,7 @@ adjust the timing in DX Editor, then rebuild from the same source.
 </tr>
 </table>
 
-Development toward **v0.5** adds a [project home and bulk layer tools](docs/WORKSPACE.md):
+The current source is **0.5.0.dev0**, a development build toward v0.5. It adds a [project home and bulk layer tools](docs/WORKSPACE.md):
 create or reopen projects, search and rename layers, select several at once, lock,
 solo, align and space them. A [media library](docs/MEDIA.md) adds reusable imports,
 replacement, relinking and file checks before export. The [audio workspace](docs/AUDIO_WORKSPACE.md)
