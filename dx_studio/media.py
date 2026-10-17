@@ -6,7 +6,8 @@ Items live in settings under "__media":
      "box": [x, y, w, h], "t0": 3.0, "dur": 3.0, "loop": true, "muted": false, "volume": 1.0, "radius": 0}
 File paths are relative to the project's assets folder. Videos are decoded once into .build/media/<id>/.
 """
-import os, json, subprocess, shutil, uuid
+import os, json, subprocess, shutil, uuid, hashlib, io
+from pathlib import Path
 from collections import OrderedDict
 from ._cairo import cairo
 from PIL import Image
@@ -32,6 +33,7 @@ class MediaLibrary:
         self.assets = os.path.join(project.path, project.cfg.get('assets', 'assets'))
         self.cache_dir = os.path.join(project.path, '.build', 'media')
         self._img, self._gif, self._frames = {}, {}, OrderedDict()
+        self._info, self._thumbnails = {}, {}
 
     # ---- import
     def import_file(self, filename, data, t, center=None):
@@ -42,48 +44,114 @@ class MediaLibrary:
         while os.path.exists(os.path.join(self.assets, 'Media', name)): k += 1; name = f'{base}-{k}{ext}'
         path = contained(self.assets, 'Media/'+name)
         open(path, 'wb').write(data)
-        W, H, D = self.pr.width, self.pr.height, self.pr.duration
+        try:
+            return self.item_for('Media/'+name, t, center)
+        except Exception:
+            os.unlink(path)
+            raise
+
+    def inspect(self, file):
+        path = contained(self.assets, file)
+        kind = kind_of(file)
+        if not kind: raise ValueError('Use PNG, JPG, WEBP, GIF, MP4, MOV, M4V or WEBM')
+        stat = os.stat(path)
+        if not os.path.isfile(path): raise ValueError('Choose a media file')
+        key = (path, stat.st_size, stat.st_mtime_ns)
+        if key in self._info: return dict(self._info[key], file=str(Path(file).as_posix()), name=Path(file).name)
         if kind == 'video':
-            w, h, dur, has_audio = probe_video(path)
+            w, h, duration, has_audio = probe_video(path)
         else:
-            im = Image.open(path); w, h = im.size; dur = 3.0; has_audio = False
-            if kind == 'gif':
-                n = getattr(im, 'n_frames', 1); d = 0
-                for i in range(n): im.seek(i); d += (im.info.get('duration') or 100)/1000
-                dur = max(3.0, d)
-        scale = min(1.0, (W*0.55)/w, (H*0.4)/h)
-        bw, bh = round(w*scale), round(h*scale)
-        cx, cy = center if center else (W/2, H/2)
-        t0 = max(0.0, min(D-0.5, float(t)))
-        item = {'id': 'media_'+uuid.uuid4().hex[:6], 'name': name, 'file': f'Media/{name}', 'kind': kind,
-                'box': [round(cx-bw/2), round(cy-bh/2), bw, bh], 't0': round(t0, 2), 'dur': round(min(dur, D-t0), 2),
-                'loop': kind != 'video', 'muted': False, 'volume': 1.0, 'radius': 28 if kind == 'video' else 0, 'has_audio': has_audio}
-        if kind == 'video': self.decode_video(item)
-        return item
+            with Image.open(path) as im:
+                w, h = im.size
+                duration = None
+                if kind == 'gif':
+                    duration = 0
+                    for i in range(getattr(im, 'n_frames', 1)):
+                        im.seek(i); duration += (im.info.get('duration') or 100)/1000
+                else: im.verify()
+            has_audio = False
+        result = {'file':str(Path(file).as_posix()), 'name':Path(file).name, 'kind':kind,
+                  'width':w, 'height':h, 'duration':duration, 'has_audio':has_audio, 'bytes':stat.st_size}
+        self._info[key] = result
+        return dict(result)
+
+    def item_for(self, file, t, center=None):
+        info = self.inspect(file)
+        W, H, D = self.pr.width, self.pr.height, self.pr.base_duration
+        w, h, kind = info['width'], info['height'], info['kind']
+        area = self.pr.layout.get('content',[0,0,W,H])
+        aw,ah=area[2]-area[0],area[3]-area[1]
+        scale = min(1.0, (aw*.8)/w, (ah*.5)/h)
+        bw, bh = max(1,round(w*scale)), max(1,round(h*scale))
+        cx, cy = center if center else ((area[0]+area[2])/2,(area[1]+area[3])/2)
+        t0 = max(0.0, min(D-.5, float(t)))
+        duration = info['duration'] or 3.0
+        return {'id':'media_'+uuid.uuid4().hex[:10], 'name':info['name'], 'file':info['file'], 'kind':kind,
+                'box':[round(cx-bw/2),round(cy-bh/2),bw,bh], 't0':round(t0,2),
+                'dur':round(min(duration,D-t0),2), 'loop':kind!='video', 'muted':False,
+                'volume':1.0, 'radius':28 if kind=='video' else 0, 'has_audio':info['has_audio']}
+
+    def catalog(self, include_unused=True):
+        used = {}
+        for item in self.pr.values.get('__media', []):
+            if item.get('file'): used.setdefault(item['file'], []).append(item['id'])
+        files = set(used)
+        root = Path(self.assets)
+        if include_unused and root.exists():
+            for path in root.rglob('*'):
+                if len(files)>=1000: break
+                if path.is_file() and kind_of(path.name): files.add(path.relative_to(root).as_posix())
+        records = []
+        for file in sorted(files):
+            record = {'file':file,'name':Path(file).name,'kind':kind_of(file),'used_by':used.get(file,[])}
+            try: record.update(self.inspect(file), status='ready')
+            except FileNotFoundError: record.update(status='missing',error='File is missing. Relink or replace it.')
+            except (OSError,ValueError,subprocess.SubprocessError) as error: record.update(status='unreadable',error=str(error))
+            records.append(record)
+        return records
+
+    def thumbnail(self, file):
+        info = self.inspect(file)
+        key = self.source_key({'file':file})
+        if key in self._thumbnails: return self._thumbnails[key]
+        if info['kind']=='video':
+            result = subprocess.run(['ffmpeg','-v','error','-i',contained(self.assets,file),'-frames:v','1',
+                                     '-vf','scale=320:-2','-f','image2pipe','-vcodec','mjpeg','-'],capture_output=True,check=True)
+            self._thumbnails[key] = result.stdout
+            return result.stdout
+        with Image.open(contained(self.assets,file)) as im:
+            im=im.convert('RGB'); im.thumbnail((320,180)); output=io.BytesIO(); im.save(output,'JPEG'); self._thumbnails[key]=output.getvalue(); return output.getvalue()
+
+    def source_key(self, item):
+        path = self.path(item); stat=os.stat(path)
+        return path, stat.st_size, stat.st_mtime_ns
 
     # ---- decoding / caching
     def path(self, item): return contained(self.assets, item['file'])
     def image(self, item):
-        p = self.path(item)
+        p = self.source_key(item)
         if p not in self._img:
-            im = Image.open(p).convert('RGBA'); im.thumbnail((2000, 2000)); self._img[p] = (to_surface(im), im.width, im.height)
+            im = Image.open(p[0]).convert('RGBA'); im.thumbnail((2000, 2000)); self._img[p] = (to_surface(im), im.width, im.height)
         return self._img[p]
     def gif_frames(self, item):
-        p = self.path(item)
+        p = self.source_key(item)
         if p not in self._gif:
-            im = Image.open(p); frames = []; acc = 0.0
+            im = Image.open(p[0]); frames = []; acc = 0.0
             for i in range(getattr(im, 'n_frames', 1)):
                 im.seek(i); fr = im.convert('RGBA'); fr.thumbnail((1400, 1400))
                 acc += (im.info.get('duration') or 100)/1000; frames.append((to_surface(fr), acc, fr.width, fr.height))
             self._gif[p] = frames
         return self._gif[p]
-    def frames_dir(self, item): return contained(self.cache_dir, item['id'])
+    def cache_key(self, item): return hashlib.sha256(repr((self.source_key(item),self.pr.fps)).encode()).hexdigest()[:24]
+    def frames_dir(self, item): return contained(self.cache_dir, self.cache_key(item))
     def decode_video(self, item):
         d = self.frames_dir(item)
-        if os.path.isdir(d) and os.listdir(d): return d
+        if os.path.isfile(os.path.join(d,'.complete')): return d
         os.makedirs(d, exist_ok=True)
+        for stale in Path(d).glob('f_*.jpg'): stale.unlink()
         subprocess.run(['ffmpeg', '-hide_banner', '-loglevel', 'error', '-y', '-i', self.path(item),
                         '-vf', f"fps={self.pr.fps},scale='min(1080,iw)':-2", '-q:v', '3', os.path.join(d, 'f_%05d.jpg')], check=True)
+        Path(d,'.complete').touch()
         return d
     def video_frame(self, item, lt):
         d = self.decode_video(item)
@@ -102,7 +170,7 @@ class MediaLibrary:
     def audio_wav(self, item):
         """the video's own audio as a mono 48 kHz wav (cached); None if it has no audio"""
         if item.get('kind') != 'video' or not item.get('has_audio'): return None
-        out = contained(self.cache_dir, item['id']+'.wav')
+        out = contained(self.cache_dir, self.cache_key(item)+'.wav')
         if not os.path.exists(out):
             os.makedirs(self.cache_dir, exist_ok=True)
             r = subprocess.run(['ffmpeg', '-hide_banner', '-loglevel', 'error', '-y', '-i', self.path(item), '-vn', '-ac', '1', '-ar', '48000', out])
@@ -111,6 +179,13 @@ class MediaLibrary:
 
     # ---- drawing
     def draw(self, c, item, lt):
+        try: self._draw(c, item, lt)
+        except (OSError, ValueError, subprocess.SubprocessError):
+            x,y,w,h=item['box']
+            c.save(); rrect(c,x,y,w,h,12); fill(c,hexc('#FBE8EF'))
+            text(c,'Media unavailable',x+w/2,y+h/2,min(28,max(10,w/12)),'bold',hexc('#97385B'),1,'c'); c.restore()
+
+    def _draw(self, c, item, lt):
         x, y, w, h = item['box']
         k = item['kind']
         if k == 'image': surf, iw, ih = self.image(item)

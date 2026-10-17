@@ -26,6 +26,11 @@ promises. Current capabilities and limits are in [README.md](../README.md).
 - **F02, everyday layer editing:** search, renaming, multi-selection, bulk movement
   and timing, lock/solo, alignment, distribution and snapping controls are implemented.
   This is a first increment; richer clip trimming/splitting and grouping remain planned.
+- **B02, media:** searchable project assets, metadata, thumbnails, reusable imports,
+  per-file relinking and replacement are implemented. Folder-wide relinking remains planned.
+- **X01, initial file preflight:** missing/unreadable imported media and configured
+  audio files are checked before export. Frame analysis and broader quality checks
+  remain planned. See [media and file checks](MEDIA.md).
 - These changes are development work toward v0.5.0. The published v0.1.0 assets
   remain available unchanged.
 
