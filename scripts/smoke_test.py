@@ -14,6 +14,13 @@ def main():
             p=create(Path(d)/(ratio.replace(':','-')+'-'+presenter),template=template,format=ratio,presenter=presenter)
             cfg=json.loads((p/'project.json').read_text());cfg.update(duration=1,fps=12)
             (p/'project.json').write_text(json.dumps(cfg))
+            # Keep the shortened fixture valid under caption timing preflight.
+            captions=p/cfg.get('captions','captions.json')
+            if captions.is_file():
+                cues=json.loads(captions.read_text())
+                cues=[dict(cue,show_end=min(cue.get('show_end',cue.get('end',cfg['duration'])),cfg['duration']))
+                      for cue in cues if cue['start']<cfg['duration']]
+                captions.write_text(json.dumps(cues))
             cmd_build(p)
             raw=subprocess.check_output(['ffprobe','-v','error','-show_streams','-show_format','-of','json',str(p/'video.mp4')])
             info=json.loads(raw);video=next(s for s in info['streams'] if s['codec_type']=='video')

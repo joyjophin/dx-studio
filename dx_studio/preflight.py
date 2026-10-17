@@ -27,6 +27,8 @@ def inspect_project(project):
             findings.append({'severity':'error','kind':'audio','file':file,'layers':[],
                              'message':f'{label}: {file} — {error}',
                              'fix':'Restore the audio file or update its path in project.json.'})
+    from .subtitles import findings as caption_findings
+    findings.extend(caption_findings(project))
     return {'ok':not any(f['severity']=='error' for f in findings), 'findings':findings}
 
 

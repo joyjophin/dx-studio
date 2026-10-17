@@ -22,6 +22,9 @@
 - Preview-mix waveform with seeking, zoom/scroll and cached stereo peaks.
 - Preview-only playback speed, volume/mute and loopable audition ranges with I/O shortcuts.
 
+- Reviewed SRT/VTT file or pasted-text imports, plus sidecar exports matched to the edited timeline.
+- Caption search, phrase split/merge, whole-set timing shifts, density/overlap hints and caption preflight findings.
+
 ## 0.1.0 — 2026-10-17
 
 Initial public release of DX Studio (DesignXstream) and DX Editor.
