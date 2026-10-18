@@ -21,6 +21,8 @@ function narrationPanel(){
   const duckLabel=el('label');duckLabel.textContent='Music ducking';const duck=el('select');duck.setAttribute('aria-label','Music ducking');for(const [value,label]of[['normal','Normal ducking'],['deep','Deeper ducking'],['none','No ducking']]){const option=el('option');option.value=value;option.textContent=label;duck.append(option);}duck.value=take.duck;duck.onchange=()=>update('duck',duck.value);duckLabel.append(duck);root.append(duckLabel);
   const muteLabel=el('label','kbar'),mute=el('input');mute.type='checkbox';mute.checked=take.muted;mute.onchange=()=>{update('muted',mute.checked);refreshNarrationPanel();};muteLabel.append(mute,document.createTextNode('Mute take'));root.append(muteLabel);
   const buttons=el('div','kbar');buttons.append(mediaButton('Start at playhead',()=>{commitHistory();update('start',ST());refreshNarrationPanel();}),mediaButton('Replace recording',()=>openVoiceImport(take.id)),mediaButton('Remove take',()=>{commitHistory();V.__voice=voiceTakes().filter(item=>item.id!==take.id);VOICE_SELECTED=null;changed(true);refreshNarrationPanel();renderNarrationLane();toast('Take removed; the source file is kept');}));root.append(buttons);
+  const edits=el('div','kbar');edits.append(mediaButton('Split at playhead',()=>splitVoiceTake(take.id)),mediaButton('Duplicate at playhead',()=>duplicateVoiceTake(take.id)),mediaButton('Audition take',()=>auditionVoiceTake(take.id)));root.append(edits);
+  root.append(el('p','sub','Drag a take on the timeline to move it; drag its edges to trim. Alt bypasses snapping. Split keeps each part linked to the same source recording.'));
   root.append(el('p','note',take.start+take.duration>BASE+.02?'This take extends beyond the scene. Only the section inside the scene will play. Trim its duration or ask your assistant to extend the project.':'Replace keeps this take’s name, start, trim, duration, level and ducking. A shorter replacement may finish before the take ends.'));
   return root;
 }
@@ -45,11 +47,49 @@ function renderNarrationLane(){
   const lane=$('#lane-narration');if(!lane)return;lane.replaceChildren();
   for(const take of voiceTakes()){
     const start=O_(take.start),end=O_(Math.min(BASE,take.start+take.duration));if(end<=V0||start>=V0+SPAN()||end<=start)continue;
-    const block=el('button','blk');block.textContent=take.name;block.style.left=pctO(Math.max(start,V0));block.style.width=pw(Math.min(end,V0+SPAN())-Math.max(start,V0));block.style.opacity=take.muted?.4:1;block.style.background='#DDF1E9';block.style.color='#215542';block.style.borderColor='#8ABDA6';block.title=`${take.name} · scene ${take.start.toFixed(2)}–${(take.start+take.duration).toFixed(2)} s${take.muted?' · muted':''}`;block.setAttribute('aria-label','Edit narration '+take.name);block.onclick=()=>selectVoice(take.id,true);lane.append(block);
+    const block=el('button','blk');block.type='button';block.classList.toggle('on',take.id===VOICE_SELECTED);const title=el('span');title.textContent=take.name;block.append(title);for(const side of ['l','r']){const handle=el('div','h '+side);block.append(handle);}block.style.left=pctO(Math.max(start,V0));block.style.width=pw(Math.min(end,V0+SPAN())-Math.max(start,V0));block.style.opacity=take.muted?.4:1;block.style.background='#DDF1E9';block.style.color='#215542';block.style.borderColor='#8ABDA6';block.title=`${take.name} · scene ${take.start.toFixed(2)}–${(take.start+take.duration).toFixed(2)} s${take.muted?' · muted':''}`;block.setAttribute('aria-label','Edit narration '+take.name);block.onclick=()=>selectVoice(take.id,true);block.onpointerdown=event=>startVoiceDrag(event,take.id,event.target.classList.contains('l')?'l':event.target.classList.contains('r')?'r':'m');lane.append(block);
   }
 }
 function syncAudioAvailability(available){
   HAS_AUDIO=available;
   if(HAS_AUDIO){if(!audio.src)audio.src=projectURL('/audio?v=')+audioVer;}
   else{if(playing)pause();audio.pause();audio.removeAttribute('src');audio.load();WAVEFORM=null;drawWaveform();}
+}
+
+function splitVoiceTake(id){
+  const take=voiceTakes().find(item=>item.id===id);if(!take)return;
+  const at=ST(),left=at-take.start,right=take.duration-left;
+  if(left<1/FPS||right<1/FPS)return toast('Place the playhead inside this take, at least one frame from its ends');
+  if(voiceTakes().length>=500)return toast('This project already has 500 takes');
+  commitHistory();const next=clone(take);next.id='voice_'+crypto.randomUUID().replaceAll('-','').slice(0,16);next.name=(take.name+' (part 2)').slice(0,120);next.start=at;next.offset+=left;next.duration=right;take.duration=left;
+  V.__voice.splice(voiceTakes().indexOf(take)+1,0,next);VOICE_SELECTED=next.id;changed(true);refreshNarrationPanel();renderNarrationLane();toast('Take split; captions and graphics keep their timing');
+}
+function duplicateVoiceTake(id){
+  const take=voiceTakes().find(item=>item.id===id);if(!take)return;
+  if(voiceTakes().length>=500)return toast('This project already has 500 takes');
+  commitHistory();const next=clone(take);next.id='voice_'+crypto.randomUUID().replaceAll('-','').slice(0,16);next.name=(take.name+' copy').slice(0,120);next.start=Math.max(0,Math.min(BASE-1/FPS,ST()));V.__voice.push(next);VOICE_SELECTED=next.id;changed(true);refreshNarrationPanel();renderNarrationLane();toast('Take duplicated at the playhead');
+}
+function auditionVoiceTake(id){
+  const take=voiceTakes().find(item=>item.id===id);if(!take)return;
+  const start=O_(take.start),end=O_(Math.min(BASE,take.start+take.duration));
+  if(end-start<1/FPS)return toast('This take has no time in the current output');
+  if(playing)pause();AUDITION.start=start;AUDITION.end=end;AUDITION.enabled=true;refreshAudioPanel();drawWaveform();setT(start);play();toast('Auditioning this range of the full mix');
+}
+function voiceDragTiming(original,mode,position,base,min){
+  if(mode==='m')return {...original,start:Math.max(0,Math.min(Math.max(0,base-Math.min(original.duration,base)),position))};
+  if(mode==='l'){
+    const delta=Math.max(-Math.min(original.start,original.offset),Math.min(original.duration-min,position-original.start));
+    return {...original,start:original.start+delta,offset:original.offset+delta,duration:original.duration-delta};
+  }
+  return {...original,duration:Math.max(min,Math.min(base,position)-original.start)};
+}
+function startVoiceDrag(event,id,mode){
+  if(event.button!==0)return;event.preventDefault();event.stopPropagation();if(playing)pause();
+  const take=voiceTakes().find(item=>item.id===id);if(!take)return;
+  commitHistory();selectVoice(id,false);const original=clone(take),anchor=x2s(event.clientX),minimum=Math.min(1/FPS,original.duration);
+  dragWith(next=>{
+    const delta=x2s(next.clientX)-anchor;
+    let target=mode==='r'?snapS(original.start+original.duration+delta,take,next):mode==='m'?snapSpan(original.start+delta,original.duration,take,next):snapS(original.start+delta,take,next);
+    const updated=voiceDragTiming(original,mode,target,BASE,minimum);Object.assign(take,updated);renderNarrationLane();changed();
+  },()=>{refreshNarrationPanel();renderNarrationLane();changed(true);});
 }
