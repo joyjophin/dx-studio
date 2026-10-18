@@ -228,7 +228,7 @@ for editor behavior and limitations.
 | `__captions[]` word metadata | Generated cues can carry `voice_id`, `word_ids`, scene-time `words`, and `word_highlight`. Manual timing operations detach the links; manual caption text is retained. |
 | `__protected` | Section keys or `layer:<id>` / `voice:<id>` used to reject conflicting assistant patch changes. Creator controls remain editable. |
 | `__presenter` | `{media_id,scenes:{scene_id:preset}}`. Imported video has `presenter:true`, cover/contain `fit`, crop focus 0–1, `source_offset`, volume and mute. |
-| `__blocks` | Block configuration `{id,kind,title,body,credit,start,duration}`. Five kinds: comparison, steps, quote, bars, title. Generated editable media carry the same `block_id`. |
+| `__blocks` | Block configuration `{id,kind,title,body,credit,start,duration}`. Six kinds: comparison, steps, diagram, quote, bars, title. Generated editable media carry the same `block_id`. |
 | `__brand_assets` | `{fonts:{role:asset_path},logo:asset_path_or_null,credits:{asset_path:note}}`. Paths are relative to project assets. Roles: reg, med, semi, bold, xb, med_t, xb_t. |
 | `__export` | `{profile,fps,range,captions,file}`. Source/1080p/720p; fps 0 uses project fps, otherwise 12/24/25/30/60. Range is null or edited-output `[start,end]`. Captions: burned/clean/sidecar. File is a contained MP4 path. |
 | `__quality_ignores` | Finding IDs for intentional warning dismissals. Errors cannot be dismissed. |

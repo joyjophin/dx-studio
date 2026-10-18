@@ -10,7 +10,7 @@ the initial release. Use the Workspace menu to switch between tools.
 | Revisions | Protect decisions, exchange settings patches with an assistant, compare frames and apply selected changes. |
 | Storyboard | Name scenes, keep script/visual/source notes and change actual playback order. |
 | Presenter | Place a recording, preserve its aspect ratio, crop/trim it and choose a layout per scene. |
-| Blocks | Add editable comparisons, steps, quotes, CSV bar charts and title/sponsor cards. |
+| Blocks | Add editable comparisons, steps, flow diagrams, quotes, CSV bar charts and title/sponsor cards. |
 | Brand | Copy fonts and a logo into the project, keep rights notes and exchange a portable brand kit. |
 | Blocks / templates | Save a selected set of editable layers with copied dependencies for another project. |
 | Export | Set resolution/frame rate/caption mode, render a range and review frames, fonts and audio. |
@@ -67,13 +67,13 @@ code must opt into that layout contract. Guides stay out of the MP4.
 
 Blocks create ordinary text and shape layers with a graphics-area backplate. Every
 part can be selected, hidden, scaled, styled, keyframed or retimed. Comparisons use
-two lines; steps use 2–6 lines; charts use 1–8 CSV rows such as `After,68`, with one
+two lines; steps and connected flow diagrams use 2–6 lines; charts use 1–8 CSV rows such as `After,68`, with one
 zero-inclusive scale supporting negative values. Keep data sources in attribution.
 
 Choose an existing block to update its text/data. Manual transforms and animation
 keys remain; locked/protected primitives retain their existing source. If you
 change the reserved layout, update the block to regenerate its geometry for that
-scene, then review manual transforms. These are five focused block types, not an
+scene, then review manual transforms. These are six focused block types, not an
 arbitrary node-based diagram editor.
 
 Select complete block layers and save a named selection template. Complete blocks

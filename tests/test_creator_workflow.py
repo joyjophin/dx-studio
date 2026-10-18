@@ -62,10 +62,11 @@ def test_scene_order_maps_audio_captions_and_holds(tmp_path):
     with pytest.raises(ValueError,match='before'):reorder(pr.values,ids)
 
 
-def test_blocks_and_cross_project_templates_keep_editable_sources(tmp_path):
+@pytest.mark.parametrize('kind,body',[('bars','Before,10\nAfter,20'),('diagram','Input\nExplain the mechanism\nResult')])
+def test_blocks_and_cross_project_templates_keep_editable_sources(tmp_path,kind,body):
     from dx_studio.blocks import prepare
     from dx_studio.templates_library import TemplateLibrary
-    pr=project(tmp_path);pr.apply(prepare(pr,pr.values,{'kind':'bars','title':'A fair comparison','body':'Before,10\nAfter,20','start':0,'duration':4}))
+    pr=project(tmp_path);pr.apply(prepare(pr,pr.values,{'kind':kind,'title':'A clear explanation','body':body,'start':0,'duration':4}))
     assert any(item['kind']=='shape' for item in pr.values['__media']);pr.render(1,.1)
     library=TemplateLibrary(tmp_path/'templates');saved=library.capture(pr,pr.values,[item['id'] for item in pr.values['__media']],'Channel chart')
     other=Project(create(tmp_path/'other',template='starter',format='9:16'));new=library.apply(other,other.values,saved['id'],0)

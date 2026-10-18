@@ -331,6 +331,12 @@ def draw_shape_el(c, it, ts):
         c.new_path(); return
     if kind == 'marker':
         col = hexc(fc or '#BCA4F5'); rrect(c, x, y, max(1, w*u), h, min(h/2, float(it.get('radius', 28)))); c.set_source_rgba(col[0], col[1], col[2], 0.45); c.fill(); return
+    if kind=='arrow' and it.get('direction')=='down':
+        col=hexc(sc or '#7846EB');cx=x+w/2;end=y+h*u;head=min(max(8,sw*3.2),h*.3)
+        c.set_line_cap(cairo.LINE_CAP_ROUND);c.set_line_join(cairo.LINE_JOIN_ROUND);c.set_source_rgba(*col);c.set_line_width(max(1,sw));c.move_to(cx,y);c.line_to(cx,end);c.stroke()
+        if u>.6:
+            head*=clamp((u-.6)/.4);c.move_to(cx-head*.8,end-head);c.line_to(cx,end);c.line_to(cx+head*.8,end-head);c.stroke()
+        return
     # line / arrow along the box's horizontal centre (rotate the layer to angle it)
     col = hexc(sc or '#7846EB'); y0 = y + h/2; x1 = x + w*u
     c.set_line_cap(cairo.LINE_CAP_ROUND); c.set_line_join(cairo.LINE_JOIN_ROUND)

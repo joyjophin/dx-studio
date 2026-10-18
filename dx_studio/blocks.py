@@ -5,12 +5,12 @@ import io
 import math
 import uuid
 
-KINDS={'comparison','steps','quote','bars','title'}
+KINDS={'comparison','steps','quote','bars','title','diagram'}
 
 
 def prepare(project,values,config):
     kind=config.get('kind')
-    if kind not in KINDS:raise ValueError('Choose comparison, steps, quote, bars or title')
+    if kind not in KINDS:raise ValueError('Choose comparison, steps, quote, bars, diagram or title')
     identifier=config.get('id') or uuid.uuid4().hex[:10]
     if not isinstance(identifier,str) or len(identifier)>80:raise ValueError('Invalid block ID')
     title=str(config.get('title','Your explanation'))[:500];body=str(config.get('body',''))[:5000]
@@ -36,6 +36,16 @@ def prepare(project,values,config):
         if not 2<=len(lines)<=6:raise ValueError('Enter 2–6 steps, one per line')
         step=available/len(lines)
         for i,line in enumerate(lines):text('step'+str(i),str(i+1)+'. '+line,x0,top+i*step,w,size*.65)
+    elif kind=='diagram':
+        if not 2<=len(lines)<=6:raise ValueError('Enter 2–6 diagram nodes, one per line')
+        horizontal=w/available>1.4;count=len(lines);span=w if horizontal else available*.9;gap=span*.08;cell=(span-gap*(count-1))/count
+        for i,line in enumerate(lines):
+            nx=x0+i*(cell+gap) if horizontal else x0+w*.08;ny=top+available*.22 if horizontal else top+i*(cell+gap)
+            nw=cell if horizontal else w*.84;nh=available*.42 if horizontal else cell
+            shape('node'+str(i),nx,ny,nw,nh,surface);text('node_label'+str(i),line,nx+nw*.06,ny+nh*.18,nw*.88,min(size*.6,nh*.35,nw*.12))
+            if i<count-1:
+                box=[nx+nw+gap*.15,ny+nh*.5-8,gap*.7,16] if horizontal else [nx+nw*.5-8,ny+nh+gap*.15,16,gap*.7]
+                item('connector'+str(i),'shape',box,shape='arrow',direction='right' if horizontal else 'down',fill=None,stroke=accent,stroke_w=max(2,size*.05),draw_on=.4)
     elif kind=='quote':
         text('quote','“'+body+'”',x0,top,w,size*.8);text('credit',config.get('credit',''),x0,y1-size,w,size*.45,accent)
     elif kind=='bars':

@@ -56,7 +56,7 @@ promises. Current capabilities and limits are in [README.md](../README.md).
   Queues and restart-resumable rendering remain planned. See [export jobs](EXPORTS.md).
 - **Narration-led creator workflow:** storyboard notes and actual scene order,
   protected assistant patches with before/after frame previews, presenter recordings
-  with per-scene layouts, and five editable explanation block types are implemented.
+  with per-scene layouts, and six editable explanation block types are implemented.
   See the [creator workflow](CREATOR_WORKFLOW.md) and its explicit first-version limits.
 - These changes are development work toward v0.5.0. The published v0.1.0 assets
   remain available unchanged.
