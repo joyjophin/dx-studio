@@ -40,6 +40,9 @@ def validate_template(data):
         if not isinstance(state.get('keys',[]),list) or len(state.get('keys',[]))>2000:raise ValueError('Too many template keyframes')
         for transform in [state]+state.get('keys',[]):
             if not isinstance(transform,dict) or any(key in transform and not finite(transform[key],-1000000,1000000) for key in ('t','x','y','scale','rotation','opacity')):raise ValueError('Invalid template transform')
+            if transform.get('ease')=='custom':
+                from .motion import validate_curve
+                validate_curve(transform.get('bezier'))
     content=data.get('content',[0,0,1920,1080])
     if not isinstance(content,list) or len(content)!=4 or any(not finite(n,-1000000,1000000) for n in content) or content[2]<=content[0] or content[3]<=content[1]:raise ValueError('Invalid template content bounds')
     brand=data.get('brand')

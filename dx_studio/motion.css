@@ -1,0 +1,16 @@
+.motion-curve{width:100%;min-width:0}
+.motion-curve>select,.motion-styles>select{width:100%;margin:8px 0}
+.motion-curve svg{display:block;width:100%;max-height:190px;background:var(--bg);border:1px solid var(--line);border-radius:9px;touch-action:none}
+.motion-curve .curve-grid{stroke:var(--line);stroke-width:1;fill:none;stroke-dasharray:3 3}
+.motion-curve .curve-path{stroke:var(--vio);stroke-width:2.5;fill:none}
+.motion-curve .curve-tangent{stroke:var(--muted);stroke-width:1;stroke-dasharray:3 3}
+.motion-curve .curve-handle{fill:var(--panel);stroke:var(--vio);stroke-width:2;cursor:grab}
+.motion-curve .curve-handle:focus-visible{stroke-width:4;outline:none}
+.motion-curve-fields{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.motion-curve-fields[hidden]{display:none}
+.motion-curve-fields label{display:flex;align-items:center;justify-content:space-between;gap:5px;font-size:10px}
+.motion-curve-fields .num{width:68px}
+.motion-styles .sub,.motion-curve .sub{font-size:10px;line-height:1.6}
+.motion-styles>.btn{width:100%;margin:6px 0}
+.motion-styles .tool-help{margin:12px 0 0}
+.motion-styles .tool-help input{margin:8px 0}

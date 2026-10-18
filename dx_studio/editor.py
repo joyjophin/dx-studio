@@ -345,6 +345,7 @@ def make_handler(ed=None, workspace=None):
                 if u.path == '/': return self._send(200, open(os.path.join(HERE, 'editor.html'), 'rb').read(), 'text/html; charset=utf-8')
                 if u.path == '/theme.js': return self._send(200, open(os.path.join(HERE, 'theme.js'), 'rb').read(), 'text/javascript; charset=utf-8')
                 if u.path == '/theme.css': return self._send(200, open(os.path.join(HERE, 'theme.css'), 'rb').read(), 'text/css; charset=utf-8')
+                if u.path == '/motion.css': return self._send(200, open(os.path.join(HERE, 'motion.css'), 'rb').read(), 'text/css; charset=utf-8')
                 if u.path == '/editor-shell.css':return self._send(200,open(os.path.join(HERE,'editor-shell.css'),'rb').read(),'text/css; charset=utf-8')
                 if u.path == '/editor-shell.js':return self._send(200,open(os.path.join(HERE,'editor-shell.js'),'rb').read(),'text/javascript; charset=utf-8')
                 if u.path == '/editor-view.js': return self._send(200, open(os.path.join(HERE, 'editor-view.js'), 'rb').read(), 'text/javascript; charset=utf-8')

@@ -63,6 +63,12 @@ def validate(project,values):
             if field in item and not finite(item[field],0,1):raise ValueError('Crop focus must be between 0 and 1')
         if not isinstance(item.get('box'),list) or len(item['box'])!=4 or any(not finite(n,-1000000,1000000) for n in item['box']) or min(item['box'][2:])<=0:raise ValueError('Media boxes need finite coordinates and positive sizes')
     for state in values.get('__layers',{}).values():
+        from .motion import validate_curve
+        if not isinstance(state.get('keys',[]),list) or len(state.get('keys',[]))>2000:raise ValueError('Use at most 2,000 layer keyframes')
+        if not finite(state.get('enter_delay',0),0,86400):raise ValueError('Entrance delay must be nonnegative and finite')
+        for keyframe in state.get('keys',[]):
+            if not isinstance(keyframe,dict):raise ValueError('Invalid layer keyframe')
+            if keyframe.get('ease')=='custom':validate_curve(keyframe.get('bezier'))
         for key in ('start','end','x','y','scale','rotation','opacity'):
             if key in state and not finite(state[key],-1000000,1000000):raise ValueError('Layer values must be finite numbers')
     from .core import hexc

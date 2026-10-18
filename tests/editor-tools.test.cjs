@@ -1,6 +1,6 @@
 const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
 for(const file of ['editor.html','home.html']){const html=fs.readFileSync('dx_studio/'+file,'utf8');for(const match of html.matchAll(/<script>([\s\S]*?)<\/script>/g))new vm.Script(match[1],{filename:file});}
-for(const file of ['editor-bulk.js','editor-tools.js','editor-media.js','editor-audio.js','editor-narration.js','editor-captions.js','editor-brand.js','editor-view.js','editor-creator.js','editor-shell.js'])new vm.Script(fs.readFileSync('dx_studio/'+file,'utf8'),{filename:file});
+for(const file of ['editor-bulk.js','editor-tools.js','editor-media.js','editor-audio.js','editor-narration.js','editor-captions.js','editor-brand.js','editor-view.js','editor-creator.js','editor-shell.js','editor-motion.js'])new vm.Script(fs.readFileSync('dx_studio/'+file,'utf8'),{filename:file});
 const tools=require(process.cwd()+'/dx_studio/editor-tools.js');
 assert.deepEqual(tools.roots(['parent','child'],[{id:'parent',parent:null},{id:'child',parent:'parent'}]),['parent']);
 const hit=(id,x,y,w,h,base=[1,0,0,1])=>({id,corners:[[x,y],[x+w,y],[x+w,y+h],[x,y+h]],base});

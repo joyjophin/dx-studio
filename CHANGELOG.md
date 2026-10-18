@@ -2,6 +2,7 @@
 
 ## 0.5.0.dev0 — unreleased development toward 0.5.0
 
+- Visual easing curves with custom Bézier drag/keyboard/numeric controls, shared browser/renderer evaluation, reusable local/JSON motion styles, selection staggering and fade-only application. Layer windows/static placement are preserved, locked roots are skipped, and motion edits use normal undo/autosave.
 - Fix default 9:16 graphics/captions shifted 50px left: equal 130px side margins centre the existing 820px content band on a 1080px canvas. Update portrait generation/review guidance in the skill; explicit custom safe areas and saved offsets remain respected.
 - Shared System/Light/Dark appearance preference for the dashboard and editor, with live system changes, browser persistence and tab synchronization. Dark controls, dialogs and timeline tracks preserve video and export colours.
 - Project-focused dashboard with preview cards, search and compact creation/open dialogs.

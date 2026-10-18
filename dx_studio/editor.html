@@ -177,6 +177,7 @@
 </style>
 <link rel="stylesheet" href="/editor-shell.css">
 <link rel="stylesheet" href="/theme.css">
+<link rel="stylesheet" href="/motion.css">
 </head>
 <body>
 <div class="app">
@@ -269,6 +270,7 @@
 <script src="/editor-view.js"></script>
 <script src="/editor-creator.js"></script>
 <script src="/editor-shell.js"></script>
+<script src="/editor-motion.js"></script>
 <script>
 let LAY = [], selLayer = null, HITS = [];
 const SELECTED = new Set(), SOLO = new Set(); let PENDING_MULTI = []; let layerSearch = '', alignTarget = 'selection';
@@ -922,7 +924,7 @@ function nudge(code, px) { if(SELECTED.size>1){bulkNudge(code,px);return;} if(is
   setTransform(selLayer, {x: Math.round(cur.x + (b[3] * dx - b[2] * dy) / det), y: Math.round(cur.y + (-b[1] * dx + b[0] * dy) / det)}); overlaySoon();
 }
 // ---- clipboard
-const PROPS = ['x', 'y', 'scale', 'rotation', 'opacity', 'keys', 'enter', 'enter_dur', 'exit', 'exit_dur'];
+const PROPS = ['x', 'y', 'scale', 'rotation', 'opacity', 'keys', 'enter', 'enter_dur', 'enter_delay', 'exit', 'exit_dur'];
 function copySel() {
   if (LASTSEL === 'layer' && selLayer) {
     const st = clone(LS(selLayer));
@@ -1311,7 +1313,7 @@ function transformAt(st, rt) {
   const pick = k => { const o = {}; for (const f of TK) o[f] = +k[f]; return o; };
   if (rt <= ks[0].t) return pick(ks[0]); if (rt >= ks[ks.length - 1].t) return pick(ks[ks.length - 1]);
   for (let i = 0; i < ks.length - 1; i++) { const a = ks[i], b = ks[i + 1];
-    if (a.t <= rt && rt <= b.t) { const u = (rt - a.t) / Math.max(1e-6, b.t - a.t), e = (EASE[b.ease || 'ease'] || EASE.ease)(u); const o = {}; for (const f of TK) o[f] = +a[f] + (+b[f] - +a[f]) * e; return o; } }
+    if (a.t <= rt && rt <= b.t) { const u = (rt - a.t) / Math.max(1e-6, b.t - a.t), e = DXMotion.ease(b,u); const o = {}; for (const f of TK) o[f] = +a[f] + (+b[f] - +a[f]) * e; o.scale=Math.max(.001,o.scale);o.opacity=Math.max(0,Math.min(1,o.opacity));return o; } }
 }
 const keyAt = (st, rt) => (st.keys || []).find(k => Math.abs(k.t - rt) < 0.5 / FPS);
 function setTransform(id, patch) { if(isLayerLocked(id))return;                     // auto-key: with keyframes, edits land on a keyframe at the playhead
@@ -1450,13 +1452,14 @@ function fillInspector() {
       renderLayerRows(); syncInspector(); changed(true);
     };
     kb.append(prev, add, next, el('span', 'sub', n ? `${n} keyframe${n > 1 ? 's' : ''}` : 'none: the transform is constant'));
-    if (on && st.keys.indexOf(on) > 0) {
-      const sel = el('select'); for (const e2 of Object.keys(EASE)) { const o = el('option'); o.value = e2; o.textContent = 'ease into this key: ' + e2; sel.appendChild(o); }
-      sel.value = on.ease || 'ease'; sel.onchange = () => { on.ease = sel.value; changed(true); }; kb.append(sel);
+    if (n > 1) {
+      const sorted=st.keys.slice().sort((a,b)=>a.t-b.t),target=sorted.find((key,index)=>index>0&&key.t>=rt-1e-6)||sorted.at(-1);
+      kb.append(el('p','sub','Easing into key at '+target.t.toFixed(2)+' s (layer time)'),motionCurveEditor(target,()=>{changed(true);renderLayerRows();overlaySoon();}));
     }
     if (n) { const clr = el('button', 'btn small ghost', 'Clear all'); clr.onclick = () => { Object.assign(st, cur()); st.keys = []; renderLayerRows(); syncInspector(); changed(true); }; kb.append(clr); }
   }};
   I.appendChild(el('div', 'sub', 'With keyframes, changing a transform at the playhead adds or updates a keyframe there.'));
+  motionStylesPanel(I);
   // presets
   I.appendChild(el('h3', null, 'Entrance & exit'));
   for (const [which, lab] of [['enter', 'Entrance'], ['exit', 'Exit']]) {
@@ -1467,6 +1470,7 @@ function fillInspector() {
     box.append(s2, d, el('span', 'sub', 's')); f.append(el('label', null, lab), box); I.appendChild(f);
     INSP[which] = {_sync: () => { s2.value = st[which]; if (document.activeElement !== d) d.value = (+st[which + '_dur']).toFixed(2); }};
   }
+  INSP.enter_delay=num('Entrance delay (s)',()=>st.enter_delay||0,value=>{if(value>=0){st.enter_delay=value;changed();}},{step:.05});
   // the layer's own settings (linked scene parameters)
   arrangeSection(I, m.id);
   if (m.id.startsWith('media_')) { const it = mediaItem(m.id); if (it && it.kind === 'text') textSection(I, it); else if (it && it.kind === 'shape') shapeSection(I, it); else mediaSection(I, m.id); }

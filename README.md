@@ -28,6 +28,7 @@ The current source is **0.5.0.dev0**, a development build toward v0.5. It includ
 [narration](docs/NARRATION.md), [audio balance](docs/AUDIO_WORKSPACE.md),
 [captions](docs/CAPTIONS.md), [brand presets](docs/BRAND_PRESETS.md),
 [workspace controls](docs/VIEW.md) and [cancellable exports](docs/EXPORTS.md).
+Layer finishing also includes [reusable motion styles, stagger and editable easing curves](docs/MOTION.md).
 
 The new [creator workflow](docs/CREATOR_WORKFLOW.md) adds correctable word timings,
 aligned captions, reviewed narration-linked retiming, storyboard playback order,

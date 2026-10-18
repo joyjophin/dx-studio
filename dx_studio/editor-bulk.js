@@ -25,7 +25,7 @@ function bulkInspector(parent){
   const row=el('div','kbar');for(const [label,run] of [['Show',()=>bulkVisibility(true)],['Hide',()=>bulkVisibility(false)],['Lock / unlock',bulkLock],['Solo graphics',bulkSolo]]){const b=el('button','btn small',label);b.onclick=run;row.append(b);}parent.append(row);
   parent.append(el('p','note','Shift-click layers or use their checkboxes to select more. Move the selection together on the canvas or timeline. Locked layers are skipped. Solo affects the preview only.'));
   const actions=el('div','kbar');for(const [label,run] of [['Duplicate added layers',bulkDuplicate],['Delete / hide',bulkDelete]]){const b=el('button','btn small',label);b.onclick=run;actions.append(b);}parent.append(actions);
-  bulkArrangePanel(parent);return true;
+  motionStylesPanel(parent);bulkArrangePanel(parent);return true;
 }
 function bulkArrangePanel(parent){
   parent.append(el('h3',null,'Align and space'));
