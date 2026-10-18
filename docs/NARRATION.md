@@ -1,5 +1,7 @@
 # Make the narration fit
 
+For correctable transcripts, aligned captions and word-linked timing review after replacing a take, see [Transcripts](TRANSCRIPTS.md).
+
 Open **Narration** to import a voice recording at the playhead. Choose an audio
 file or paste its full local path. DX Studio decodes supported recordings to a
 48 kHz mono WAV and copies them into the project. An import does not move any

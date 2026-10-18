@@ -209,7 +209,12 @@ def build_mix(project, out_path):
             if n > 2*fade: seg[:fade] *= np.linspace(0, 1, fade); seg[-fade:] *= np.linspace(1, 0, fade)
             out[a:a+n] += seg
         return out
-    spans_out = [(out_time(a, edits), out_time(b, edits), k) for a, b, k in spans]
+    spans_out = []
+    for o0,o1,s0,s1,kind in segments(project.base_duration,edits):
+        if kind=='hold':continue
+        for a,b,k in spans:
+            left,right=max(a,s0),min(b,s1)
+            if right>left:spans_out.append((o0+left-s0,min(o1,o0+right-s0),k))
     N_scene = N; N = NO; dur_scene = dur; dur = odur
     music = np.zeros(N); mcfg = cfg.get('music')
     if mcfg and level(balance,'music')>0:
@@ -241,6 +246,7 @@ def build_mix(project, out_path):
         a, sr = sf.read(wav)
         if a.ndim > 1: a = a.mean(axis=1)
         s0, s1 = st.get('start', it['t0']), st.get('end', it['t0']+it['dur'])
+        a=a[int(float(it.get('source_offset',0))*SR):]
         n = int(max(0, s1-s0)*SR)
         if it.get('loop') and len(a): a = np.tile(a, int(np.ceil(n/len(a)))+1)
         a = a[:n]*float(it.get('volume', 1.0))

@@ -24,6 +24,8 @@ def make_novoice(project,out,mute_footage=False):
     if destination.suffix.lower()!='.mp4':raise ValueError('Export to an .mp4 file')
     destination.parent.mkdir(parents=True,exist_ok=True)
     from dx_studio.mix_controls import settings as mix_settings
+    from dx_studio.export_profiles import resolve
+    options=resolve(pr)
     mx=mix_settings(pr);target,peak=mx.get('loudness',-14.0),mx.get('peak',-1.2)
     with tempfile.TemporaryDirectory(prefix='.dx-novoice-',dir=destination.parent) as work:
         work=Path(work)
@@ -33,7 +35,12 @@ def make_novoice(project,out,mute_footage=False):
                             f'alimiter=limit={10**(limit/20):.4f}:attack=2:release=60:level=false',
                             '-ar',str(audio.SR),'-c:a','pcm_s24le',str(dst)],check=True)
             return audio._lufs(dst)
-        full=audio.build_mix(pr,str(work/'full.wav'));gain,limit=8.5,peak-.55
+        def crop(path,name):
+            if options['start']==0 and options['end']==pr.duration:return path
+            target=work/name
+            subprocess.run(['ffmpeg','-v','error','-y','-ss',str(options['start']),'-i',str(path),'-t',str(options['duration']),'-c:a','pcm_f32le',str(target)],check=True)
+            return str(target)
+        full=crop(audio.build_mix(pr,str(work/'full.wav')),'full-range.wav');gain,limit=8.5,peak-.55
         for _ in range(6):
             loudness,actual_peak=chain(full,work/'full-master.wav',gain,limit)
             if abs(loudness-target)<.25 and actual_peak<=peak+.05:break
@@ -43,11 +50,11 @@ def make_novoice(project,out,mute_footage=False):
         if mute_footage:
             for item in pr.values.get('__media',[]):
                 if item.get('kind')=='video':item['muted']=True
-        raw=audio.build_mix(pr,str(work/'no-narration.wav'));master=work/'master.wav';chain(raw,master,gain,limit)
+        raw=crop(audio.build_mix(pr,str(work/'no-narration.wav')),'no-narration-range.wav');master=work/'master.wav';chain(raw,master,gain,limit)
         complete=work/'complete.mp4'
         subprocess.run(['ffmpeg','-hide_banner','-loglevel','error','-y','-i',str(source),'-i',str(master),
                         '-map','0:v:0','-map','1:a:0','-c:v','copy','-c:a','aac','-b:a','256k','-ar','48000',
-                        '-t',str(pr.duration),'-movflags','+faststart',str(complete)],check=True)
+                        '-t',str(options['duration']),'-movflags','+faststart',str(complete)],check=True)
         os.replace(complete,destination)
     print('wrote',destination)
 

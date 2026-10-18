@@ -9,7 +9,12 @@ Edits are applied in order, each expressed in the output time of the moment it w
 def out_time(s, edits):
     """scene time -> output time"""
     for e in edits:
-        if e['op'] == 'insert':
+        if e['op']=='reorder':
+            cursor=0.0
+            for a,b in e['ranges']:
+                if a<=s<b:s=cursor+s-a;break
+                cursor+=b-a
+        elif e['op'] == 'insert':
             if s >= e['at']: s += e['dur']
         elif e['op'] == 'delete':
             a, b = e['start'], e['end']
@@ -20,7 +25,13 @@ def out_time(s, edits):
 def scene_time(o, edits):
     """output time -> scene time"""
     for e in reversed(edits):
-        if e['op'] == 'insert':
+        if e['op']=='reorder':
+            cursor=0.0
+            for a,b in e['ranges']:
+                if o<cursor+b-a:o=a+o-cursor;break
+                cursor+=b-a
+            else:o=e['ranges'][-1][1]
+        elif e['op'] == 'insert':
             at, d = e['at'], e['dur']
             if o >= at + d: o -= d
             elif o >= at: o = at
@@ -29,7 +40,11 @@ def scene_time(o, edits):
     return o
 
 def out_duration(base, edits):
-    return out_time(base, edits) if edits else base
+    total=base
+    for e in edits:
+        if e['op']=='insert':total+=e['dur']
+        elif e['op']=='delete':total-=e['end']-e['start']
+    return total
 
 def segments(base, edits, step=None):
     """list of (o0, o1, s0, s1, kind) covering the output timeline; kind is 'play' or 'hold'"""
@@ -38,6 +53,11 @@ def segments(base, edits, step=None):
     pts = {0.0, total}
     for i, e in enumerate(edits):
         prior = edits[:i]
+        if e['op']=='reorder':
+            cursor=0.0
+            for a,b in e['ranges']:
+                pts.add(_fwd(cursor,edits[i+1:]));cursor+=b-a
+            continue
         if e['op'] == 'insert':
             a = e['at']; later = edits[i+1:]
             pts.add(_fwd(a, later)); pts.add(_fwd(a + e['dur'], later))
@@ -53,11 +73,4 @@ def segments(base, edits, step=None):
 
 def _fwd(o, later_edits):
     """position of an output time (at the moment of an edit) after the later edits are applied"""
-    for e in later_edits:
-        if e['op'] == 'insert':
-            if o >= e['at']: o += e['dur']
-        else:
-            a, b = e['start'], e['end']
-            if o >= b: o -= (b - a)
-            elif o > a: o = a
-    return o
+    return out_time(o,later_edits)

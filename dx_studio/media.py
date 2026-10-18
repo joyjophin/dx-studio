@@ -200,6 +200,7 @@ class MediaLibrary:
 
     def _draw(self, c, item, lt):
         x, y, w, h = item['box']
+        lt+=float(item.get('source_offset',0))
         k = item['kind']
         if k == 'image': surf, iw, ih = self.image(item)
         elif k == 'gif':
@@ -213,7 +214,13 @@ class MediaLibrary:
         c.save()
         r = float(item.get('radius', 0) or 0)
         if r > 0: rrect(c, x, y, w, h, r); c.clip()
-        c.translate(x, y); c.scale(w/iw, h/ih)
+        c.rectangle(x,y,w,h);c.clip()
+        fit=item.get('fit','stretch')
+        if fit in ('cover','contain'):
+            scale=max(w/iw,h/ih) if fit=='cover' else min(w/iw,h/ih)
+            dx=(w-iw*scale)*float(item.get('crop_x',.5));dy=(h-ih*scale)*float(item.get('crop_y',.5))
+            c.translate(x+dx,y+dy);c.scale(scale,scale)
+        else:c.translate(x,y);c.scale(w/iw,h/ih)
         c.set_source_surface(surf, 0, 0); c.get_source().set_filter(cairo.FILTER_GOOD); c.paint()
         c.restore()
 
@@ -227,10 +234,18 @@ class MediaLibrary:
             elif k == 'shape':
                 def draw_it(c, t, p, it=it): draw_shape_el(c, it, t - it['t0'])
                 box = tuple(it['box']); label = 'Shape: ' + it.get('shape', 'rect'); grp = 'Text & shapes'; hlp = 'Shape element'
+            elif it.get('presenter'):
+                def presenter_box(t,it=it):
+                    area=self.pr.layout.get('presenter')
+                    return (area[0],area[1],area[2]-area[0],area[3]-area[1]) if area else tuple(it['box'])
+                def draw_it(c,t,p,it=it):
+                    area=self.pr.layout.get('presenter')
+                    if area:self.draw(c,dict(it,box=[area[0],area[1],area[2]-area[0],area[3]-area[1]]),t-it['t0'])
+                box=presenter_box;label=it.get('name','Presenter');grp='Presenter';hlp='Presenter recording'
             else:
                 def draw_it(c, t, p, it=it): self.draw(c, it, t - it['t0'])
                 box = tuple(it['box']); label = it.get('name', it['id']); grp = 'Media'; hlp = f"{k.upper()} · {it['file']}"
-            out.append(Layer(it['id'], label, draw_it, box, it['t0'], it['t0']+it['dur'], grp, help=hlp))
+            out.append(Layer(it['id'], label, draw_it, box, it['t0'], it['t0']+it['dur'], grp, help=hlp,alive=(lambda t:bool(self.pr.layout.get('presenter'))) if it.get('presenter') else None))
         return out
 
 def probe_video(path):
@@ -316,6 +331,12 @@ def draw_shape_el(c, it, ts):
         c.new_path(); return
     if kind == 'marker':
         col = hexc(fc or '#BCA4F5'); rrect(c, x, y, max(1, w*u), h, min(h/2, float(it.get('radius', 28)))); c.set_source_rgba(col[0], col[1], col[2], 0.45); c.fill(); return
+    if kind=='arrow' and it.get('direction')=='down':
+        col=hexc(sc or '#7846EB');cx=x+w/2;end=y+h*u;head=min(max(8,sw*3.2),h*.3)
+        c.set_line_cap(cairo.LINE_CAP_ROUND);c.set_line_join(cairo.LINE_JOIN_ROUND);c.set_source_rgba(*col);c.set_line_width(max(1,sw));c.move_to(cx,y);c.line_to(cx,end);c.stroke()
+        if u>.6:
+            head*=clamp((u-.6)/.4);c.move_to(cx-head*.8,end-head);c.line_to(cx,end);c.line_to(cx+head*.8,end-head);c.stroke()
+        return
     # line / arrow along the box's horizontal centre (rotate the layer to angle it)
     col = hexc(sc or '#7846EB'); y0 = y + h/2; x1 = x + w*u
     c.set_line_cap(cairo.LINE_CAP_ROUND); c.set_line_join(cairo.LINE_JOIN_ROUND)

@@ -212,3 +212,45 @@ mix configuration, with each narration take choosing normal, deep or none.
 Use `dx_studio.mix_controls.settings(project)` for effective settings. Preserve
 these saved overrides when revising project source. Preview monitor controls and
 audition ranges remain outside saved values and do not affect export.
+
+
+### Creator workflow values (current development builds)
+
+These are ordinary settings, absent in the v0.1 release. The loader provides defaults
+when older settings omit them. See [CREATOR_WORKFLOW](../docs/CREATOR_WORKFLOW.md)
+for editor behavior and limitations.
+
+| Key | Contract |
+| --- | --- |
+| `__story` | Up to 100 `{id,name,start,end,script,visual,source}` scene cards. Start/end are original source seconds; chapters seed defaults. |
+| `__voice[].transcript` | `{file,method,source_duration,words:[{id,text,start,end}]}`. Word times refer to the original recording; a different take file makes this transcript stale. |
+| `__anchors` | `{voice_id,word_id,text,layer_id,offset}` links. Offset is scene seconds from the matched word. Retiming preserves layer duration and accounts for inherited parent timing. |
+| `__captions[]` word metadata | Generated cues can carry `voice_id`, `word_ids`, scene-time `words`, and `word_highlight`. Manual timing operations detach the links; manual caption text is retained. |
+| `__protected` | Section keys or `layer:<id>` / `voice:<id>` used to reject conflicting assistant patch changes. Creator controls remain editable. |
+| `__presenter` | `{media_id,scenes:{scene_id:preset}}`. Imported video has `presenter:true`, cover/contain `fit`, crop focus 0–1, `source_offset`, volume and mute. |
+| `__blocks` | Block configuration `{id,kind,title,body,credit,start,duration}`. Six kinds: comparison, steps, diagram, quote, bars, title. Generated editable media carry the same `block_id`. |
+| `__brand_assets` | `{fonts:{role:asset_path},logo:asset_path_or_null,credits:{asset_path:note}}`. Paths are relative to project assets. Roles: reg, med, semi, bold, xb, med_t, xb_t. |
+| `__export` | `{profile,fps,range,captions,file}`. Source/1080p/720p; fps 0 uses project fps, otherwise 12/24/25/30/60. Range is null or edited-output `[start,end]`. Captions: burned/clean/sidecar. File is a contained MP4 path. |
+| `__quality_ignores` | Finding IDs for intentional warning dismissals. Errors cannot be dismissed. |
+
+Scene order is an optional first `__timeline` operation:
+
+```json
+{"op":"reorder","ranges":[[4,8],[0,4],[8,16]]}
+```
+
+Ranges must partition the original timeline exactly once. Later ripple edits use
+the output clock at the time of each edit. Reorder does not change total duration.
+The engine remaps source-time drawings, narration samples and subtitle intervals.
+A source interval can become multiple output fragments; do not map just its two
+endpoints across a discontinuity. Reorder in the editor is blocked after cuts/holds.
+
+`prepare_frame(output_t)` sets the effective scene layout and font context before
+render/hit measurement and calls scene `setup(params,project)`. Keep setup cheap,
+deterministic and cache heavy work; it can be called for every frame. Custom scenes
+must consume `project.layout` and managed captions for automatic reflow/clean export.
+
+Brand kits are ZIPs with `brand.json` plus declared assets. Selection templates are
+JSON with editable `items`, relative layer `states`, complete `blocks`, content
+bounds, brand tokens/references and base64 asset dependencies. Neither format
+contains generated executable code. A full project scene remains executable Python.

@@ -43,14 +43,21 @@ def prepare_import(text, project, timing='output'):
         start,end=cue['start'],cue['end']
         if start>=limit:skipped+=1;continue
         if end>limit:end=limit;clipped+=1
-        if timing=='output':start,end=scene_time(start,project.edits),scene_time(end,project.edits)
-        if end-start<.001:skipped+=1;continue
-        out.append(dict(cue,start=round(start,3),end=round(end,3)))
+        if timing=='output' and any(edit['op']=='reorder' for edit in project.edits):
+            fragments=[]
+            for o0,o1,s0,s1,kind in segments(project.base_duration,project.edits):
+                a,b=max(start,o0),min(end,o1)
+                if b>a and kind!='hold':fragments.append((s0+a-o0,min(s1,s0+b-o0)))
+        else:
+            if timing=='output':start,end=scene_time(start,project.edits),scene_time(end,project.edits)
+            fragments=[(start,end)]
+        if not any(b-a>=.001 for a,b in fragments):skipped+=1;continue
+        out.extend(dict(cue,start=round(a,3),end=round(b,3)) for a,b in fragments if b-a>=.001)
     warnings=[]
     if clipped:warnings.append(f'{clipped} cues shortened at the end of the project.')
     if skipped:warnings.append(f'{skipped} cues outside the project or wholly inside a held frame were skipped.')
     if not out:raise ValueError('No cues fit this project. Check the timing choice and video length.')
-    return {'cues':out,'warnings':warnings}
+    return {'cues':sorted(out,key=lambda cue:cue['start']),'warnings':warnings}
 
 
 def output_cues(project):

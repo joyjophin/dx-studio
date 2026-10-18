@@ -27,6 +27,8 @@ Read [PROJECT_FORMAT](reference/PROJECT_FORMAT.md) before writing a scene, and c
 | Teaching video with several chapters | [TEACHING_LONGFORM](reference/TEACHING_LONGFORM.md) |
 | Landscape product walkthrough | [LONGFORM_16x9](reference/LONGFORM_16x9.md) |
 | Returning to manual edits or preparing an editor handoff | [EDITOR_HANDOFF](reference/EDITOR_HANDOFF.md) |
+| Settings-only assistant revisions, protected edits and timing patches | [ASSISTANT_REVISIONS](reference/ASSISTANT_REVISIONS.md) |
+| New editor workspaces, blocks, presenter clips, brand kits and range exports | [CREATOR_WORKFLOW](docs/CREATOR_WORKFLOW.md) |
 | Optional Figma UI kit | [FIGMA_TUTORIALS](reference/FIGMA_TUTORIALS.md) |
 
 Templates live in `dx_studio/templates/`. The explainer is a complete 16-second,

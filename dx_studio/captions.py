@@ -57,6 +57,8 @@ def draw_captions(c, t, caps, cx=540, cy=1462, backing=(0.094, 0.059, 0.169, 1),
         for li, L in enumerate(lines):
             x = cx-widths[li]/2; y = by+pad+lh*li+lh/2+size_*0.36
             for w in L:
-                col = highlight if wi in hlset else color
+                timed=cap.get('words',[])
+                active=next((index for index,word in enumerate(timed) if word['start']<=t<word['end']),None) if cap.get('word_highlight') else None
+                col = highlight if (wi==active if cap.get('word_highlight') else wi in hlset) else color
                 wd = text(c, w, x, y, size_, 'semi', col, a)
                 x += wd+sp; wi += 1

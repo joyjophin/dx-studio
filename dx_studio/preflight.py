@@ -47,6 +47,12 @@ def inspect_project(project):
             findings.append({'severity':'error','kind':'audio','file':file,'layers':[],
                              'message':f'{label}: {file} — {error}',
                              'fix':'Restore the audio file or update its path in project.json.'})
+    from fontTools.ttLib import TTFont
+    for role,file in project.values.get('__brand_assets',{}).get('fonts',{}).items():
+        try:
+            font=TTFont(contained(project.media.assets,file));font.getGlyphSet();font.close()
+        except Exception as error:
+            findings.append({'severity':'error','kind':'font','file':file,'layers':[],'message':'Brand font unavailable: '+file,'fix':'Replace it in Brand or restore the bundled fonts.'})
     from .subtitles import findings as caption_findings
     findings.extend(caption_findings(project))
     return {'ok':not any(f['severity']=='error' for f in findings), 'findings':findings}

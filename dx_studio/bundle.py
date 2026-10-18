@@ -11,12 +11,17 @@ def pack(project, output):
     project=Path(project).resolve(); output=Path(output).resolve()
     cfg=json.loads((project/'project.json').read_text())
     video=Path(contained(project,cfg.get('output','output.mp4')))
+    selected=None
+    settings=project/'settings.json'
+    if settings.is_file():
+        filename=json.loads(settings.read_text()).get('__export',{}).get('file')
+        if filename:selected=Path(contained(project,filename))
     files=[]
     for f in sorted(project.rglob('*')):
         if f.is_symlink(): raise ValueError(f"Remove symlinks before sharing: {f.relative_to(project)}")
         rel=f.relative_to(project)
         if any(x in SKIP for x in rel.parts) or any(x.startswith('.') for x in rel.parts): continue
-        if f.is_file() and f not in (output,video) and f.suffix not in {'.pyc','.zip','.onnx','.bin'}: files.append((f,Path('project')/rel))
+        if f.is_file() and f not in (output,video,selected) and f.suffix not in {'.pyc','.zip','.onnx','.bin','.lock'}: files.append((f,Path('project')/rel))
     output.parent.mkdir(parents=True,exist_ok=True)
     engine=Path(__file__).parent
     with ZipFile(output,'w',ZIP_DEFLATED) as z:
