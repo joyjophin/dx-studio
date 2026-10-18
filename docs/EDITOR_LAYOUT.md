@@ -1,10 +1,20 @@
 # A calmer editing workspace
 
-The current development editor uses a light, compact layout with a project-focused
+The current development editor uses a compact layout with a project-focused
 dashboard, a tool browser, a large preview and a timeline. It has no chat or prompt
 panel. Existing project files, saved edits and export behavior continue to work.
 
 ![Projects dashboard](images/dashboard-modern.jpg)
+
+## Choose your appearance
+
+The workspace follows your system's light or dark mode by default. Use
+**Appearance** in the dashboard header or **View options → Appearance** in the
+editor to choose **System**, **Light** or **Dark**. The saved browser preference
+applies to both screens and syncs between open tabs. Interface colours change;
+your video and exports keep their original colours.
+
+![Dark projects dashboard](images/dashboard-dark.jpg)
 
 ## Projects first
 

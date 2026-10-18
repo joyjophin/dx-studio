@@ -1,6 +1,19 @@
-# Workspace layouts and preview quality
+# Workspace appearance, layouts and preview quality
 
 Available in the development source toward v0.5.0.
+
+Choose **Appearance → System, Light or Dark** in the dashboard header or the
+editor's **View options** dialog. **System** is the default and follows device
+appearance changes while the workspace is open. Light and Dark stay selected
+until you change the preference. The choice is saved in this browser and shared
+across the dashboard, projects and open tabs on the same editor address.
+
+Appearance changes the interface, including dialogs and timeline tracks. It does
+not recolour video frames, brand colours or exports, and does not mark a project
+as edited. If browser storage is unavailable, switching still works for the
+current page; a new page returns to System.
+
+![Dark editor workspace](images/editor-dark.jpg)
 
 Open the header’s **View options** icon to make room for the task at hand:
 

@@ -2,6 +2,7 @@
 
 ## 0.5.0.dev0 — unreleased development toward 0.5.0
 
+- Shared System/Light/Dark appearance preference for the dashboard and editor, with live system changes, browser persistence and tab synchronization. Dark controls, dialogs and timeline tracks preserve video and export colours.
 - Project-focused dashboard with preview cards, search and compact creation/open dialogs.
 - Light editor shell with six primary tool groups, a large preview, playback below the canvas and a contextual selection inspector.
 - Scene-focused text controls, compact media cards and collapsed secondary caption/inspector controls reduce initial options.

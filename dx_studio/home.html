@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="/theme.js"></script>
 <title>Projects · DX Studio</title>
 <style>
 :root{--ink:#22282c;--muted:#81878b;--line:#e8e9ed;--accent:#6557e8;--bg:#fafafb;--soft:#f1effc}
@@ -111,6 +112,7 @@ h1{font-size:30px}
 }
 
 </style>
+<link rel="stylesheet" href="/theme.css">
 </head>
 <body>
 <div class="layout">
@@ -122,7 +124,7 @@ h1{font-size:30px}
  <button class="nav" data-open="openDialog"><svg viewBox="0 0 24 24"><path d="M3 7h7l2 3h9l-3 10H3zM3 7V4h7l2 3h7v3"/></svg>Open folder</button>
  <div class="side-bottom"><a href="https://github.com/joyjophin/dx-studio#readme" target="_blank" rel="noopener"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 0 1 5 .5c0 2-2.5 2-2.5 4M12 17h.01"/></svg>Help &amp; documentation</a><span><i class="local-dot"></i>Your files stay on this computer</span></div>
 </aside>
-<div class="content"><header class="topbar"><span>Workspace <span>/</span> <b>Projects</b></span><span class="muted"><i class="local-dot"></i>Local workspace</span></header>
+<div class="content"><header class="topbar"><span>Workspace <span>/</span> <b>Projects</b></span><div class="workspace-preferences"><span class="muted"><i class="local-dot"></i>Local workspace</span><label class="appearance-control">Appearance <select data-theme-picker aria-label="Appearance"><option value="system">System</option><option value="light">Light</option><option value="dark">Dark</option></select></label></div></header>
 <main>
  <div class="heading"><div><h1>Your projects</h1><p class="muted">A space for your next great explainer.</p></div><div class="actions"><button data-open="openDialog"><svg viewBox="0 0 24 24"><path d="M3 7h7l2 3h9l-3 10H3zM3 7V4h7l2 3h7v3"/></svg>Open project</button><button class="primary" data-open="createDialog"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>New project</button></div></div>
  <div class="toolbar"><div class="tabs">Recent projects <span class="count" id="projectCount">0</span></div><div class="search"><svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 4 4"/></svg><input type="search" id="search" placeholder="Search projects…" aria-label="Search projects"></div></div>

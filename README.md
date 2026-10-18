@@ -42,8 +42,9 @@ remain the initial release.
 
 The development source now has a [quieter dashboard and editor](docs/EDITOR_LAYOUT.md):
 project cards, a compact tool rail, scene-focused text controls and a contextual
-inspector. Timeline layer tracks expand when needed. It uses a light theme and
-has no chat or prompt panel.
+inspector. Timeline layer tracks expand when needed. Light and dark themes follow
+your system, with an **Appearance** preference to override it. There is no chat or
+prompt panel. [Appearance and workspace preferences →](docs/VIEW.md)
 
 <p align="center"><img src="docs/images/dashboard-modern.jpg" alt="DX Studio projects dashboard with thumbnail cards and no prompt box" width="100%"></p>
 
