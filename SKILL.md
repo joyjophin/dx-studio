@@ -26,6 +26,7 @@ Read [PROJECT_FORMAT](reference/PROJECT_FORMAT.md) before writing a scene, and c
 | Product footage and talking-head layouts | [FOOTAGE_SHORTS](reference/FOOTAGE_SHORTS.md) |
 | Teaching video with several chapters | [TEACHING_LONGFORM](reference/TEACHING_LONGFORM.md) |
 | Landscape product walkthrough | [LONGFORM_16x9](reference/LONGFORM_16x9.md) |
+| Returning to manual edits or preparing an editor handoff | [EDITOR_HANDOFF](reference/EDITOR_HANDOFF.md) |
 | Optional Figma UI kit | [FIGMA_TUTORIALS](reference/FIGMA_TUTORIALS.md) |
 
 Templates live in `dx_studio/templates/`. The explainer is a complete 16-second,
@@ -83,7 +84,8 @@ when needed. They are examples, not a requirement for a particular topic or styl
    python -m dx_studio pack ./projects/my-video --output ./outputs/my-video-project.zip
    ```
    Deliver the MP4, portable project zip, voiceover sheet (text, timing, sources), and
-   no-voice master when useful. Add an SRT for optional captions on long videos. Confirm
+   no-voice master when useful. Read [EDITOR_HANDOFF](reference/EDITOR_HANDOFF.md) when
+   revising saved edits or delivering sidecar captions for the final edited timeline. Confirm
    output dimensions, duration, audio and completion before claiming success. Never
    claim a render or visual inspection that did not happen. `pack` preserves saved edits.
    Explain: extract the bundle, install its engine, run `python -m dx_studio edit project`.

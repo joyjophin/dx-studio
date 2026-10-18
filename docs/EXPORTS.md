@@ -43,6 +43,18 @@ dx-studio build projects/my-video --output exports/review.mp4
 Custom output paths must stay inside the project, use `.mp4`, and must not replace
 a referenced media/audio source. Parent folders are created when needed. Advanced
 workflows can pass `--settings` with a settings snapshot inside the project.
+For a separate no-narration version after building the same saved settings:
+
+```sh
+python scripts/novoice.py projects/my-video outputs/no-voice.mp4
+# Also silence imported footage when needed:
+python scripts/novoice.py projects/my-video outputs/no-voice.mp4 --mute-footage
+```
+
+The helper reuses the completed MP4's video stream and builds its own temporary
+audio. It preserves the voiced master and needs no shared build intermediates.
+Footage audio is retained unless explicitly muted with the option above.
+
 Output profiles, range exports and render queues remain planned.
 
 ![Cancelled export keeps the previous completed video](images/export-jobs.png)

@@ -104,7 +104,8 @@ def cmd_sounds():
 def main(argv=None):
     import argparse
     ap=argparse.ArgumentParser(prog='dx-studio', description='DX Studio: explainer videos that stay editable.')
-    ap.add_argument('--version',action='version',version='DX Studio 0.1.0')
+    from . import __version__
+    ap.add_argument('--version',action='version',version='DX Studio '+__version__)
     sub=ap.add_subparsers(dest='command',required=True)
     sub.add_parser('doctor',help='Check local dependencies')
     sub.add_parser('sounds',help='List built-in sound effects')
