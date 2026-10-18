@@ -56,7 +56,7 @@ dx-studio="dx_studio.cli:main"
 [tool.setuptools.packages.find]
 include=["dx_studio*"]
 [tool.setuptools.package-data]
-dx_studio=["*.html","*.js","fonts/*.ttf","fonts/OFL.txt","templates/*/*.py","templates/*/*.json"]
+dx_studio=["*.html","*.js","*.css","fonts/*.ttf","fonts/OFL.txt","templates/*/*.py","templates/*/*.json"]
 """)
         z.writestr('OPEN-ME.md',f"""# DX Studio project
 

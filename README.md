@@ -6,8 +6,8 @@
 <p align="center"><a href="#a-look-around">Explore the editor</a> · <a href="#made-with-dx-studio">See it in action</a> · <a href="#features">Features</a> · <a href="#create-with-your-assistant">Use the skill</a> · <a href="#get-started">Get started</a></p>
 
 <p align="center">
-  <img src="docs/images/editor-hero.jpg" alt="DX Editor showing a landscape explainer, editable headline fields and a timeline of caption phrases, beats and individual layers" width="100%">
-  <br><sub><b>A video, with its working parts.</b> Real editor capture, 1600 × 900. The included explainer stays editable as text, colours, captions and layers.</sub>
+  <img src="docs/images/editor-modern.jpg" alt="DX Editor with a compact left tool rail, thumbnail media library, large landscape preview and a focused scene, narration and caption timeline" width="100%">
+  <br><sub><b>More room for the story.</b> Real development editor capture. Tools stay on the left; detailed controls appear when you select a layer.</sub>
 </p>
 
 An AI-generated video often arrives as a finished file. DX Studio gives you the
@@ -39,6 +39,15 @@ features; [published v0.1.0 downloads](https://github.com/joyjophin/dx-studio/re
 remain the initial release.
 
 ## A look around
+
+The development source now has a [quieter dashboard and editor](docs/EDITOR_LAYOUT.md):
+project cards, a compact tool rail, scene-focused text controls and a contextual
+inspector. Timeline layer tracks expand when needed. It uses a light theme and
+has no chat or prompt panel.
+
+<p align="center"><img src="docs/images/dashboard-modern.jpg" alt="DX Studio projects dashboard with thumbnail cards and no prompt box" width="100%"></p>
+
+The gallery below also includes earlier editor captures showing individual capabilities.
 
 <table>
 <tr>

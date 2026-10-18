@@ -3,44 +3,33 @@ let MEDIA_ASSETS = [], MEDIA_SEARCH = '', MEDIA_KIND = 'all', MEDIA_REPLACE_IDS 
 const mediaButton = (label, action) => {const b=el('button','btn small');b.textContent=label;b.onclick=action;return b;};
 function mediaPanel() {
   const root=el('div');
-  root.append(el('p','note','Import reusable assets, add them to the playhead, or replace and relink files while keeping layer size, timing and animation.'));
-  const actions=el('div','kbar');
-  actions.append(mediaButton('Import assets',()=>{MEDIA_REPLACE_IDS=[];$('#libraryFile').click();}),mediaButton('Refresh',refreshMedia),mediaButton('Check export',checkExport));root.append(actions);
-  const search=el('input','txt');search.type='search';search.placeholder='Search assets';search.setAttribute('aria-label','Search assets');search.value=MEDIA_SEARCH;
-  search.oninput=()=>{MEDIA_SEARCH=search.value;renderMediaAssets();};root.append(search);
-  const filter=el('select');filter.setAttribute('aria-label','Asset filter');
-  for(const [value,label]of[['all','All assets'],['used','Used in this video'],['missing','Needs attention'],['image','Images'],['gif','GIFs'],['video','Video']]){const o=el('option');o.value=value;o.textContent=label;filter.append(o);}
-  filter.value=MEDIA_KIND;filter.onchange=()=>{MEDIA_KIND=filter.value;renderMediaAssets();};root.append(filter);
+  const toolbar=el('div','media-toolbar'),search=el('input','txt');search.type='search';search.placeholder='Search media…';search.setAttribute('aria-label','Search assets');search.value=MEDIA_SEARCH;search.oninput=()=>{MEDIA_SEARCH=search.value;renderMediaAssets();};
+  toolbar.append(search,mediaButton('+ Add',()=>{MEDIA_REPLACE_IDS=[];$('#libraryFile').click();}));root.append(toolbar);
+  const filter=el('select','media-filter');filter.setAttribute('aria-label','Asset filter');
+  for(const [value,label]of[['all','All media'],['used','Used in this video'],['missing','Needs attention'],['image','Images'],['gif','GIFs'],['video','Video']]){const option=el('option');option.value=value;option.textContent=label;filter.append(option);}filter.value=MEDIA_KIND;filter.onchange=()=>{MEDIA_KIND=filter.value;renderMediaAssets();};root.append(filter);
   const status=el('p','sub');status.id='mediaStatus';status.setAttribute('role','status');root.append(status);
-  const list=el('div');list.id='mediaAssets';root.append(list);setTimeout(refreshMedia,0);return root;
+  const list=el('div','modern-media-grid');list.id='mediaAssets';root.append(list);
+  const options=el('details','tool-help'),label=el('summary');label.textContent='Library options';const actions=el('div','kbar');actions.append(mediaButton('Refresh library',refreshMedia),mediaButton('Check files',checkExport));options.append(label,actions,el('p','sub','Drop files onto the preview, or add them here. Imported files stay with this project.'));root.append(options);setTimeout(refreshMedia,0);return root;
 }
 async function refreshMedia() {
   const status=$('#mediaStatus');if(!status)return;
-  try {status.textContent='Reading project assets…';MEDIA_ASSETS=(await api('/api/media')).assets;renderMediaAssets();}
-  catch(error){status.textContent=error.message;}
+  try{status.textContent='Loading media…';MEDIA_ASSETS=(await api('/api/media')).assets;renderMediaAssets();}catch(error){status.textContent=error.message;}
 }
-function mediaUses(asset){return (V.__media||[]).filter(item=>item.file===asset.file);}
-function renderMediaAssets() {
-  const list=$('#mediaAssets'),status=$('#mediaStatus');if(!list)return;list.replaceChildren();
-  const query=MEDIA_SEARCH.trim().toLowerCase();
-  const assets=MEDIA_ASSETS.filter(asset=>(asset.name+' '+asset.file).toLowerCase().includes(query)&&
-    (MEDIA_KIND==='all'||(MEDIA_KIND==='used'?mediaUses(asset).length>0:MEDIA_KIND==='missing'?asset.status!=='ready':asset.kind===MEDIA_KIND)));
-  status.textContent=`${assets.length} asset${assets.length===1?'':'s'} · ${MEDIA_ASSETS.filter(a=>a.status!=='ready').length} need attention`;
-  if(!assets.length){list.append(el('p','note',MEDIA_ASSETS.length?'No matching assets.':'Import images, GIFs or footage to begin. Files stay inside this project.'));return;}
-  for(const asset of assets){
-    const card=el('article','asset-card');
-    if(asset.status==='ready'){const thumbnail=el('img','asset-thumb');thumbnail.loading='lazy';thumbnail.alt=asset.name+' thumbnail';thumbnail.src=projectURL('/api/media/thumbnail?file='+encodeURIComponent(asset.file));card.append(thumbnail);}
-    const title=el('b');title.textContent=asset.name;card.append(title);
-    const path=el('div','sub');path.textContent=asset.file;card.append(path);
-    const info=el('p','sub');info.textContent=asset.status==='ready'?`${asset.width} × ${asset.height}${asset.duration?' · '+asset.duration.toFixed(1)+' s':''} · ${Math.max(.1,asset.bytes/1048576).toFixed(1)} MB${asset.has_audio?' · audio':''}`:asset.error;card.append(info);
-    const used=mediaUses(asset),buttons=el('div','kbar');
-    if(asset.status==='ready')buttons.append(mediaButton('Add to video',()=>addLibraryAsset(asset.file)));
-    if(used.length){
-      buttons.append(mediaButton('Replace uses',()=>pickMediaReplacement(used.map(item=>item.id))),mediaButton('Relink uses',()=>showRelink(used.map(item=>item.id))));
-      for(const item of used){const label=LM(item.id)?.label||item.name;buttons.append(mediaButton('Select '+label,()=>selectLayer(item.id,true)));}
-    }
-    card.append(buttons);list.append(card);
-  }
+function mediaUses(asset){return(V.__media||[]).filter(item=>item.file===asset.file);}
+function renderMediaAssets(){
+ const list=$('#mediaAssets'),status=$('#mediaStatus');if(!list)return;list.replaceChildren();const query=MEDIA_SEARCH.trim().toLowerCase();
+ const assets=MEDIA_ASSETS.filter(asset=>(asset.name+' '+asset.file).toLowerCase().includes(query)&&(MEDIA_KIND==='all'||(MEDIA_KIND==='used'?mediaUses(asset).length>0:MEDIA_KIND==='missing'?asset.status!=='ready':asset.kind===MEDIA_KIND)));
+ status.textContent=assets.length+' item'+(assets.length===1?'':'s')+(MEDIA_ASSETS.some(asset=>asset.status!=='ready')?' · some files need attention':'');
+ if(!assets.length){const empty=el('div','empty-library');empty.style.gridColumn='1/-1';empty.textContent=MEDIA_ASSETS.length?'No matching media.':'Your library starts here. Add footage, images or GIFs, or drop them onto the preview.';list.append(empty);return;}
+ for(const asset of assets){
+  const card=el('article','asset-card');
+  if(asset.status==='ready'){const preview=el('button','asset-preview');preview.setAttribute('aria-label','Add '+asset.name+' to video');preview.title='Add at playhead';preview.onclick=()=>addLibraryAsset(asset.file);const image=el('img','asset-thumb');image.loading='lazy';image.alt=asset.name+' thumbnail';image.src=projectURL('/api/media/thumbnail?file='+encodeURIComponent(asset.file));preview.append(image);card.append(preview);}
+  const title=el('b');title.textContent=asset.name;title.title=asset.name;card.append(title);
+  const info=el('div','asset-meta');info.textContent=asset.status==='ready'?(asset.duration?asset.duration.toFixed(1)+' s':asset.width+' × '+asset.height):'File unavailable';card.append(info);
+  const options=el('details','asset-options'),label=el('summary');label.textContent='Options';options.append(label);const path=el('p','sub');path.textContent=asset.status==='ready'?asset.file:asset.error;options.append(path);
+  const used=mediaUses(asset);if(used.length){options.append(mediaButton('Replace',()=>pickMediaReplacement(used.map(item=>item.id))),mediaButton('Relink',()=>showRelink(used.map(item=>item.id))));for(const item of used)options.append(mediaButton('Select '+(LM(item.id)?.label||item.name),()=>selectLayer(item.id,true)));}
+  card.append(options);list.append(card);
+ }
 }
 async function addLibraryAsset(file) {
   try{const result=await api('/api/media/prepare',{file,t:ST()});commitHistory();V.__media.push(result.item);PENDING_SELECT=result.item.id;changed(true);toast('Asset added at the playhead');}

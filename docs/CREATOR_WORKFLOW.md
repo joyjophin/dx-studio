@@ -2,7 +2,8 @@
 
 These tools are available in the current **0.5.0.dev0 source**, alongside saving,
 media, narration, audio balance and layer editing. Published v0.1 downloads remain
-the initial release. Use the Workspace menu to switch between tools.
+the initial release. Use the left tool rail and its subnavigation; **More** holds advanced workspaces.
+See [the current layout guide](EDITOR_LAYOUT.md) for the navigation map.
 
 | Workspace | What you can finish |
 | --- | --- |

@@ -2,6 +2,12 @@
 
 ## 0.5.0.dev0 — unreleased development toward 0.5.0
 
+- Project-focused dashboard with preview cards, search and compact creation/open dialogs.
+- Light editor shell with six primary tool groups, a large preview, playback below the canvas and a contextual selection inspector.
+- Scene-focused text controls, compact media cards and collapsed secondary caption/inspector controls reduce initial options.
+- Compact scene/audio/caption timeline with expandable graphics tracks; advanced tools and project actions live in menus.
+- Narrow-desktop layout swaps the tool browser for the selected layer inspector without covering the preview; existing edits and export contracts are preserved.
+
 - Correctable source-relative word transcripts, optional cached local English ASR, active-word captions and reviewed word-linked layer/caption retiming.
 - Conflict-aware assistant settings patches with protected decisions, current/proposed frame comparisons and validation before applying selected changes.
 - Storyboard scene notes and playback reordering, preserving source clocks and remapping visuals, captions and audio; reorder precedes ripple cuts/holds.
