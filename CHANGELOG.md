@@ -44,6 +44,9 @@
 - Editable imported narration takes with replacement, source trims, scene timing, relative levels, mute and music ducking.
 - Saved narration overrides travel in portable projects and are used by preflight, exports and no-narration variants.
 
+- Inspector scrolling and timeline placement stay within the viewport when the recovery banner is hidden.
+- Direct narration timeline movement and edge trims, split/duplicate at playhead, take audition and narration snapping targets.
+
 ## 0.1.0 — 2026-10-17
 
 Initial public release of DX Studio (DesignXstream) and DX Editor.

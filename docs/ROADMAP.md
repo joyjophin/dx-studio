@@ -33,7 +33,8 @@ promises. Current capabilities and limits are in [README.md](../README.md).
   remain planned. See [media and file checks](MEDIA.md).
 - **V01, listening foundation:** preview-mix waveforms, playback speed, monitor
   volume/mute and loopable audition ranges are implemented. Imported narration takes
-  support replacement, source trims, scene timing, relative levels, mute and music ducking.
+  support replacement, draggable trims and timing, split/duplicate, relative levels,
+  mute, music ducking and take audition.
   In-browser recording, transcript editing and word anchoring remain planned. See
   [audio workspace](AUDIO_WORKSPACE.md) and [narration](NARRATION.md).
 - **C01, caption revision:** reviewed SRT/VTT imports and exports, search, split/merge,

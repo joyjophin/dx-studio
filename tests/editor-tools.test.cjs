@@ -1,6 +1,6 @@
 const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
 for(const file of ['editor.html','home.html']){const html=fs.readFileSync('dx_studio/'+file,'utf8');for(const match of html.matchAll(/<script>([\s\S]*?)<\/script>/g))new vm.Script(match[1],{filename:file});}
-for(const file of ['editor-bulk.js','editor-tools.js','editor-media.js','editor-audio.js','editor-captions.js','editor-brand.js','editor-view.js'])new vm.Script(fs.readFileSync('dx_studio/'+file,'utf8'),{filename:file});
+for(const file of ['editor-bulk.js','editor-tools.js','editor-media.js','editor-audio.js','editor-narration.js','editor-captions.js','editor-brand.js','editor-view.js'])new vm.Script(fs.readFileSync('dx_studio/'+file,'utf8'),{filename:file});
 const tools=require(process.cwd()+'/dx_studio/editor-tools.js');
 assert.deepEqual(tools.roots(['parent','child'],[{id:'parent',parent:null},{id:'child',parent:'parent'}]),['parent']);
 const hit=(id,x,y,w,h,base=[1,0,0,1])=>({id,corners:[[x,y],[x+w,y],[x+w,y+h],[x,y+h]],base});
@@ -32,3 +32,18 @@ vm.runInContext('splitCaption()',captionContext);assert.equal(cues.length,3);ass
 vm.runInContext('mergeCaption()',captionContext);assert.equal(cues.length,2);assert.equal(cues[0].text,'Make the story keep the layers');assert.equal(cues[0].end,4);
 assert.throws(()=>vm.runInContext('shiftCaptions(-1)',captionContext),/outside/);assert.equal(cues[0].start,0);
 console.log('Caption split/merge preserve words; invalid bulk timing shifts leave cues unchanged.');
+
+// Moving/left trimming must preserve source identity and the remaining sample positions.
+const take={id:'voice_original',name:'Opening',file:'assets/voice.wav',start:2,offset:1,duration:4,gain:.7,duck:'deep',muted:false};
+const narration={V:{__voice:[take]},FPS:30,BASE:12,ST:()=>4,crypto:require('node:crypto'),clone:value=>JSON.parse(JSON.stringify(value)),commitHistory:()=>{},changed:()=>{},document:{querySelector:()=>null},$:()=>null,toast:()=>{}};
+vm.createContext(narration);vm.runInContext(fs.readFileSync('dx_studio/editor-narration.js','utf8'),narration);
+const trim=vm.runInContext('voiceDragTiming(V.__voice[0],"l",3,12,1/30)',narration);
+assert.equal(trim.start,3);assert.equal(trim.offset,2);assert.equal(trim.duration,3);assert.equal(trim.start-trim.offset,take.start-take.offset);
+const extend=vm.runInContext('voiceDragTiming(V.__voice[0],"l",-10,12,1/30)',narration);
+assert.equal(extend.start,1);assert.equal(extend.offset,0);assert.equal(extend.duration,5);
+const moved=vm.runInContext('voiceDragTiming(V.__voice[0],"m",11,12,1/30)',narration);assert.equal(moved.start,8);assert.equal(moved.offset,1);assert.equal(moved.duration,4);
+const shortened=vm.runInContext('voiceDragTiming(V.__voice[0],"r",5,12,1/30)',narration);assert.equal(shortened.duration,3);assert.equal(shortened.offset,1);
+vm.runInContext('splitVoiceTake("voice_original")',narration);assert.equal(narration.V.__voice.length,2);
+const [left,right]=narration.V.__voice;assert.equal(left.duration,2);assert.equal(right.start,4);assert.equal(right.offset,3);assert.equal(right.duration,2);assert.equal(right.file,left.file);assert.notEqual(right.id,left.id);assert.equal(right.gain,.7);
+vm.runInContext('duplicateVoiceTake("voice_original")',narration);assert.equal(narration.V.__voice.length,3);assert.equal(narration.V.__voice[2].start,4);assert.equal(narration.V.__voice[2].offset,1);
+console.log('Narration trims retain sample positions; split and duplicate keep source and mix controls.');

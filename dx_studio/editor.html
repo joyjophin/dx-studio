@@ -154,6 +154,7 @@
   .composition-summary{font-size:12px;color:var(--muted);line-height:1.6;padding:10px;background:var(--soft);border-radius:8px;margin-top:12px}
   header{flex-wrap:wrap;padding:10px 18px;gap:8px}
   .app{grid-template-rows:auto auto minmax(0,1fr) auto}
+  .app>header{grid-row:1}.app>.recovery-bar{grid-row:2}.app>main{grid-row:3}.app>.tl{grid-row:4}
   .recovery-bar{display:flex;gap:12px;align-items:center;padding:9px 18px;background:#FFF4E8;border-bottom:1px solid #F4D6BC;font-size:12px}
   .recovery-bar[hidden]{display:none}.recovery-bar span{flex:1}
   .history-dialog{width:min(620px,calc(100vw - 40px));max-height:85vh;border:1px solid var(--line);border-radius:16px;padding:24px;color:var(--ink);box-shadow:0 20px 80px #18212630}
@@ -368,6 +369,7 @@ let SNAP_ON = true;
 function snapTargets(exclude) {
   const o = [0, DUR, IN_DRAG ? SNAP_T : t];
   for (const [a, b] of (PJ.chapters || [])) o.push(O_(a), O_(b));
+  for (const take of voiceTakes()) if(take!==exclude)o.push(O_(take.start),O_(Math.min(BASE,take.start+take.duration)));
   for (const c of CAPV()) if (c !== exclude) o.push(O_(c.start), O_(c.end));
   for (const e of SCH.filter(e => e.type === 'clips')) for (const c of V[e.key]) if (c !== exclude) o.push(O_(c.start), O_(Math.min(BASE, c.end)));
   for (const e of SCH.filter(e => e.type === 'time')) if (e.key !== exclude) o.push(O_(+V[e.key]));

@@ -27,7 +27,8 @@ The current source is **0.5.0.dev0**, a development build toward v0.5. It adds a
 create or reopen projects, search and rename layers, select several at once, lock,
 solo, align and space them. A [media library](docs/MEDIA.md) adds reusable imports,
 replacement, relinking and file checks before export. The [audio workspace](docs/AUDIO_WORKSPACE.md)
-adds a waveform, listening speed and loopable preview ranges. [Caption tools](docs/CAPTIONS.md)
+adds a waveform, listening speed and loopable preview ranges. [Narration takes](docs/NARRATION.md)
+add replaceable recordings, source trims, timing, mute and music ducking. [Caption tools](docs/CAPTIONS.md)
 add SRT/VTT interchange, phrase split/merge and timing review. [Brand presets](docs/BRAND_PRESETS.md)
 reuse palettes and exposed size settings with field-by-field control. [View controls](docs/VIEW.md)
 resize the workspace and adjust preview quality. [Export jobs](docs/EXPORTS.md)
