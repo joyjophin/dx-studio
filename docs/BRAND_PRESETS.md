@@ -1,5 +1,7 @@
 # Reusable brand presets
 
+Open Design → Brand in the current tool rail.
+
 For project-owned fonts/logos, portable brand ZIPs and selection templates, see [the creator workflow](CREATOR_WORKFLOW.md).
 
 Available in the development source toward v0.5.0.

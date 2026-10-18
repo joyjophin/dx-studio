@@ -2,13 +2,13 @@
 
 Available in the development source toward v0.5.0.
 
-Open **View** to make room for the task at hand:
+Open the header’s **View options** icon to make room for the task at hand:
 
-- **Balanced layout** restores the standard inspector and layer-list sizes.
-- **Focus canvas** hides the inspector and timeline grid, keeping playback controls.
-- **Focus timeline** shows a taller layer list with a narrower inspector.
+- **Balanced layout** restores the standard tool-panel and layer-track sizes.
+- **Focus canvas** hides tool panels and the timeline grid, keeping playback controls.
+- **Focus timeline** expands a taller layer list with a narrower tool panel.
 
-Drag the divider beside the inspector or above the timeline to resize. The
+Drag the divider beside the left tool panel, or above the timeline after expanding Layers to resize. The
 keyboard-accessible dividers also respond to Left/Right or Up/Down in ten-pixel
 steps. View includes equivalent width/height sliders and show/hide controls.
 Panel sizes are bounded by the window so the canvas retains space.
@@ -22,6 +22,6 @@ resolution or the final video export.
 View preferences stay in this browser and are shared across projects on the
 same local editor address. They survive reloads when browser storage is
 available. They are separate from editable project settings and do not create
-unsaved content changes. Open View again to restore hidden panels.
+unsaved content changes. Open View options again to restore hidden panels.
 
 ![Canvas-focused workspace](images/canvas-focus.png)

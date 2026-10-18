@@ -1,5 +1,7 @@
 # Caption revision and interchange
 
+In the current layout, open Captions on the left rail. Import/export and bulk shifts are collapsed; the selected phrase’s Timing & highlight section holds detailed controls.
+
 For source-relative timed words, active-word highlights and reviewed retiming, see [Transcripts](TRANSCRIPTS.md).
 
 Available in the development source toward v0.5.0, in projects exposing editable

@@ -1,5 +1,7 @@
 # Make the narration fit
 
+Open Audio → Voice in the current tool rail.
+
 For correctable transcripts, aligned captions and word-linked timing review after replacing a take, see [Transcripts](TRANSCRIPTS.md).
 
 Open **Narration** to import a voice recording at the playhead. Choose an audio

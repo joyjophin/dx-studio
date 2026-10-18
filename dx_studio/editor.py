@@ -343,6 +343,8 @@ def make_handler(ed=None, workspace=None):
                 editor = self._project_editor()
                 u = urlparse(self.path); q = parse_qs(u.query)
                 if u.path == '/': return self._send(200, open(os.path.join(HERE, 'editor.html'), 'rb').read(), 'text/html; charset=utf-8')
+                if u.path == '/editor-shell.css':return self._send(200,open(os.path.join(HERE,'editor-shell.css'),'rb').read(),'text/css; charset=utf-8')
+                if u.path == '/editor-shell.js':return self._send(200,open(os.path.join(HERE,'editor-shell.js'),'rb').read(),'text/javascript; charset=utf-8')
                 if u.path == '/editor-view.js': return self._send(200, open(os.path.join(HERE, 'editor-view.js'), 'rb').read(), 'text/javascript; charset=utf-8')
                 if u.path == '/editor-brand.js': return self._send(200, open(os.path.join(HERE, 'editor-brand.js'), 'rb').read(), 'text/javascript; charset=utf-8')
                 if u.path == '/editor-captions.js': return self._send(200, open(os.path.join(HERE, 'editor-captions.js'), 'rb').read(), 'text/javascript; charset=utf-8')

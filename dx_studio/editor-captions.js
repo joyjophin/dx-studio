@@ -1,11 +1,9 @@
 /* Caption editing helpers preserve canonical scene time. Import is reviewed before application. */
 let CAPTION_SEARCH='',CAPTION_IMPORT=null;
 function captionTools(parent){
-  const row=el('div','kbar');row.append(mediaButton('Import SRT / VTT',()=>$('#captionFile').click()),mediaButton('Paste subtitles',pasteCaptions),mediaButton('Export SRT',()=>exportCaptions('srt')),mediaButton('Export VTT',()=>exportCaptions('vtt')));parent.append(row);
-  const search=el('input','txt');search.type='search';search.placeholder='Search captions';search.setAttribute('aria-label','Search captions');search.value=CAPTION_SEARCH;search.oninput=()=>{CAPTION_SEARCH=search.value;renderCapList();};parent.append(search);
-  const offset=el('input','num');offset.type='number';offset.step=.05;offset.value=0;offset.setAttribute('aria-label','Shift captions by seconds');
-  const shift=el('div','kbar');shift.append(offset,mediaButton('Shift all captions',()=>shiftCaptions(+offset.value)));parent.append(shift);
-  parent.append(el('p','sub','Timing uses scene seconds. Dense-text and overlap hints are review prompts; they do not score engagement.'));
+ const search=el('input','txt');search.type='search';search.placeholder='Search captions…';search.setAttribute('aria-label','Search captions');search.value=CAPTION_SEARCH;search.oninput=()=>{CAPTION_SEARCH=search.value;renderCapList();};parent.append(search);
+ const imports=el('details','tool-help'),label=el('summary');label.textContent='Import & export';const row=el('div','kbar');row.append(mediaButton('Import SRT / VTT',()=>$('#captionFile').click()),mediaButton('Paste subtitles',pasteCaptions),mediaButton('Export SRT',()=>exportCaptions('srt')),mediaButton('Export VTT',()=>exportCaptions('vtt')));imports.append(label,row);parent.append(imports);
+ const timing=el('details','tool-help'),timingLabel=el('summary');timingLabel.textContent='Shift all captions';const offset=el('input','num');offset.type='number';offset.step=.05;offset.value=0;offset.setAttribute('aria-label','Shift captions by seconds');const shift=el('div','kbar');shift.append(offset,mediaButton('Shift all captions',()=>shiftCaptions(+offset.value)));timing.append(timingLabel,shift,el('p','sub','Timing uses original scene seconds. Review the narration after a shift.'));parent.append(timing);
 }
 function detachCaptionWords(c){for(const key of ['voice_id','word_ids','words','word_highlight'])delete c[key];return c;}
 function captionHints(c,index){const hints=[];if(c.end<=c.start||c.start<0||c.end>BASE)hints.push('Check timing');else if(c.text.trim().length/(c.end-c.start)>20)hints.push('Dense text');if(CAPV().some((other,i)=>i!==index&&other.start<c.end&&other.end>c.start))hints.push('Overlap');return hints;}

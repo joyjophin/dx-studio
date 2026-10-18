@@ -5,9 +5,9 @@ not part of the published v0.1.0 downloads.
 
 ## Start with a project
 
-Run `dx-studio edit` to open the project home. Give the project a name, choose
-16:9 or 9:16, pick an explainer or minimal starter, and reserve presenter space
-if needed. Paste the parent folder where the new project should be saved.
+Run `dx-studio edit` to open the project home, then choose **New project**. Give
+it a name and choose 16:9 or 9:16. Expand **Project setup** for an explainer or
+minimal starter, presenter space and the parent destination folder.
 Existing folders are never overwritten.
 
 To continue an assistant-created video, paste its project folder in **Open a
@@ -15,17 +15,20 @@ project**. Open trusted projects: scene files run Python. Search recent projects
 by name or path. Removing a recent item only removes its entry, keeping all files.
 Missing folders are marked so you can find and open their new location.
 
-Use **‹ Projects** in the editor to save pending changes and return home. Each
+Use the **Back to projects** arrow in the editor to save pending changes and return home. Each
 project has a separate URL, browser recovery draft, history, media and saved
 settings. Opening the same project in two tabs still uses stale-save protection.
 The library stores paths and metadata locally. Browsing recents does not execute
 scene code; thumbnails for unopened projects use a previously cached preview.
 
-![Project home](images/project-home.png)
+![Project home](images/dashboard-modern.jpg)
+
+See [the editor layout guide](EDITOR_LAYOUT.md) for the tool rail, contextual
+inspector and expandable timeline tracks.
 
 ## Work with layers together
 
-In **Layers**, search by label, ID or group. Matching children retain parent
+In **Media → Layers**, search by label, ID or group. Matching children retain parent
 context. Use the checkboxes or Shift/Ctrl/Command-click to select several layers.
 **Select results** or Ctrl/Command+A selects the unlocked search results.
 **Clear** clears the selection. Renaming changes the display label and keeps
@@ -52,7 +55,7 @@ three visible layers with equal gaps. The playhead must show all selected layers
 A single layer also has **Fit graphics safe zone**, which scales and centres it
 inside the reserved graphics area.
 
-**Snapping on/off** (S) controls timeline and canvas snapping. Hold Alt during a
+**Snap** (S) controls timeline and canvas snapping. Hold Alt during a
 drag to temporarily disable snapping. Undo/redo and autosave apply to these edits.
 See [saving and recovery](SAVING.md) for restore and version controls.
 

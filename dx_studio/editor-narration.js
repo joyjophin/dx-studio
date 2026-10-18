@@ -2,7 +2,7 @@
 let VOICE_SELECTED=null, VOICE_IMPORT_TARGET=null, VOICE_IMPORT_BUSY=false, VOICE_IMPORT_TOKEN=0;
 function voiceTakes(){return V.__voice||[];}
 function refreshNarrationPanel(){const pane=document.querySelector('.pane[data-p="Narration"]');if(pane)pane.replaceChildren(narrationPanel());}
-function selectVoice(id,seek=false){VOICE_SELECTED=id;document.querySelector('.tab[data-p="Narration"]')?.click();refreshNarrationPanel();renderNarrationLane();const take=voiceTakes().find(item=>item.id===id);if(seek&&take){if(playing)pause();goS(take.start);}}
+function selectVoice(id,seek=false){SELECTED.clear();selLayer=null;fillInspector();VOICE_SELECTED=id;document.querySelector('.tab[data-p="Narration"]')?.click();refreshNarrationPanel();renderNarrationLane();const take=voiceTakes().find(item=>item.id===id);if(seek&&take){if(playing)pause();goS(take.start);}}
 function narrationPanel(){
   const root=el('div');root.append(el('p','note','Import your voice recordings and adjust each take. Timing uses the original scene clock; ripple cuts and holds affect the mix. Captions and graphics keep their existing timing.'));
   const actions=el('div','kbar');actions.append(mediaButton('Add recording',()=>openVoiceImport()),mediaButton('Check narration',checkExport));root.append(actions);

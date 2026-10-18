@@ -174,46 +174,38 @@
   .app.inspector-hidden>main{grid-template-columns:minmax(0,1fr) 0}.app.inspector-hidden aside,.app.inspector-hidden .panel-resize{display:none}
   .app.timeline-hidden #tlgrid,.app.timeline-hidden .timeline-resize{display:none}
 </style>
+<link rel="stylesheet" href="/editor-shell.css">
 </head>
 <body>
 <div class="app">
   <header>
-    <button class="btn small" id="bHome" title="Return to projects">‹ Projects</button><span class="brandmark">DX STUDIO</span><h1 id="pname">Untitled project</h1><span class="sub">DX Editor</span>
+    <button class="btn icon-button" id="bHome" title="Back to projects">‹</button>
+    <span class="brandmark"><b>DX</b><span>Studio</span></span><h1 id="pname">Untitled project</h1>
     <span id="dirty" class="pill" role="status" aria-live="polite">All changes saved</span>
-    <span id="audioState" class="pill" style="display:none">Updating sounds…</span>
-    <span class="pill" id="creatorTask" role="status" hidden></span><div class="spacer"></div>
-    <button class="btn" id="bUndo" title="Undo (⌘Z)" disabled>↶ Undo</button>
-    <button class="btn" id="bRedo" title="Redo (⇧⌘Z)" disabled>↷ Redo</button>
-    <button class="btn ghost" id="bReset" title="Go back to the project's original values">Reset to original</button>
-    <button class="btn" id="bVersions" title="Save and restore named versions">Versions</button>
-    <button class="btn" id="bSave" title="Save immediately (⌘S). Changes also autosave.">Save now</button>
-    <button class="btn small" id="bExportStatus" hidden>Last export</button><button class="btn small" id="bView">View</button><button class="btn primary" id="bBuild">Build video</button>
+    <span id="audioState" class="pill" style="display:none">Updating sounds…</span><span class="pill" id="creatorTask" role="status" hidden></span>
+    <div class="spacer"></div>
+    <button class="btn icon-button" id="bUndo" title="Undo (⌘Z)" disabled>↶</button><button class="btn icon-button" id="bRedo" title="Redo (⇧⌘Z)" disabled>↷</button>
+    <div class="header-divider"></div><button class="btn icon-button" id="bView" title="View options">View</button>
+    <details class="shell-menu" id="projectMenu"><summary class="btn icon-button" aria-label="Project menu" title="Project menu">···</summary><div class="shell-popover"><div class="menu-caption">Project</div><button id="bSave">Save now</button><button id="bVersions">Version history</button><button id="bExportStatus" hidden>Last export</button><hr><button id="bReset">Reset to original</button></div></details>
+    <button class="btn primary" id="bExport">Export</button><button class="shell-legacy" id="bBuild">Build video</button>
   </header>
   <div class="recovery-bar" id="recoveryBar" hidden><span id="recoverySummary"></span><button class="btn small" id="bRecovery">Review drafts</button><button class="btn small" id="bReload" hidden>Reload saved project</button></div>
-  <main><div id="inspectorResize" class="panel-resize" role="separator" aria-label="Resize inspector" aria-orientation="vertical" aria-valuemin="280" aria-valuemax="600" tabindex="0"></div>
-    <div class="stage">
-      <div class="stagebar"><span class="pill" id="previewState" role="status" hidden>Rendering preview…</span><button class="btn small" id="bComposition">Presenter layout</button><button class="btn small" id="bSoloExit" hidden title="Solo affects graphics preview only; exports keep all visible layers">Exit solo</button><button class="btn small" id="bSafe" aria-pressed="false">Safe zones</button></div>
-      <div class="frame" id="frame"><img id="img" alt="preview"><svg class="ov" id="ov"></svg><div class="safe" id="safe"></div><div class="pin" id="pin"></div><div class="hint" id="hint"></div></div>
+  <main>
+    <nav class="tool-rail" id="toolRail" aria-label="Editing tools"><details class="shell-menu tool-more" id="moreTools"><summary aria-label="More tools" title="More tools">More</summary><div class="shell-popover" id="moreToolsMenu"></div></details></nav>
+    <aside class="tool-panel" aria-label="Tool browser"><div class="tool-head"><span id="toolTitle">Media</span><button id="bCollapseTools" title="Collapse tool panel" aria-label="Collapse tool panel">‹</button></div><div class="tool-subnav" id="toolSubnav" hidden></div><div class="tool-quick" id="toolQuick"></div><label class="workspace-nav">Workspace<select id="panelJump" aria-label="Editor workspace"></select></label><div class="tabs" id="tabs"></div><div class="panes" id="panes"></div></aside>
+    <div id="inspectorResize" class="panel-resize" role="separator" aria-label="Resize tools panel" aria-orientation="vertical" aria-valuemin="240" aria-valuemax="440" tabindex="0"></div>
+    <div class="stage"><div class="stage-head"><span>Preview</span><span id="canvasFormat"></span></div>
+      <div class="canvas-wrap"><div class="stagebar"><span class="pill" id="previewState" role="status" hidden>Rendering preview…</span><button class="btn small" id="bComposition">Presenter layout</button><button class="btn small" id="bSoloExit" hidden title="Solo affects graphics preview only; exports keep all visible layers">Exit solo</button><button class="btn small" id="bSafe" aria-pressed="false">Safe zones</button></div>
+      <div class="frame" id="frame"><img id="img" alt="Video preview"><svg class="ov" id="ov"></svg><div class="safe" id="safe"></div><div class="pin" id="pin"></div><div class="hint" id="hint"></div></div></div>
+      <div class="transport"><button class="btn" id="bPrev" title="Previous frame">‹</button><button class="play" id="bPlay" title="Play / pause (space)" aria-label="Play or pause">▶</button><button class="btn" id="bNext" title="Next frame">›</button><span class="time" id="time">0.00 s</span><span id="duration"></span></div>
     </div>
-    <aside><label class="workspace-nav">Workspace<select id="panelJump" aria-label="Editor workspace"></select></label><div class="tabs" id="tabs"></div><div class="panes" id="panes"></div></aside>
+    <aside class="context-inspector" aria-label="Selection inspector"><div class="context-head">Inspector<button id="bCloseInspector" title="Deselect layer" aria-label="Close inspector"></button></div><div class="insp" id="insp"></div></aside>
   </main>
-  <section class="tl">
-    <div id="timelineResize" class="timeline-resize" role="separator" aria-label="Resize layer list" aria-orientation="horizontal" aria-valuemin="48" aria-valuemax="400" tabindex="0"></div><div class="tlbar">
-      <button class="play" id="bPlay" title="Play / pause (space)">▶</button>
-      <span class="time" id="time">0.00 s</span>
-      <button class="btn small" id="bPrev">‹ frame</button><button class="btn small" id="bNext">frame ›</button>
-      <span class="sub" style="font-size:12px"><kbd>space</kbd> play · <kbd>←</kbd><kbd>→</kbd> frame · <kbd>⌘</kbd>+scroll zoom</span>
-      <button class="btn small" id="bText" title="Add a text layer (T)">+ Text</button>
-      <button class="btn small" id="bShape" title="Add a shape layer">+ Shape ▾</button>
-      <button class="btn small" id="bMedia" title="Add an image, GIF or video as a new layer">+ Media</button>
-      <button class="btn small" id="bSnap" aria-pressed="true" title="Toggle snapping (S)">Snapping on</button><button class="btn small" id="bRipple" title="Insert or remove time, shifting everything after it">Ripple ▾</button>
-      <div class="zoom">
-        <button class="btn small" id="zOut" title="Zoom out">−</button>
-        <span class="sub" id="zLab" style="min-width:44px;text-align:center">1×</span>
-        <button class="btn small" id="zIn" title="Zoom in">+</button>
-        <button class="btn small" id="zFit" title="Show the whole video">Fit</button>
-        <input type="range" id="zScroll" min="0" max="1000" value="0" title="Scroll the timeline" disabled>
-      </div>
+  <section class="tl" aria-label="Video timeline">
+    <div id="timelineResize" class="timeline-resize" role="separator" aria-label="Resize expanded layer tracks" aria-orientation="horizontal" aria-valuemin="48" aria-valuemax="400" tabindex="0"></div>
+    <div class="tlbar"><span class="timeline-title">Timeline</span><div class="timeline-tools"><button class="btn" id="bTimelineLayers" aria-expanded="false" title="Show individual layer tracks">Layers</button><button class="btn" id="bSnap" aria-pressed="true" title="Toggle snapping (S)">Snap</button><button class="btn" id="bRipple" title="Insert a hold or remove time">Cut / hold</button></div>
+      <div class="zoom"><button class="btn small" id="zOut" title="Zoom out">−</button><span class="sub" id="zLab">1×</span><button class="btn small" id="zIn" title="Zoom in">+</button><button class="btn small" id="zFit" title="Show the whole video">Fit</button><input type="range" id="zScroll" min="0" max="1000" value="0" title="Scroll the timeline" disabled></div>
+      <div class="shell-legacy"><button id="bText">+ Text</button><button id="bShape">+ Shape</button><button id="bMedia">+ Media</button></div>
     </div>
     <div class="tlgrid" id="tlgrid"></div>
   </section>
@@ -263,7 +255,7 @@
 <input type="file" id="captionFile" accept=".srt,.vtt,text/vtt,application/x-subrip" hidden>
 <dialog id="captionImportDialog"><h2>Review subtitle import</h2><label for="captionImportText">SRT or WebVTT text</label><textarea class="txt" id="captionImportText" style="width:100%;min-height:130px" placeholder="1&#10;00:00:01,000 --> 00:00:03,000&#10;Your caption"></textarea><button class="btn small" id="captionImportPreviewButton">Preview cues</button><p id="captionImportSummary" class="note"></p><label for="captionImportTiming">File timing</label><select id="captionImportTiming"><option value="output">Current edited video</option><option value="scene">Original scene timeline</option></select><label for="captionImportMode">Apply captions</label><select id="captionImportMode"><option value="append">Add to existing captions</option><option value="replace">Replace current captions</option></select><pre id="captionImportPreview" style="white-space:pre-wrap;max-height:240px;overflow:auto"></pre><div class="kbar"><button class="btn" id="captionImportCancel">Cancel</button><button class="btn primary" id="captionImportApply" disabled>Apply import</button></div></dialog>
 <dialog id="brandImportDialog"><h2>Import brand preset</h2><p class="note" id="brandImportMessage"></p><label for="brandImportText">Preset JSON</label><textarea class="txt" id="brandImportText" style="width:100%;min-height:180px"></textarea><div class="kbar"><button class="btn" id="brandImportCancel">Cancel</button><button class="btn primary" id="brandImportApply">Save and review</button></div></dialog>
-<dialog id="viewDialog"><h2>Make room for your work</h2><div class="kbar"><button class="btn" data-view-preset="balanced">Balanced layout</button><button class="btn" data-view-preset="canvas">Focus canvas</button><button class="btn" data-view-preset="timeline">Focus timeline</button></div><p class="sub">Drag the panel dividers, or use these controls. View preferences stay in this browser.</p><label class="kbar"><input id="viewInspector" type="checkbox" checked>Show inspector</label><label class="kbar"><input id="viewTimeline" type="checkbox" checked>Show timeline</label><label class="kbar" for="viewWidth">Inspector width<input id="viewWidth" type="range" min="280" max="600" step="10" value="370"></label><label class="kbar" for="viewRows">Layer list height<input id="viewRows" type="range" min="48" max="400" step="8" value="128"></label><p id="viewSizes" class="sub"></p><label for="viewQuality">Preview quality</label><select id="viewQuality"><option value="auto">Automatic</option><option value="fast">Fast</option><option value="balanced">Balanced</option><option value="sharp">Sharp</option></select><p class="note">Lower preview quality helps playback on slower computers. Final video exports keep their full project resolution.</p><button class="btn" id="viewClose">Done</button></dialog>
+<dialog id="viewDialog"><h2>Make room for your work</h2><div class="kbar"><button class="btn" data-view-preset="balanced">Balanced layout</button><button class="btn" data-view-preset="canvas">Focus canvas</button><button class="btn" data-view-preset="timeline">Focus timeline</button></div><p class="sub">Drag the panel dividers, or use these controls. View preferences stay in this browser.</p><label class="kbar"><input id="viewInspector" type="checkbox" checked>Show tools panel</label><label class="kbar"><input id="viewTimeline" type="checkbox" checked>Show timeline</label><label class="kbar" for="viewWidth">Tools panel width<input id="viewWidth" type="range" min="240" max="440" step="8" value="288"></label><label class="kbar" for="viewRows">Expanded layers height<input id="viewRows" type="range" min="48" max="400" step="8" value="128"></label><p id="viewSizes" class="sub"></p><label for="viewQuality">Preview quality</label><select id="viewQuality"><option value="auto">Automatic</option><option value="fast">Fast</option><option value="balanced">Balanced</option><option value="sharp">Sharp</option></select><p class="note">Lower preview quality helps playback on slower computers. Final video exports keep their full project resolution.</p><button class="btn" id="viewClose">Done</button></dialog>
 <script src="/editor-session.js"></script>
 <script src="/editor-tools.js"></script>
 <script src="/editor-bulk.js"></script>
@@ -274,6 +266,7 @@
 <script src="/editor-brand.js"></script>
 <script src="/editor-view.js"></script>
 <script src="/editor-creator.js"></script>
+<script src="/editor-shell.js"></script>
 <script>
 let LAY = [], selLayer = null, HITS = [];
 const SELECTED = new Set(), SOLO = new Set(); let PENDING_MULTI = []; let layerSearch = '', alignTarget = 'selection';
@@ -329,7 +322,7 @@ function markDirty() { if (session) session.changed(V); }
 // ---------------------------------------------------------------- time & playback
 const clampT = v => Math.max(0, Math.min(DUR - 0.02, v));
 function setT(v, fromPlay) {
-  t = clampT(v); $('#time').textContent = t.toFixed(2) + ' s';
+  t = clampT(v);shellSeek(); $('#time').textContent = t.toFixed(2) + ' s';
   if (!fromPlay && TZ > 1 && !IN_DRAG && (t < V0 || t > V0 + SPAN())) scrollView(t - SPAN() * 0.3);
   placePlayhead(); const wave=$('#waveformLane');if(wave)wave.setAttribute('aria-valuenow',t.toFixed(2)); updatePin(); if (LAY.length) { overlaySoon(); syncInspector(); }
   if(fromPlay&&performance.now()-creatorLastLayout>250){creatorLastLayout=performance.now();refreshCreatorLayout();}
@@ -363,7 +356,7 @@ function rippleMarks() {                 // holds and cuts in output time
     else if(e.op==='delete') out.push({kind: 'cut', o: fwd(e.start, later), dur: e.end - e.start, i}); });
   return out;
 }
-function syncTimeline() { DUR = BASE;for(const edit of EDITS()){if(edit.op==='insert')DUR+=edit.dur;else if(edit.op==='delete')DUR-=edit.end-edit.start;} normalizeAudition(); if (t > DUR - 0.02) t = Math.max(0, DUR - 0.02); }
+function syncTimeline() { DUR = BASE;for(const edit of EDITS()){if(edit.op==='insert')DUR+=edit.dur;else if(edit.op==='delete')DUR-=edit.end-edit.start;} normalizeAudition();if($('#duration'))$('#duration').textContent='/ '+DUR.toFixed(2)+' s'; if (t > DUR - 0.02) t = Math.max(0, DUR - 0.02); }
 const ST = () => EDITS().length ? Math.max(0, Math.min(BASE - 0.001, S_(t))) : t;
 const goS = s => setT(O_(s));
 let TZ = 1, V0 = 0;                               // timeline zoom and view start (seconds)
@@ -401,12 +394,12 @@ let SNAP_T = 0;
 function dragWith(onMove, onUp) {
   IN_DRAG = true; SNAP_T = t;
   const mv = ev => { ev.preventDefault(); onMove(ev); };
-  const up = ev => { window.removeEventListener('pointermove', mv); window.removeEventListener('pointerup', up); onMove(ev); onUp && onUp(ev); IN_DRAG = false; hideSnap(); commitHistory(); };
+  const up = ev => { window.removeEventListener('pointermove', mv); window.removeEventListener('pointerup', up); onMove(ev); onUp && onUp(ev); IN_DRAG = false;SHELL_CANVAS_GESTURE=false;shellInspectorChanged(); hideSnap(); commitHistory(); };
   window.addEventListener('pointermove', mv); window.addEventListener('pointerup', up);
 }
 function buildTimeline() {
   const G = $('#tlgrid'); G.innerHTML = '';
-  const ru = el('div', 'ruler'); G.append(el('div'), ru);
+  const ru = el('div', 'ruler');const scenes=el('button','lanelab btn ghost','Scenes');scenes.title='Organize scenes';scenes.onclick=()=>openTool('Storyboard');G.append(scenes, ru);
   const chapters=V.__story?.length?V.__story.map(scene=>[scene.start,scene.end,scene.name]):PJ.chapters;
   if (chapters && chapters.length) {
     for (const [a,b,name] of chapters) for(const [oa,ob]of mappedRanges(a,Math.min(BASE,b))){const a2=Math.max(oa,V0),b2=Math.min(ob,V0+SPAN());if(b2<=a2)continue;const d=el('div','chap');d.style.left=pctO(a2);d.style.width=`calc(${pw(b2-a2)} - 3px)`;d.textContent=name;ru.appendChild(d);}
@@ -427,7 +420,7 @@ function buildTimeline() {
   for (const e of SCH.filter(e => e.type === 'clips')) {
     const L = el('div', 'lane tall'); L.id = 'lane-' + e.key; G.append(el('div', 'lanelab', esc(e.lane_label || e.label)), L); scrubbable.push(L);
   }
-  if (SCH.some(e => e.type === 'time')) { const L = el('div', 'lane'); L.id = 'lane-beats'; G.append(el('div', 'lanelab', 'Beats'), L); scrubbable.push(L); }
+  if (SCH.some(e => e.type === 'time')) { const L = el('div', 'lane'); L.id = 'lane-beats'; L.classList.add('timeline-detail');G.append(el('div', 'lanelab timeline-detail', 'Beats'), L); scrubbable.push(L); }
   if (LAY.length) { const R = el('div', 'lrows'); R.id = 'lrows'; G.append(R); }
   const ph = el('div', 'playhead'); ph.id = 'ph'; G.appendChild(ph); requestAnimationFrame(placePlayhead);
   for (const L of scrubbable) L.addEventListener('pointerdown', e => {
@@ -543,7 +536,7 @@ function buildPanels() {
   names.forEach((name, n) => {
     const b = el('button', 'tab' + (n ? '' : ' on')); b.textContent = name; b.dataset.p = name; T.appendChild(b);
     const pane = el('div', 'pane' + (n ? '' : ' on')); pane.dataset.p = name; P.appendChild(pane);
-    b.onclick = () => { if(['Transcript','Storyboard','Revisions','Presenter','Blocks','Export'].includes(name))pane.replaceChildren(creatorPanel(name));jump.value=name; b.scrollIntoView({block:'nearest',inline:'nearest'}); document.querySelectorAll('.tab').forEach(x => x.classList.toggle('on', x === b)); document.querySelectorAll('.pane').forEach(x => x.classList.toggle('on', x === pane)); updatePin(); if (LAY.length) drawOverlay(); };
+    b.onclick = () => { if(['Transcript','Storyboard','Revisions','Presenter','Blocks','Export'].includes(name))pane.replaceChildren(creatorPanel(name));jump.value=name; b.scrollIntoView({block:'nearest',inline:'nearest'}); document.querySelectorAll('.tab').forEach(x => x.classList.toggle('on', x === b)); document.querySelectorAll('.pane').forEach(x => x.classList.toggle('on', x === pane)); updatePin(); if (LAY.length) drawOverlay();shellPanelChanged(name); };
     if (['Transcript','Storyboard','Revisions','Presenter','Blocks','Export'].includes(name)) { pane.appendChild(creatorPanel(name));return; }
     if (name === 'Brand') { pane.appendChild(brandPanel()); return; }
     if (name === 'Narration') { pane.appendChild(narrationPanel()); return; }
@@ -771,6 +764,7 @@ function capDrag(e, i, mode) {
   }, () => { renderCapList(); changed(true); });
 }
 function selectCap(i, jump) {
+  SELECTED.clear();selLayer=null;fillInspector();
   selCap = i; LASTSEL = 'cap'; buildCapLane(); renderCapList(); fillCapEditor();
   const tab = [...document.querySelectorAll('.tab')].find(b => b.dataset.p === 'Captions'); if (tab && !tab.classList.contains('on')) tab.click();
   if (jump && CAPV()[i]) goS(CAPV()[i].start + 0.05);
@@ -819,7 +813,7 @@ function fillCapEditor() {
   const f2 = el('div', 'field stack'); f2.append(el('label', null, 'Highlighted phrase'), hl, warn);
   const f3 = el('div', 'field'); const tb = el('div', 'ctl'); tb.append(el('span', 'sub', 'from'), si, el('span', 'sub', 'to'), ei); f3.append(el('label', null, 'On screen (s)'), tb);
   const f4 = el('div', 'row'); f4.style.marginTop = '8px'; f4.append(jump,mediaButton('Split at playhead',splitCaption),mediaButton('Merge with next',mergeCaption), del);
-  E.append(f1, f2, f3, f4); checkHl();
+  const advanced=el('details','inspector-section'),summary=el('summary');summary.textContent='Timing & highlight';advanced.append(summary,f2,f3,f4);E.append(f1,advanced);checkHl();
   CAPSYNC = () => { if (document.activeElement !== si) si.value = c.start.toFixed(2); if (document.activeElement !== ei) ei.value = c.end.toFixed(2); };
   CAPSYNC();
 }
@@ -1017,8 +1011,9 @@ function addElement(item) {
   const at = ST(); item.id = newId(); item.t0 = r2(at); item.dur = r2(Math.min(3, BASE - at)); item.name = item.kind;
   V.__media = (V.__media || []).concat([item]); PENDING_SELECT = item.id; changed(true);
 }
-$('#bText').onclick = () => addElement(Object.assign({kind: 'text', box: [140, 820, 800, 0]}, clone(TEXT_DEF)));
-$('#bShape').onclick = e => { e.stopPropagation(); const m = $('#shapeMenu'), b = $('#bShape').getBoundingClientRect(); m.style.left = b.left + 'px'; m.classList.add('on'); m.style.top = (b.top - m.getBoundingClientRect().height - 6) + 'px'; };
+$('#bText').onclick = () => {const a=PJ.layout?.content||[0,0,PJ.width,PJ.height],w=Math.min(800,(a[2]-a[0])*.85);addElement(Object.assign({kind:'text',box:[(a[0]+a[2]-w)/2,(a[1]+a[3])/2-40,w,120]},clone(TEXT_DEF)));};
+function openShapes(anchor){const menu=$('#shapeMenu'),box=anchor.getBoundingClientRect();menu.classList.add('on');menu.style.left=box.left+'px';menu.style.top=Math.min(window.innerHeight-menu.getBoundingClientRect().height-12,box.bottom+6)+'px';}
+$('#bShape').onclick=e=>{e.stopPropagation();openShapes(e.currentTarget);};
 document.querySelectorAll('#shapeMenu button').forEach(b => b.onclick = () => {
   const k = b.dataset.s, d = clone(SHAPE_DEF[k]); $('#shapeMenu').classList.remove('on');
   addElement(Object.assign({kind: 'shape', shape: k, box: [Math.round(PJ.width / 2 - d.w / 2), Math.round(PJ.height / 2 - d.h / 2), d.w, d.h]}, d));
@@ -1086,7 +1081,7 @@ function applyHistory(snap) {
   for(const id of SELECTED)if(!V.__layers?.[id])SELECTED.delete(id);
   if(!selLayer)selLayer=[...SELECTED].at(-1)||null;
   if (selCap != null && !CAPV()[selCap]) selCap = null;
-  syncTimeline(); t = clampT(t); relayoutTimeline(); buildPanels(); buildLanes(); if (LAY.length) { renderLayerTree(); fillInspector(); }
+  syncTimeline();$('#duration').textContent='/ '+DUR.toFixed(2)+' s'; t = clampT(t); relayoutTimeline(); buildPanels(); buildLanes(); if (LAY.length) { renderLayerTree(); fillInspector(); }
   const tab = [...document.querySelectorAll('.tab')].find(b => b.dataset.p === activeTab); if (tab) tab.click();
   if (selClip) refreshClipPanel(selClip.key);
   markDirty(); updatePin(); pushNow(); APPLYING = false; updUndo();
@@ -1139,7 +1134,7 @@ $('#bBuild').onclick = async () => {
   } catch (error) { showErr(error.message); }
 };
 $('#mCancel').onclick=async()=>{try{$('#mCancel').disabled=true;BUILD_STATE=(await api('/api/build/cancel',{id:BUILD_STATE?.id})).build;$('#mTitle').textContent='Cancelling export…';}catch(error){showErr(error.message);$('#mCancel').disabled=false;}};
-$('#mClose').onclick = () => {$('#modal').classList.remove('on');$('#bBuild').focus();};
+$('#mClose').onclick = () => {$('#modal').classList.remove('on');$('#bExport').focus();};
 document.addEventListener('keydown',event=>{if(!$('#modal').classList.contains('on'))return;if(event.key==='Escape'){$('#mClose').click();return;}if(event.key==='Tab'){const controls=[...$('#modal').querySelectorAll('button,a')].filter(control=>!control.disabled&&control.offsetParent);if(!controls.length)return;const index=controls.indexOf(document.activeElement),next=(index+(event.shiftKey?-1:1)+controls.length)%controls.length;event.preventDefault();controls[next].focus();}});
 
 // ---------------------------------------------------------------- saved versions and browser drafts
@@ -1257,7 +1252,7 @@ function drawSafetyGuides() {
   updateCompositionInfo();
 }
 $('#bSoloExit').onclick = () => { SOLO.clear();refreshSolo(); };
-$('#bSnap').onclick = () => { SNAP_ON=!SNAP_ON;$('#bSnap').setAttribute('aria-pressed',String(SNAP_ON));$('#bSnap').textContent=SNAP_ON?'Snapping on':'Snapping off'; };
+$('#bSnap').onclick = () => { SNAP_ON=!SNAP_ON;$('#bSnap').setAttribute('aria-pressed',String(SNAP_ON));$('#bSnap').textContent='Snap';$('#bSnap').title=SNAP_ON?'Snapping on (S)':'Snapping off (S)'; };
 $('#bSafe').onclick = () => setGuides($('#safe').style.display !== 'block');
 $('#bComposition').onclick = () => { const b=[...document.querySelectorAll('.tab')].find(x=>x.dataset.p==='Composition'); if (b) b.click(); setGuides(true); };
 async function poll() {
@@ -1331,7 +1326,7 @@ function selectLayer(id, jump, additive=false, preserve=false) {
   selLayer = SELECTED.has(id)?id:[...SELECTED].at(-1)||null; LASTSEL = 'layer'; if(!selLayer){selectionRefresh();return;} expandTo(id); renderLayerTree(); fillInspector(); renderLayerRows(); overlaySoon();
   setTimeout(() => { const on = document.querySelector('#lrows .lanelab.on'); if (on) on.scrollIntoView({block: 'nearest'}); const tr = document.querySelector('#ltree .lrow.on'); if (tr) tr.scrollIntoView({block: 'nearest'}); }, 0);
   if (jump) { const st = LS(id); if (ST() < st.start+layerTimeOffset(id) || ST() > st.end+layerTimeOffset(id)) goS(st.start + layerTimeOffset(id) + 0.4); }
-  const tab = [...document.querySelectorAll('.tab')].find(b => b.dataset.p === 'Layers'); if (tab && !tab.classList.contains('on')) tab.click();
+  shellInspectorChanged();
 }
 // ---- timeline rows
 function renderLayerRows() {
@@ -1388,7 +1383,7 @@ function layersPanel() {
   w.append(addm, el('span', 'sub', '  or drop files onto the preview'));
   bulkToolbar(w);
   const tree = el('div', 'ltree'); tree.id = 'ltree'; w.appendChild(tree);
-  const insp = el('div', 'insp'); insp.id = 'insp'; w.appendChild(insp);
+  w.classList.add('modern-layer-list');
   setTimeout(() => { renderLayerTree(); fillInspector(); }, 0); return w;
 }
 function renderLayerTree() {
@@ -1408,10 +1403,10 @@ function renderLayerTree() {
 }
 let INSP = {};
 function fillInspector() {
-  const I = $('#insp'); if (!I) return; I.innerHTML = ''; INSP = {};
+  const I = $('#insp'); if (!I) return; I.innerHTML = ''; INSP = {};shellInspectorChanged();
   if (!selLayer) { I.appendChild(el('div', 'sub', 'No layer selected.')); return; }
-  if(SELECTED.size>1){bulkInspector(I);return;}
-  const m = LM(selLayer), st = LS(selLayer); if(!m||!st){SELECTED.clear();selLayer=null;return;}
+  if(SELECTED.size>1){bulkInspector(I);shellInspectorSections(I);return;}
+  const m = LM(selLayer), st = LS(selLayer); if(!m||!st){SELECTED.clear();selLayer=null;shellInspectorChanged();return;}
   const head = el('div', 'row'); head.append(el('b', null, esc(m.label)));
   const rb = el('button', 'btn small', 'Reset layer'); rb.onclick = () => { V.__layers[m.id] = clone(D.__layers[m.id]); fillInspector(); renderLayerRows(); renderLayerTree(); changed(true); };
   rb.disabled=isLayerLocked(m.id); head.append(rb); I.appendChild(head); if (m.help) I.appendChild(el('div', 'sub', esc(m.help)));
@@ -1421,7 +1416,7 @@ function fillInspector() {
   const num = (label, get, set, o = {}) => {
     const f = el('div', 'field'), box = el('div', 'ctl');
     if (o.range) { const r = el('input'); r.type = 'range'; r.min = o.min; r.max = o.max; r.step = o.step; r.oninput = () => { i.value = r.value; set(parseFloat(r.value)); }; box.append(r); f._r = r; }
-    const i = el('input', 'num'); i.type = 'number'; i.step = o.step || 1; i.oninput = () => { const x = parseFloat(i.value); if (!isNaN(x)) { if (f._r) f._r.value = x; set(x); } };
+    const i = el('input', 'num'); i.type = 'number'; i.step = o.step || 1;i.setAttribute('aria-label',label); i.oninput = () => { const x = parseFloat(i.value); if (!isNaN(x)) { if (f._r) f._r.value = x; set(x); } };
     box.append(i); if (o.unit) box.append(el('span', 'sub', o.unit)); f.append(el('label', null, label), box); I.appendChild(f);
     f._sync = () => { const v = get(); if (document.activeElement !== i) i.value = o.fmt ? o.fmt(v) : v; if (f._r) f._r.value = v; }; f._sync(); return f;
   };
@@ -1477,7 +1472,7 @@ function fillInspector() {
   if (own.length) { I.appendChild(el('h3', null, 'Content')); for (const e of own) I.appendChild(paramField(e)); }
   bulkArrangePanel(I);
   const soloButton=el('button','btn small','Solo graphics');soloButton.onclick=bulkSolo;I.append(soloButton);
-  syncInspector();
+  shellInspectorSections(I);syncInspector();
 }
 function syncInspector() { for (const f of Object.values(INSP)) f._sync && f._sync(); }
 // ---- preview: selection overlay + handles
@@ -1544,9 +1539,10 @@ async function layerPointerDown(e) {
   if (!mode) {                                        // select the top-most element under the pointer
     const hit = [...HITS].reverse().find(x => inPoly(p, x.corners));
     if (!hit) { SELECTED.clear(); selLayer = null; renderLayerTree(); fillInspector(); renderLayerRows(); drawOverlay(); return; }
-    selectLayer(hit.id, false, e.shiftKey||e.metaKey||e.ctrlKey, true); if(!SELECTED.has(hit.id))return; h = hit; mode = 'move'; drawOverlay();
+    // Keep the canvas geometry stable until pointer-up when selection opens an inspector.
+    SHELL_CANVAS_GESTURE=true;selectLayer(hit.id, false, e.shiftKey||e.metaKey||e.ctrlKey, true); if(!SELECTED.has(hit.id)){SHELL_CANVAS_GESTURE=false;shellInspectorChanged();return;} h = hit; mode = 'move'; drawOverlay();
   }
-  if(isLayerLocked(h.id))return;
+  if(isLayerLocked(h.id)){SHELL_CANVAS_GESTURE=false;shellInspectorChanged();return;}
   if(mode==='move'&&SELECTED.size>1){bulkCanvasDrag(e,p,h);return;}
   const st = LS(h.id), t0 = transformAt(st, layerRelativeTime(h.id)), c = h.center, b = h.base, det = b[0] * b[3] - b[2] * b[1] || 1;
   const a0 = Math.atan2(p[1] - c[1], p[0] - c[0]), d0 = Math.hypot(p[0] - c[0], p[1] - c[1]) || 1;
@@ -1585,9 +1581,9 @@ window.addEventListener('resize', () => drawOverlay());
     frame.style.width = width + 'px'; frame.style.height = (width * PJ.height / PJ.width) + 'px';
   };
   new ResizeObserver(fitStage).observe(frame.parentElement); fitStage();
-  drawSafetyGuides(); setGuides(!!(PJ.layout && PJ.layout.presenter));
+  drawSafetyGuides();setGuides(false);
   if (HAS_AUDIO) audio.src = projectURL('/audio?v=') + audioVer;
-  buildTimeline(); buildPanels(); setupView();setupCreator(); loadWaveform(); markDirty(); if (LAY.length) overlaySoon();
+  buildTimeline(); buildPanels(); setupView();setupCreator();setupShell(); loadWaveform(); markDirty(); if (LAY.length) overlaySoon();
   SNAP = JSON.stringify(V); updUndo(); relayoutTimeline();
   const firstText = SCH.find(e => e.at != null);
   setT(Math.min(BASE / 2, firstText ? firstText.at : 0)); poll();

@@ -30,7 +30,9 @@ def test_workspace_routes_keep_two_projects_and_saves_separate(tmp_path):
     thread=threading.Thread(target=server.serve_forever,daemon=True);thread.start()
     try:
         port=server.server_port
-        assert b'Your next story' in request(port,'GET','/')[1]
+        assert b'id="projects"' in request(port,'GET','/')[1]
+        for path in ['/editor-shell.js','/editor-shell.css']:
+            assert request(port,'GET',path)[0]==200
         records=json.loads(request(port,'GET','/api/library')[1])['projects']
         assert len(records)==2
         identifier=editors[0].state()['project']['id'];prefix='/project/'+identifier
