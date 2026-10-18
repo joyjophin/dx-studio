@@ -169,15 +169,17 @@ def build_mix(project, out_path):
     edits = getattr(project, 'edits', []) or []
     dur = project.base_duration if hasattr(project, 'base_duration') else project.duration
     N = int(SR*dur); cfg = project.cfg
+    from .mix_controls import settings as mix_settings, level
+    balance=mix_settings(project)
     sfx = np.zeros(N)
-    for cue in project.cues():
+    for cue in project.cues() if level(balance,'effects')>0 else []:
         kw = {k: v for k, v in cue.items() if k not in ('sound', 'at', 'gain')}
         x = make_sound(cue['sound'], **kw)*cue.get('gain', 1.0)
         k = int(cue['at']*SR)
         if 0 <= k < N: m = min(len(x), N-k); sfx[k:k+m] += x[:m]
     vo = np.zeros(N); spans = []
     for line in project.voices() if hasattr(project, 'voices') else cfg.get('voice', []):
-        if line.get('muted') or line.get('gain',1)<=0: continue
+        if line.get('muted') or line.get('gain',1)<=0 or level(balance,'voice')<=0: continue
         path = os.path.join(project.path, line['file'])
         info = sf.info(path); offset = line.get('offset',0)
         if offset>=info.duration: continue
@@ -193,7 +195,7 @@ def build_mix(project, out_path):
         if line.get('duck')!='none': spans.append((line['start'], min(dur,line['start']+len(a)/SR), line.get('duck', 'normal')))
     if np.max(np.abs(vo)) > 0:
         vo = vo/np.max(np.abs(vo))*0.70; vo = _compress(vo); vo = vo/np.max(np.abs(vo))*0.70
-    scene_mix = vo+sfx
+    scene_mix = vo*level(balance,'voice')+sfx*level(balance,'effects')
     # (video sound is added below, still in scene time)
     odur = project.duration; NO = int(SR*odur)
     def remap(buf):
@@ -210,7 +212,7 @@ def build_mix(project, out_path):
     spans_out = [(out_time(a, edits), out_time(b, edits), k) for a, b, k in spans]
     N_scene = N; N = NO; dur_scene = dur; dur = odur
     music = np.zeros(N); mcfg = cfg.get('music')
-    if mcfg:
+    if mcfg and level(balance,'music')>0:
         if mcfg.get('file'):
             a, sr = sf.read(os.path.join(project.path, mcfg['file']))
             if a.ndim > 1: a = a.mean(axis=1)
@@ -233,7 +235,7 @@ def build_mix(project, out_path):
     lst = project.values.get('__layers', {})
     for it in project.values.get('__media', []):
         st = lst.get(it['id'], {})
-        if it.get('kind') != 'video' or it.get('muted') or not st.get('visible', True): continue
+        if level(balance,'footage')<=0 or it.get('kind') != 'video' or it.get('muted') or not st.get('visible', True): continue
         wav = project.media.audio_wav(it)
         if not wav: continue
         a, sr = sf.read(wav)
@@ -245,7 +247,7 @@ def build_mix(project, out_path):
         if len(a) > 400: a[:200] *= np.linspace(0, 1, 200); a[-400:] *= np.linspace(1, 0, 400)
         k = int(s0*SR); m = min(len(a), N_scene-k)
         if m > 0: media[k:k+m] += a[:m]*0.8
-    mix = remap(scene_mix+media) + music
+    mix = remap(scene_mix+media*level(balance,'footage')) + music*level(balance,'music')
     sf.write(out_path, np.stack([mix, mix], 1), SR, subtype='FLOAT')
     return out_path
 

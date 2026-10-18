@@ -23,7 +23,8 @@ def make_novoice(project,out,mute_footage=False):
     if destination in sources:raise ValueError('Do not overwrite a source asset with the no-narration export.')
     if destination.suffix.lower()!='.mp4':raise ValueError('Export to an .mp4 file')
     destination.parent.mkdir(parents=True,exist_ok=True)
-    mx=pr.cfg.get('mix',{});target,peak=mx.get('loudness',-14.0),mx.get('peak',-1.2)
+    from dx_studio.mix_controls import settings as mix_settings
+    mx=mix_settings(pr);target,peak=mx.get('loudness',-14.0),mx.get('peak',-1.2)
     with tempfile.TemporaryDirectory(prefix='.dx-novoice-',dir=destination.parent) as work:
         work=Path(work)
         def chain(raw,dst,gain,limit):

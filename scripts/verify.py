@@ -61,7 +61,8 @@ def main():
         print(f'sound cues: {len(raw)}')
     except Exception as e: errors.append(f'cues() failed: {e}')
     # ---- voice / captions
-    vo = sorted((take for take in pr.voices() if not take.get('muted') and take.get('gain',1)>0),key=lambda take:take['start']); last = 0
+    from dx_studio.mix_controls import settings as mix_settings, level
+    vo = sorted((take for take in (pr.voices() if level(mix_settings(pr),'voice')>0 else []) if not take.get('muted') and take.get('gain',1)>0),key=lambda take:take['start']); last = 0
     for i, ln in enumerate(vo):
         p = os.path.join(pr.path, ln.get('file', ''))
         if not ln.get('file') or not os.path.isfile(p): errors.append(f'voice line {i} file missing: {ln.get("file")}'); continue

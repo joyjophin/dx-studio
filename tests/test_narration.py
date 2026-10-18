@@ -72,3 +72,23 @@ def test_invalid_trim_missing_and_muted_sources(tmp_path):
     for field,value in [('gain',float('nan')),('offset',-1),('file','../outside.wav')]:
         values=copy.deepcopy(pr.values);values['__voice'][0][field]=value
         with pytest.raises(ValueError):pr.apply(values)
+
+
+def test_saved_bus_levels_mutes_and_missing_audio_are_used_by_the_mix(tmp_path):
+    pr=quiet_project(tmp_path);source=Path(pr.path)/'voice.wav'
+    sf.write(source,np.sin(np.arange(SR)*2*np.pi*440/SR)*.2,SR)
+    take=import_take(pr,'Take.wav',source.read_bytes(),1)
+    pr.values['__voice']=[take];pr.apply(pr.values);raw=tmp_path/'mix.wav'
+    build_mix(pr,raw);full=sf.read(raw)[0]
+    pr.values['__mix']['voice']=.5;build_mix(pr,raw);half=sf.read(raw)[0]
+    assert np.allclose(half,full*.5)
+    pr.values['__mix'].update(voice_muted=True,loudness=-18,peak=-2)
+    build_mix(pr,raw);assert np.max(np.abs(sf.read(raw)[0]))==0
+    # Muting a bus skips missing audio too; unmuting asks for repair.
+    take['file']='missing.wav';pr.cfg['music']={'file':'missing-music.wav'}
+    pr.values['__mix']['music_muted']=True
+    assert inspect_project(pr)['ok']
+    pr.save_settings();assert Project(pr.path).values['__mix']['loudness']==-18
+    pr.values['__mix']['voice_muted']=False;assert not inspect_project(pr)['ok']
+    values=copy.deepcopy(pr.values);values['__mix']['peak']=float('nan')
+    with pytest.raises(ValueError):pr.apply(values)

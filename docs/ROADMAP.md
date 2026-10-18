@@ -37,6 +37,9 @@ promises. Current capabilities and limits are in [README.md](../README.md).
   mute, music ducking and take audition.
   In-browser recording, transcript editing and word anchoring remain planned. See
   [audio workspace](AUDIO_WORKSPACE.md) and [narration](NARRATION.md).
+- **Audio balance:** saved voice/music/effects/footage balances and mutes, with
+  editable export loudness and true-peak targets, are implemented. Preview
+  listening controls stay separate.
 - **C01, caption revision:** reviewed SRT/VTT imports and exports, search, split/merge,
   offset tools and timing/density hints are implemented. Word-level alignment,
   richer styles and pronunciation management remain planned. See [captions](CAPTIONS.md).

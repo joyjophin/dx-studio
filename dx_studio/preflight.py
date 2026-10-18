@@ -13,9 +13,11 @@ def inspect_project(project):
                          'file':asset['file'], 'layers':asset['used_by'],
                          'message':f"{asset['name']}: {asset.get('error','Media unavailable')}",
                          'fix':'Relink or replace this asset in Media, or hide its layers.'})
+    from .mix_controls import settings as mix_settings, level
+    balance=mix_settings(project)
     sources = []
     for take in project.voices():
-        if take.get('muted') or take.get('gain',1)<=0: continue
+        if take.get('muted') or take.get('gain',1)<=0 or level(balance,'voice')<=0: continue
         file = take['file']; label = take['name']
         try:
             import soundfile as sf
@@ -33,7 +35,7 @@ def inspect_project(project):
                              'message':f'{label}: {error}',
                              'fix':'Replace the take, adjust its timing, or mute it in Narration.'})
     music = project.cfg.get('music')
-    if isinstance(music, dict): sources.append((music.get('file'), 'Music'))
+    if isinstance(music, dict) and level(balance,'music')>0: sources.append((music.get('file'), 'Music'))
     for file, label in sources:
         if not file: continue
         try:

@@ -77,6 +77,8 @@ class Project:
             schema.insert(0, {'key': '__layers', 'type': 'layers', 'label': 'Layers', 'panel': 'Layers', 'default': {}})
         from .narration import defaults as voice_defaults
         schema.append({'key':'__voice','type':'narration','label':'Narration','panel':'Narration','default':voice_defaults(self)})
+        from .mix_controls import defaults as mix_defaults
+        schema.append({'key':'__mix','type':'audio_mix','label':'Export mix','panel':'Audio','default':mix_defaults(self.cfg)})
         self.schema = normalize(schema)
         self.defaults = {e['key']: copy.deepcopy(e['default']) for e in self.schema}
         self.values = self.load_settings()
@@ -115,6 +117,8 @@ class Project:
         from . import layers as _L
         from .narration import validate as validate_voice
         validate_voice(self, values.get('__voice', []))
+        from .mix_controls import validate as validate_mix
+        validate_mix(values.get('__mix',self.defaults['__mix']))
         layout = layout_for(self.width,self.height,values.get('__composition','none'),self.cfg.get('safe_area'))
         self.layout = layout
         self.values = values
