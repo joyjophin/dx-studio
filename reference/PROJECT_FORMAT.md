@@ -197,3 +197,18 @@ for versions/undo and portable bundles. Take timing changes do not automatically
 retime captions, scene animations or `VoiceTimes`; that class and authoring scripts
 still read the original `project.json.voice`. An assistant revising authored speech
 must reconcile `__voice` overrides explicitly rather than overwriting them.
+
+### Saved audio mix (current development builds)
+
+`__mix` holds `voice`, `music`, `effects` and `footage` relative balances (0–2),
+plus a boolean `<track>_muted` for each track. It also holds `loudness` (LUFS)
+and `peak` (dBTP) for final export mastering. Defaults keep each track at 1 with
+no mutes and take the mastering targets from `project.json.mix`. The scene's
+sound-cue gains, music level and individual take/media levels remain in effect.
+Voice balance is applied after the narration group's normalization; overall
+mastering follows the combined mix. Duck strength still comes from the original
+mix configuration, with each narration take choosing normal, deep or none.
+
+Use `dx_studio.mix_controls.settings(project)` for effective settings. Preserve
+these saved overrides when revising project source. Preview monitor controls and
+audition ranges remain outside saved values and do not affect export.

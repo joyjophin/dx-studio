@@ -47,6 +47,8 @@
 - Inspector scrolling and timeline placement stay within the viewport when the recovery banner is hidden.
 - Direct narration timeline movement and edge trims, split/duplicate at playhead, take audition and narration snapping targets.
 
+- Saved voice/music/effects/footage balance and mute controls, with export loudness and true-peak targets separate from preview monitoring.
+
 ## 0.1.0 — 2026-10-17
 
 Initial public release of DX Studio (DesignXstream) and DX Editor.

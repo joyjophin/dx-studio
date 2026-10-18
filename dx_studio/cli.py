@@ -73,7 +73,8 @@ def cmd_build(path, output=None, settings=None):
     with tempfile.TemporaryDirectory(prefix='export-',dir=bdir) as work:
         print('mixing audio…', flush=True)
         raw=audio.build_mix(pr,os.path.join(work,'mix.wav'))
-        mx=pr.cfg.get('mix', {})
+        from .mix_controls import settings as mix_settings
+        mx=mix_settings(pr)
         mastered=os.path.join(work,'master.wav')
         lufs,peak=audio.master(raw,mastered,mx.get('loudness',-14.0),mx.get('peak',-1.2))
         print(f'mastered: {lufs:.1f} LUFS, peak {peak:.1f} dBFS',flush=True)

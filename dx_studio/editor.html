@@ -38,6 +38,7 @@
   .stagebar{position:absolute;top:14px;right:16px;display:flex;gap:6px;z-index:2}
   aside{background:var(--panel);border-left:1px solid var(--line);display:flex;flex-direction:column;min-height:0}
   .brand-field{display:flex;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid var(--line);font-size:12px}.brand-swatch{display:inline-block;width:22px;height:22px;border:1px solid var(--line);border-radius:6px;margin-left:auto;flex-shrink:0}
+  .mix-track{display:grid;grid-template-columns:1fr auto;gap:3px 8px;border:1px solid var(--line);border-radius:10px;padding:8px 10px;margin:8px 0}.mix-track input[type=range]{grid-column:1/-1;width:100%;margin:2px 0}.mix-track .kbar{grid-column:1/-1;margin:0;font-size:12px}
   .waveform{height:44px;overflow:hidden;background:#F1F0FA;cursor:crosshair}.waveform svg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}.waveform-note{font-size:11px;color:var(--muted);padding:14px;display:block}.audition-range{position:absolute;top:0;bottom:0;background:rgba(120,70,235,.14);border-left:2px solid var(--vio);border-right:2px solid var(--vio);pointer-events:none}
   .asset-card{display:flex;flex-direction:column;gap:6px;padding:12px;margin:10px 0;border:1px solid var(--line);border-radius:12px;overflow-wrap:anywhere}.asset-thumb{width:100%;height:130px;object-fit:contain;background:#f4f3fa;border-radius:8px}.asset-card .sub{margin:0}#mediaStatus{margin:10px 0}
   .tabs{display:flex;gap:2px;padding:8px 10px 0;border-bottom:1px solid var(--line);overflow-x:auto}
@@ -522,7 +523,7 @@ const PANEL_NOTE = {
   Text: 'On-screen text. Words that are also spoken stay as recorded, so keep them in sync with the narration. Clicking a field jumps to where it appears.',
   Colours: 'Tints, shadows and backgrounds derived from these colours update with them.',
 };
-function panels() { const out = []; for (const e of SCH) if (e.panel!=='Narration' && !out.includes(e.panel)) out.push(e.panel); out.splice(Math.max(0,out.indexOf('Layers')+1),0,'Media','Narration','Audio','Brand'); return out; }
+function panels() { const out = []; for (const e of SCH) if (!['Narration','Audio','Media','Brand'].includes(e.panel) && !out.includes(e.panel)) out.push(e.panel); out.splice(Math.max(0,out.indexOf('Layers')+1),0,'Media','Narration','Audio','Brand'); return out; }
 function buildPanels() {
   const T = $('#tabs'), P = $('#panes'); T.innerHTML = ''; P.innerHTML = '';
   const names=panels();

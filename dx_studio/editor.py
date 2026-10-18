@@ -43,7 +43,14 @@ class Editor:
         return e
     @property
     def audio_path(self): return os.path.join(self.pr.path, '.build', 'mix_raw.wav')
-    def has_audio(self): return bool(any(not take.get('muted') and take.get('gain',1)>0 for take in self.pr.voices()) or self.pr.cfg.get('music') or self.pr.cues() or any(m.get('kind') == 'video' for m in self.pr.values.get('__media', [])))
+    def has_audio(self):
+        from .mix_controls import settings, level
+        mix=settings(self.pr)
+        return bool((level(mix,'voice')>0 and any(not take.get('muted') and take.get('gain',1)>0 for take in self.pr.voices())) or
+                    (level(mix,'music')>0 and self.pr.cfg.get('music')) or
+                    (level(mix,'effects')>0 and self.pr.cues()) or
+                    (level(mix,'footage')>0 and any(m.get('kind')=='video' and not m.get('muted') and
+                     self.pr.values['__layers'].get(m['id'],{}).get('visible',True) for m in self.pr.values.get('__media',[]))))
 
     def stickers(self):
         d = os.path.join(self.pr.path, self.pr.cfg.get('assets', 'assets'), 'Avatars')

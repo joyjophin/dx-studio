@@ -39,7 +39,9 @@ and saved `__voice` takes. Preserve take IDs, trims, timing, levels and mute whe
 replacing recordings. `VoiceTimes` and speech-authoring scripts still read the
 original project voice list; updating that list does not replace saved narration
 overrides or automatically realign captions and graphics. Inspect both before
-revising spoken content.
+revising spoken content. Saved `__mix` balance, mute and mastering controls also
+override the original mix defaults; keep them unless the requested revision
+changes the audio balance.
 
 Source changes may alter selection boxes, defaults or built-in motion. Inspect
 affected layers with saved transforms at the revised beats, not just a fresh

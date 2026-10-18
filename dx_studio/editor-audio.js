@@ -1,12 +1,11 @@
-/* Listening controls are preview-only; they never alter settings or the exported mix. */
+/* Saved export balance and separate preview-only listening controls. */
 let WAVEFORM=null, WAVE_BUSY=false, PREVIEW_RATE=1, PREVIEW_VOLUME=1, PREVIEW_MUTED=false;
 const AUDITION={start:0,end:null,enabled:false,loop:false};
 function normalizeAudition(){if(AUDITION.end!==null)AUDITION.end=Math.max(1/FPS,Math.min(DUR,AUDITION.end));AUDITION.start=Math.max(0,Math.min(AUDITION.start,auditionEnd()-1/FPS));}
 function auditionEnd(){return Math.min(DUR,AUDITION.end??DUR);}
 function syncPreviewAudio(){audio.playbackRate=PREVIEW_RATE;audio.volume=PREVIEW_VOLUME;audio.muted=PREVIEW_MUTED;audio.preservesPitch=true;}
 function audioPanel(){
-  const root=el('div');root.append(el('p','note','Listen closely, find a beat and rehearse a section. These controls affect the editor preview only; exports keep their original speed, levels and duration.'));
-  const title=el('h3');title.textContent='Listening';root.append(title);
+  const root=el('div');root.append(savedMixPanel(),el('h3',null,'Preview listening'));root.append(el('p','note','Listen closely, find a beat and rehearse a section. These controls affect the editor preview only; exports keep their original speed, levels and duration.'));
   const speed=el('select');speed.setAttribute('aria-label','Playback speed');
   for(const rate of [.5,.75,1,1.25,1.5,2]){const option=el('option');option.value=rate;option.textContent=rate+'× speed';speed.append(option);}speed.value=PREVIEW_RATE;
   speed.onchange=()=>{if(playing)pause();PREVIEW_RATE=+speed.value;syncPreviewAudio();};root.append(speed);
@@ -52,4 +51,19 @@ function drawWaveform(){
   const path=document.createElementNS('http://www.w3.org/2000/svg','path');let d='';
   for(let x=0;x<1000;x+=2){const from=Math.max(0,Math.floor((V0+x/1000*SPAN())/WAVEFORM.step)),to=Math.min(WAVEFORM.peaks.length,Math.ceil((V0+(x+2)/1000*SPAN())/WAVEFORM.step));let peak=0;for(let i=from;i<to;i++)peak=Math.max(peak,WAVEFORM.peaks[i]);const height=Math.max(.35,Math.min(1,peak)*20);d+=`M${x},${22-height}V${22+height}`;}
   path.setAttribute('d',d);path.setAttribute('stroke','#6962CF');path.setAttribute('stroke-width','1.4');svg.append(path);lane.append(svg);
+}
+
+function savedMixPanel(){
+  const root=el('section');root.append(el('h3',null,'Export audio balance'),el('p','note','Saved in your project and used in exports. Balance the sources here; mastering adjusts final loudness below.'));
+  const mix=V.__mix;
+  for(const [key,label]of[['voice','Voice'],['music','Music'],['effects','Sound effects'],['footage','Footage sound']]){
+    const row=el('div','mix-track'),heading=el('b'),value=el('span','sub');heading.textContent=label;value.textContent=Math.round(mix[key]*100)+'%';
+    const slider=el('input');slider.type='range';slider.min=0;slider.max=2;slider.step=.05;slider.value=mix[key];slider.setAttribute('aria-label',label+' balance');slider.oninput=()=>{mix[key]=+slider.value;value.textContent=Math.round(mix[key]*100)+'%';changed();};
+    const check=el('label','kbar'),mute=el('input');mute.type='checkbox';mute.checked=mix[key+'_muted'];mute.onchange=()=>{mix[key+'_muted']=mute.checked;changed(true);};check.append(mute,document.createTextNode('Mute '+label.toLowerCase()+' in export'));row.append(heading,value,slider,check);root.append(row);
+  }
+  for(const [key,label,min,max]of[['loudness','Loudness target (LUFS)',-60,-5],['peak','True peak ceiling (dBTP)',-12,-.1]]){
+    const field=el('label','field'),input=el('input','num');field.append(document.createTextNode(label));input.type='number';input.step=.1;input.min=min;input.max=max;input.value=mix[key];input.setAttribute('aria-label',label);input.oninput=()=>{if(input.value===''||!Number.isFinite(+input.value)||+input.value<min||+input.value>max)return;mix[key]=+input.value;changed();};input.onblur=()=>{input.value=mix[key];};field.append(input);root.append(field);
+  }
+  root.append(el('p','sub','Mastering is measured during export. A silent or extremely short mix may not reach the loudness target. Preview uses the unmastered mix.'));
+  root.append(mediaButton('Reset export balance',()=>{commitHistory();V.__mix=clone(D.__mix);changed(true);refreshAudioPanel();}));return root;
 }
