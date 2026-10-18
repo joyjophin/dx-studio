@@ -70,13 +70,21 @@ when needed. They are examples, not a requirement for a particular topic or styl
    as forced alignment. Regenerate captions after narration changes.
 5. **Scene.** Adapt the template using the contract below. Prefer geometry and visual
    demonstrations to walls of text. Expose the user's likely changes directly in DX Editor.
+   For a standard portrait composition, centre the main visual groups, headlines and
+   captions horizontally. Derive each centre from its `project.layout` rectangle:
+   `cx=(left+right)/2`, with a group's left edge at `cx-group_width/2` and centred text
+   using `align='c'`. With default 1080px portrait margins this is x=540. Keep internal
+   list labels left-aligned when useful. Presenter halves and intentional asymmetric
+   safe areas use their available graphics/caption centres, preserving the chosen layout.
 6. **Review.** Render stills at each beat and transition, inspect them, then run:
    ```sh
    python scripts/verify.py ./projects/my-video
    python scripts/framecheck.py ./projects/my-video 0.1
    ```
    Review the contact sheet, full-size frames, caption timing, reading time and the
-   first/final frames. The checker detects errors; it cannot judge storytelling or prove
+   first/final frames. For centred portrait shots, compare left/right group margins in
+   a full-size settled frame; centred text inside an off-centre box still looks shifted.
+   The checker detects errors; it cannot judge storytelling or prove
    visual quality. Fix every error; explain justified warnings. Preview both ratios when
    delivering both. Re-run affected checks after edits.
 7. **Build and deliver.**

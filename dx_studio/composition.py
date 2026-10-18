@@ -29,7 +29,9 @@ def layout_for(width, height, preset='none', safe_area=None):
     vertical = height > width
     if safe_area is not None and not isinstance(safe_area,dict): raise ValueError("safe_area must be an object")
     safe_area = safe_area or {}
-    fallback = ([width*.074,height*.089,width*.833,height*.8125] if vertical else
+    # Keep the portrait graphics band centred while retaining its original width.
+    portrait_margin=width*130/1080
+    fallback = ([portrait_margin,height*.089,width-portrait_margin,height*.8125] if vertical else
                 [width*.05,height*.06,width*.95,height*.94])
     available=_rectangle(safe_area.get('content',fallback),width,height,'Content safe area')
     gap=min(width,height)*.03

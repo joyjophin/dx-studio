@@ -36,7 +36,7 @@ python3 -m dx_studio edit   projects/my-video          # visual editor
 | `captions` | caption file (default `captions.json`) |
 | `output` | MP4 file name |
 | `chapters` | `[[start, end, "label"], …]`: labelled bands on the editor timeline |
-| `safe_area` | `{"content": [x0,y0,x1,y1], "captions": [x0,y0,x1,y1]}` for the editor overlay |
+| `safe_area` | `{"content": [x0,y0,x1,y1], "captions": [x0,y0,x1,y1]}` in output pixels; responsive scenes derive layout from these bounds, and the editor shows guides. Explicit asymmetric bounds are preserved. |
 | `voice` | `[{"file": "vo/00.wav", "start": 0.3, "text": "…", "duck": "deep", "gain": 1.1}, …]`. `duck: "deep"` lowers the music further under that line |
 | `music` | synthesised bed: `bpm`, `level`, `chords` (MIDI), `roots`, `final_chord`, `final_root`, `final_arp`, `final_at`, `thin` (`[[t0,t1]]` sparser sections), `perc_from`, `end_fade_at`. Or `{"file": "music.wav", "level": 0.3}` |
 | `mix` | `duck` (music level under voice, 0–1), `duck_deep`, `loudness` (LUFS, default −14), `peak` (dBTP, default −1.2) |

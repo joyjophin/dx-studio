@@ -17,6 +17,12 @@ All reservations are relative to the actual frame dimensions. A gap equal to 3%
 of the shorter frame edge supplies breathing room. The engine returns rectangles
 in pixels as `[left, top, right, bottom]`, never `[x, y, width, height]`.
 
+Standard portrait graphics and captions use equal horizontal margins and centre
+at half the frame width (x=540 at 1080×1920). Corner and bottom-band reservations
+keep that horizontal centre. Half-frame reservations and custom asymmetric safe
+areas centre within their remaining content region. A presenter layout is a reason
+to shift the composition; the portrait aspect ratio alone is not.
+
 ```sh
 python -m dx_studio init projects/lesson --format 16:9 --presenter left-half
 python -m dx_studio edit projects/lesson
