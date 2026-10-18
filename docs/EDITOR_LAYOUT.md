@@ -52,6 +52,10 @@ screens. Content and transforms are immediately accessible. Typography, timing,
 keyframes, entrances/exits, arrangement and alignment use collapsible sections.
 The inspector's close button clears the layer selection.
 
+**Motion styles** applies reusable reveals or stagger to selected layers. The
+**Keyframes** section includes a visual easing curve with custom handles. Both
+remain collapsed initially; see [motion controls](MOTION.md) for replacement scope.
+
 On narrower desktops, selecting a layer temporarily replaces the left browser
 with the inspector, keeping the preview visible. Close the inspector or choose
 another rail tool to return to browsing. This first layout targets desktop editing;

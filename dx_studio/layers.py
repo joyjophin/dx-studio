@@ -42,7 +42,7 @@ def walk(layers, parent=None, depth=0):
 def default_state(L, duration):
     return {'start': L.start, 'end': float(L.end if L.end is not None else duration), 'visible': True, 'locked': L.locked,
             'x': 0.0, 'y': 0.0, 'scale': 1.0, 'rotation': 0.0, 'opacity': 1.0,
-            'enter': 'none', 'enter_dur': 0.4, 'exit': 'none', 'exit_dur': 0.3, 'keys': []}
+            'enter': 'none', 'enter_dur': 0.4, 'enter_delay': 0.0, 'exit': 'none', 'exit_dur': 0.3, 'keys': []}
 
 def defaults_for(layers, duration):
     return {L.id: default_state(L, duration) for L, _, _ in walk(layers)}
@@ -62,8 +62,14 @@ def transform_at(st, rt):
     if rt >= keys[-1]['t']: return {k: float(keys[-1][k]) for k in TRANSFORM_KEYS}
     for a, b in zip(keys, keys[1:]):
         if a['t'] <= rt <= b['t']:
-            u = (rt-a['t'])/max(1e-6, b['t']-a['t']); e = EASES.get(b.get('ease', 'ease'), eio)(u)
-            return {k: lerp(float(a[k]), float(b[k]), e) for k in TRANSFORM_KEYS}
+            u = (rt-a['t'])/max(1e-6, b['t']-a['t'])
+            if b.get('ease') == 'custom':
+                from .motion import bezier
+                e = bezier(u, b.get('bezier'))
+            else: e = EASES.get(b.get('ease', 'ease'), eio)(u)
+            out = {k: lerp(float(a[k]), float(b[k]), e) for k in TRANSFORM_KEYS}
+            out['scale'] = max(.001,out['scale']);out['opacity'] = clamp(out['opacity'])
+            return out
 
 def preset_factor(kind, u):
     """u: 0 = fully out, 1 = fully in. returns (dx, dy, scale, alpha)"""
@@ -88,7 +94,7 @@ def _apply(c, L, st, t, measure=False):
     shift = st['start'] - L.start; lt = t - shift
     if L.motion: L.motion(c, lt)
     tr = transform_at(st, t - st['start'])
-    en_u = (t-st['start'])/max(1e-6, st.get('enter_dur', 0.4)) if st.get('enter', 'none') != 'none' else 1.0
+    en_u = (t-st['start']-st.get('enter_delay',0))/max(1e-6, st.get('enter_dur', 0.4)) if st.get('enter', 'none') != 'none' else 1.0
     ex_u = (st['end']-t)/max(1e-6, st.get('exit_dur', 0.3)) if st.get('exit', 'none') != 'none' else 1.0
     edx, edy, es, ea = preset_factor(st.get('enter', 'none'), clamp(en_u))
     xdx, xdy, xs, xa = preset_factor(st.get('exit', 'none'), clamp(ex_u))

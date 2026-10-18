@@ -19,6 +19,11 @@ promises. Current capabilities and limits are in [README.md](../README.md).
 
 ## Development progress toward v0.5.0
 
+- **M02, motion controls:** visual named/custom Bézier easing, drag/keyboard/numeric
+  curve handles, reusable local/JSON motion styles, selection staggering and a
+  fade-only application option are implemented. Curves drive the shared transform
+  progression; separate per-property value graphs and independent camera controls
+  remain outside this increment. See [motion controls](MOTION.md).
 - **F01, saving and project home:** autosave, browser draft recovery, named setting
   versions, automatic backups and stale-save protection are implemented. The project
   home adds creation, folder opening, searchable recents and thumbnails. See

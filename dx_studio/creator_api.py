@@ -22,6 +22,12 @@ def template_library(editor,workspace):
     return TemplateLibrary(root/'templates')
 
 
+def motion_library(editor,workspace):
+    from .motion import MotionLibrary
+    root=workspace.library.path.parent if workspace else Path(editor.pr.path)/'.build'
+    return MotionLibrary(root/'motion.json')
+
+
 def start_job(editor,kind,values,body):
     if not hasattr(editor,'creator_jobs'):editor.creator_jobs={};editor.creator_job_lock=threading.RLock()
     with editor.creator_job_lock:
@@ -50,9 +56,12 @@ def start_job(editor,kind,values,body):
 
 
 def get(handler,editor,workspace,u,q):
+    if u.path=='/editor-motion.js':
+        handler._send(200,Path(__file__).with_name('editor-motion.js').read_bytes(),'text/javascript; charset=utf-8');return True
     if u.path=='/editor-creator.js':
         handler._send(200,Path(__file__).with_name('editor-creator.js').read_bytes(),'text/javascript; charset=utf-8');return True
     if editor is None:return False
+    if u.path=='/api/creator/motion':handler._json({'styles':motion_library(editor,workspace).list()});return True
     if u.path=='/api/creator/speech':
         from .transcripts import speech_status
         handler._json(speech_status());return True
@@ -83,6 +92,18 @@ def post(handler,editor,workspace,u,size):
         handler._json(result);return True
     body=handler._body();values=body.get('values',editor.pr.values)
     if not isinstance(values,dict):raise ValueError('Editable values are required')
+    if u.path.startswith('/api/creator/motion-'):
+        from .motion import capture,prepare
+        library=motion_library(editor,workspace)
+        if u.path.endswith('/motion-save'):
+            project=project_with(editor,values);state=project.values['__layers'].get(body.get('layer_id'))
+            if state is None:raise ValueError('Select an existing layer')
+            handler._json({'style':library.save(capture(body.get('name'),state))});return True
+        if u.path.endswith('/motion-import'):handler._json({'style':library.save(body.get('style'))});return True
+        if u.path.endswith('/motion-delete'):library.delete(body.get('id'));handler._json({'ok':True});return True
+        if u.path.endswith('/motion-prepare'):
+            project=project_with(editor,values)
+            handler._json(prepare(project,project.values,library.get(body.get('id')),body.get('ids'),body.get('duration'),body.get('stagger',0),body.get('calm',False)));return True
     if u.path=='/api/creator/job':handler._json({'job':start_job(editor,body.get('kind'),values,body)});return True
     if u.path=='/api/creator/transcript':
         from .transcripts import prepare
