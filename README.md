@@ -88,7 +88,7 @@ model, account, character pack or network request after installation.
 </tr>
 <tr>
 <td width="50%" valign="top"><h3>Composition that leaves space</h3>Choose portrait or landscape and a presenter reservation. The supplied templates recalculate graphics, caption placement and selection boxes. Custom scenes can use the same <code>project.layout</code> geometry.</td>
-<td width="50%" valign="top"><h3>Voice, music and sound</h3>Use recorded narration, optional local speech tools, or no voice. Mix synthesised sound effects and music, duck the bed under speech, and master to configurable loudness and peak targets.</td>
+<td width="50%" valign="top"><h3>Voice, music and sound</h3>Import and replace voice takes, trim sources, set timing and relative levels, mute takes, or use optional local speech tools. Mix synthesised sound effects and music, duck the bed under speech, and master to configurable loudness and peak targets.</td>
 </tr>
 <tr>
 <td width="50%" valign="top"><h3>Your assets and visual identity</h3>Import images, GIFs and footage, or add text and shapes in the editor. Supply a brand palette and your own licensed stickers. The public templates have no dependency on personal artwork.</td>

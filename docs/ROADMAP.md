@@ -32,8 +32,10 @@ promises. Current capabilities and limits are in [README.md](../README.md).
   audio files are checked before export. Frame analysis and broader quality checks
   remain planned. See [media and file checks](MEDIA.md).
 - **V01, listening foundation:** preview-mix waveforms, playback speed, monitor
-  volume/mute and loopable audition ranges are implemented. Recording, take management
-  and transcript editing remain planned. See [audio workspace](AUDIO_WORKSPACE.md).
+  volume/mute and loopable audition ranges are implemented. Imported narration takes
+  support replacement, source trims, scene timing, relative levels, mute and music ducking.
+  In-browser recording, transcript editing and word anchoring remain planned. See
+  [audio workspace](AUDIO_WORKSPACE.md) and [narration](NARRATION.md).
 - **C01, caption revision:** reviewed SRT/VTT imports and exports, search, split/merge,
   offset tools and timing/density hints are implemented. Word-level alignment,
   richer styles and pronunciation management remain planned. See [captions](CAPTIONS.md).

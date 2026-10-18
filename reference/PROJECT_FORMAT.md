@@ -179,3 +179,21 @@ non-destructively in settings.json. `Project.layout` provides graphics, captions
 and presenter rectangles in pixels. Scenes opting into responsive composition
 use these rectangles in setup() and update their selection boxes. See
 [PRESENTER_LAYOUTS](PRESENTER_LAYOUTS.md) for the contract and presets.
+
+### Editable narration (current development builds)
+
+The engine exposes `__voice` in saved settings. If absent, it derives takes from
+`project.json.voice`; an explicit empty list removes all narration. Each take has
+`id`, `name`, a project-relative `file`, `start` (scene seconds), `offset` (source
+seconds), `duration`, `gain` (0–4 relative level), `muted` and `duck`
+(`normal`, `deep`, `none`). Optional original text stays attached to the take.
+Use `project.voices()` for the effective list. The mix reads trims before placing
+samples on the scene timeline, then applies ripple edits. Muted/zero-level takes
+neither play nor duck the music. Overlaps mix together.
+
+Imported sources are normalized to mono 48 kHz WAV under assets/narration, with
+unique filenames. Replacement changes only the file reference. Old files remain
+for versions/undo and portable bundles. Take timing changes do not automatically
+retime captions, scene animations or `VoiceTimes`; that class and authoring scripts
+still read the original `project.json.voice`. An assistant revising authored speech
+must reconcile `__voice` overrides explicitly rather than overwriting them.

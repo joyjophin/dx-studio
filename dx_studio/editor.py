@@ -43,7 +43,7 @@ class Editor:
         return e
     @property
     def audio_path(self): return os.path.join(self.pr.path, '.build', 'mix_raw.wav')
-    def has_audio(self): return bool(self.pr.cfg.get('voice') or self.pr.cfg.get('music') or self.pr.cues() or any(m.get('kind') == 'video' for m in self.pr.values.get('__media', [])))
+    def has_audio(self): return bool(any(not take.get('muted') and take.get('gain',1)>0 for take in self.pr.voices()) or self.pr.cfg.get('music') or self.pr.cues() or any(m.get('kind') == 'video' for m in self.pr.values.get('__media', [])))
 
     def stickers(self):
         d = os.path.join(self.pr.path, self.pr.cfg.get('assets', 'assets'), 'Avatars')
@@ -333,6 +333,7 @@ def make_handler(ed=None, workspace=None):
                 if u.path == '/editor-view.js': return self._send(200, open(os.path.join(HERE, 'editor-view.js'), 'rb').read(), 'text/javascript; charset=utf-8')
                 if u.path == '/editor-brand.js': return self._send(200, open(os.path.join(HERE, 'editor-brand.js'), 'rb').read(), 'text/javascript; charset=utf-8')
                 if u.path == '/editor-captions.js': return self._send(200, open(os.path.join(HERE, 'editor-captions.js'), 'rb').read(), 'text/javascript; charset=utf-8')
+                if u.path == '/editor-narration.js': return self._send(200, open(os.path.join(HERE, 'editor-narration.js'), 'rb').read(), 'text/javascript; charset=utf-8')
                 if u.path == '/editor-audio.js': return self._send(200, open(os.path.join(HERE, 'editor-audio.js'), 'rb').read(), 'text/javascript; charset=utf-8')
                 if u.path == '/editor-media.js': return self._send(200, open(os.path.join(HERE, 'editor-media.js'), 'rb').read(), 'text/javascript; charset=utf-8')
                 if u.path == '/editor-bulk.js': return self._send(200, open(os.path.join(HERE, 'editor-bulk.js'), 'rb').read(), 'text/javascript; charset=utf-8')
@@ -349,6 +350,7 @@ def make_handler(ed=None, workspace=None):
                     return self._send(200,data,'text/vtt; charset=utf-8' if format=='vtt' else 'application/x-subrip; charset=utf-8',{'Content-Disposition':f'attachment; filename="captions.{format}"'})
                 if u.path == '/api/waveform':
                     from .waveform import cached_peaks
+                    if not editor.has_audio(): return self._json({'ready':False,'message':'No preview audio'})
                     if editor.audio_busy: return self._json({'ready':False,'message':'Preparing preview audio…'})
                     try: return self._json(cached_peaks(editor.audio_path))
                     except (OSError,RuntimeError): return self._json({'ready':False,'message':'Preview audio is being updated. Try again shortly.'})
@@ -379,7 +381,7 @@ def make_handler(ed=None, workspace=None):
             if not self._allowed(mutation=True): return
             try: size = int(self.headers.get('Content-Length', '0'))
             except ValueError: return self._json({'ok':False, 'error':'Invalid Content-Length'}, 400)
-            limit = 256*1024*1024 if urlparse(self.path).path.endswith('/api/upload') else 4*1024*1024
+            limit = 256*1024*1024 if urlparse(self.path).path.endswith(('/api/upload','/api/narration/upload')) else 4*1024*1024
             if size < 0 or size > limit: return self._json({'ok':False, 'error':'Request too large'}, 413)
             u = urlparse(self.path)
             try:
@@ -406,6 +408,18 @@ def make_handler(ed=None, workspace=None):
                     body=self._body()
                     with editor.lock: result=prepare_import(body.get('text',''),editor.pr,body.get('timing','output'))
                     return self._json(result)
+                if u.path == '/api/narration/upload':
+                    from .narration import import_take
+                    q=parse_qs(u.query)
+                    take=import_take(editor.pr,unquote(q.get('name',['Recording'])[0]),self.rfile.read(size),q.get('t',['0'])[0])
+                    return self._json({'ok':True,'take':take})
+                if u.path == '/api/narration/import':
+                    from .narration import import_take
+                    from pathlib import Path
+                    body=self._body(); source=Path(body.get('path','')).expanduser().resolve()
+                    if not source.is_file() or source.stat().st_size>256*1024*1024: raise ValueError('Choose an audio file smaller than 256 MB')
+                    take=import_take(editor.pr,source.name,source.read_bytes(),body.get('t',0))
+                    return self._json({'ok':True,'take':take})
                 if u.path == '/api/media/prepare':
                     body = self._body()
                     with editor.lock: item = editor.pr.media.item_for(body.get('file',''),float(body.get('t',0)))

@@ -61,15 +61,15 @@ def main():
         print(f'sound cues: {len(raw)}')
     except Exception as e: errors.append(f'cues() failed: {e}')
     # ---- voice / captions
-    vo = cfg.get('voice', []); last = 0
+    vo = sorted((take for take in pr.voices() if not take.get('muted') and take.get('gain',1)>0),key=lambda take:take['start']); last = 0
     for i, ln in enumerate(vo):
         p = os.path.join(pr.path, ln.get('file', ''))
         if not ln.get('file') or not os.path.isfile(p): errors.append(f'voice line {i} file missing: {ln.get("file")}'); continue
         import soundfile as sf
-        d = sf.info(p).duration
+        d = min(ln['duration'],max(0,sf.info(p).duration-ln['offset']))
         if ln['start'] < last - 0.02: warns.append(f'voice line {i} overlaps the previous line')
         last = ln['start'] + d
-    if vo and last > pr.duration - 0.3: errors.append(f'narration ends at {last:.2f}s but the video is {pr.duration:.2f}s')
+    if vo and last > pr.base_duration + 0.02: errors.append(f'narration ends at {last:.2f}s but the scene is {pr.base_duration:.2f}s')
     if vo: print(f'voice: {len(vo)} lines, ends at {last:.2f}s')
     if pr.has_captions:
         for c in pr.captions:

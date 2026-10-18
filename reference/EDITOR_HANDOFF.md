@@ -34,6 +34,13 @@ Do not add the same offset to every child. Stored captions and cue times use
 scene time; the watched output can differ after ripple cuts and holds. Use the
 engine's time mapping when converting between them.
 
+Current development builds expose effective narration through `project.voices()`
+and saved `__voice` takes. Preserve take IDs, trims, timing, levels and mute when
+replacing recordings. `VoiceTimes` and speech-authoring scripts still read the
+original project voice list; updating that list does not replace saved narration
+overrides or automatically realign captions and graphics. Inspect both before
+revising spoken content.
+
 Source changes may alter selection boxes, defaults or built-in motion. Inspect
 affected layers with saved transforms at the revised beats, not just a fresh
 render using default settings. A settings-only version cannot undo a changed

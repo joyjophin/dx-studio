@@ -63,7 +63,7 @@ def cmd_build(path, output=None, settings=None):
     destination=contained(pr.path,output) if output else pr.output
     if not destination.lower().endswith('.mp4'):raise ValueError('Export to an .mp4 file')
     sources={pr.media.path(item) for item in pr.values.get('__media',[]) if item.get('file')}
-    sources.update(contained(pr.path,line['file']) for line in pr.cfg.get('voice',[]) if line.get('file'))
+    sources.update(contained(pr.path,line['file']) for line in pr.voices() if line.get('file'))
     music=pr.cfg.get('music')
     if isinstance(music,dict) and music.get('file'):sources.add(contained(pr.path,music['file']))
     if str(Path(destination).resolve()) in sources:raise ValueError('The export path is used by a source asset. Choose a separate MP4 path.')
@@ -94,7 +94,7 @@ def cmd_check(path):
     for e in pr.schema: kinds[e['type']] = kinds.get(e['type'], 0)+1
     print(f"{pr.name}: {pr.width}x{pr.height} @ {pr.fps} fps, {pr.duration:.1f} s")
     print('parameters:', ', '.join(f'{v} {k}' for k, v in sorted(kinds.items())))
-    print('captions:', len(pr.captions), '· voice lines:', len(pr.cfg.get('voice', [])), '· sound cues:', len(pr.cues()))
+    print('captions:', len(pr.captions), '· voice lines:', len(pr.voices()), '· sound cues:', len(pr.cues()))
     t0 = time.time(); pr.render(pr.duration/2); print(f'test frame OK ({(time.time()-t0)*1000:.0f} ms)')
 
 def cmd_sounds():
