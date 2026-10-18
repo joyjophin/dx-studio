@@ -46,8 +46,8 @@ async function importVoiceRecording(file=null){
 function renderNarrationLane(){
   const lane=$('#lane-narration');if(!lane)return;lane.replaceChildren();
   for(const take of voiceTakes()){
-    const start=O_(take.start),end=O_(Math.min(BASE,take.start+take.duration));if(end<=V0||start>=V0+SPAN()||end<=start)continue;
-    const block=el('button','blk');block.type='button';block.classList.toggle('on',take.id===VOICE_SELECTED);const title=el('span');title.textContent=take.name;block.append(title);for(const side of ['l','r']){const handle=el('div','h '+side);block.append(handle);}block.style.left=pctO(Math.max(start,V0));block.style.width=pw(Math.min(end,V0+SPAN())-Math.max(start,V0));block.style.opacity=take.muted?.4:1;block.style.background='#DDF1E9';block.style.color='#215542';block.style.borderColor='#8ABDA6';block.title=`${take.name} · scene ${take.start.toFixed(2)}–${(take.start+take.duration).toFixed(2)} s${take.muted?' · muted':''}`;block.setAttribute('aria-label','Edit narration '+take.name);block.onclick=()=>selectVoice(take.id,true);block.onpointerdown=event=>startVoiceDrag(event,take.id,event.target.classList.contains('l')?'l':event.target.classList.contains('r')?'r':'m');lane.append(block);
+    for(const [start,end]of mappedRanges(take.start,Math.min(BASE,take.start+take.duration))){if(end<=V0||start>=V0+SPAN()||end<=start)continue;
+    const block=el('button','blk');block.type='button';block.classList.toggle('on',take.id===VOICE_SELECTED);const title=el('span');title.textContent=take.name;block.append(title);for(const side of ['l','r']){const handle=el('div','h '+side);block.append(handle);}block.style.left=pctO(Math.max(start,V0));block.style.width=pw(Math.min(end,V0+SPAN())-Math.max(start,V0));block.style.opacity=take.muted?.4:1;block.style.background='#DDF1E9';block.style.color='#215542';block.style.borderColor='#8ABDA6';block.title=`${take.name} · scene ${take.start.toFixed(2)}–${(take.start+take.duration).toFixed(2)} s${take.muted?' · muted':''}`;block.setAttribute('aria-label','Edit narration '+take.name);block.onclick=()=>selectVoice(take.id,true);block.onpointerdown=event=>startVoiceDrag(event,take.id,event.target.classList.contains('l')?'l':event.target.classList.contains('r')?'r':'m');lane.append(block);}
   }
 }
 function syncAudioAvailability(available){
@@ -71,7 +71,7 @@ function duplicateVoiceTake(id){
 }
 function auditionVoiceTake(id){
   const take=voiceTakes().find(item=>item.id===id);if(!take)return;
-  const start=O_(take.start),end=O_(Math.min(BASE,take.start+take.duration));
+  const spans=mappedRanges(take.start,Math.min(BASE,take.start+take.duration));if(!spans.length)return toast('This take has no time in the current output');const start=Math.min(...spans.map(s=>s[0])),end=Math.max(...spans.map(s=>s[1]));
   if(end-start<1/FPS)return toast('This take has no time in the current output');
   if(playing)pause();AUDITION.start=start;AUDITION.end=end;AUDITION.enabled=true;refreshAudioPanel();drawWaveform();setT(start);play();toast('Auditioning this range of the full mix');
 }
@@ -84,6 +84,7 @@ function voiceDragTiming(original,mode,position,base,min){
   return {...original,duration:Math.max(min,Math.min(base,position)-original.start)};
 }
 function startVoiceDrag(event,id,mode){
+  if(sceneOrderActive()){event.preventDefault();event.stopPropagation();selectVoice(id,false);return toast('After scene reordering, use narration source-time fields');}
   if(event.button!==0)return;event.preventDefault();event.stopPropagation();if(playing)pause();
   const take=voiceTakes().find(item=>item.id===id);if(!take)return;
   commitHistory();selectVoice(id,false);const original=clone(take),anchor=x2s(event.clientX),minimum=Math.min(1/FPS,original.duration);

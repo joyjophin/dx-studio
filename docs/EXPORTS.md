@@ -1,5 +1,7 @@
 # Export jobs
 
+Profiles, frame rates, caption modes, selected ranges and sampled quality review are documented in [the creator workflow](CREATOR_WORKFLOW.md#export-what-you-need).
+
 Available in the development source toward v0.5.0.
 
 **Build video** saves the current settings, runs file/caption preflight and starts

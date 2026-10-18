@@ -31,6 +31,9 @@ def validate(project, takes):
         if not isinstance(identifier, str) or not identifier or len(identifier)>100 or identifier in ids:
             raise ValueError('Narration takes need unique IDs')
         ids.add(identifier)
+        if take.get('transcript') is not None:
+            from .transcripts import validate as validate_transcript
+            validate_transcript(take['transcript'])
         if not isinstance(take.get('file'), str): raise ValueError('Narration needs a source file path')
         contained(project.path, take['file'])
         if not isinstance(take.get('name'), str) or len(take['name'])>120: raise ValueError('Use a take name of at most 120 characters')

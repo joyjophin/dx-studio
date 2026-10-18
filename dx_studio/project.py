@@ -40,7 +40,7 @@ class Project:
         stickers.set_asset_dir(os.path.join(self.path, self.cfg.get('assets', 'assets')))
         stickers.FREEZE_AFTER = self.duration - self.cfg.get('final_hold', 0.8)
         cap_file = os.path.join(self.path, self.cfg.get('captions', 'captions.json'))
-        self.has_captions = os.path.exists(cap_file) or 'captions' in self.cfg
+        self.has_captions = True
         base_caps = json.load(open(cap_file)) if os.path.exists(cap_file) else []
         self.captions = _captions.prepare(copy.deepcopy(base_caps))
         from .media import MediaLibrary
@@ -79,6 +79,8 @@ class Project:
         schema.append({'key':'__voice','type':'narration','label':'Narration','panel':'Narration','default':voice_defaults(self)})
         from .mix_controls import defaults as mix_defaults
         schema.append({'key':'__mix','type':'audio_mix','label':'Export mix','panel':'Audio','default':mix_defaults(self.cfg)})
+        from .creator import defaults as creator_defaults
+        for key,panel,default in creator_defaults(self):schema.append({'key':key,'type':'creator','panel':panel,'label':panel,'default':default})
         self.schema = normalize(schema)
         self.defaults = {e['key']: copy.deepcopy(e['default']) for e in self.schema}
         self.values = self.load_settings()
@@ -119,15 +121,21 @@ class Project:
         validate_voice(self, values.get('__voice', []))
         from .mix_controls import validate as validate_mix
         validate_mix(values.get('__mix',self.defaults['__mix']))
+        from .creator import validate as validate_creator
+        validate_creator(self,values)
         layout = layout_for(self.width,self.height,values.get('__composition','none'),self.cfg.get('safe_area'))
         self.layout = layout
         self.values = values
+        from .text import set_project_fonts
+        set_project_fonts(self)
         items = values.get('__media', [])
         self.media_layers = self.media.layers_for(items)
         ids = {it['id'] for it in items}
         from .timemap import out_duration
         self.edits = list(values.get('__timeline', []))
         self.duration = out_duration(self.base_duration, self.edits)
+        from .export_profiles import resolve as export_options
+        self.output=export_options(self)['output']
         for L in self.media_layers:                      # every media layer has a default state and a full state
             d = _L.default_state(L, self.base_duration)
             self.defaults['__layers'][L.id] = d
@@ -138,7 +146,7 @@ class Project:
         self.layer_meta = self.scene_layer_meta + _L.meta_for(self.media_layers, self.base_duration)
         self.layer_meta = [dict(m, label=str(values['__layers'].get(m['id'], {}).get('label') or m['label'])[:120]) for m in self.layer_meta]
         if self.has_captions:
-            self.captions = _captions.prepare([{'start': c['start'], 'show_end': c['end'], 'end': c['end'], 'text': c['text'], 'hl': c.get('hl') or None}
+            self.captions = _captions.prepare([{**copy.deepcopy(c),'start': c['start'], 'show_end': c['end'], 'end': c['end'], 'text': c['text'], 'hl': c.get('hl') or None}
                                                 for c in sorted(values.get('__captions', []), key=lambda c: c['start']) if c.get('text', '').strip()])
         self.params = Params(self.schema, values)
         if hasattr(self.scene, 'setup'): self.scene.setup(self.params, self)
@@ -147,7 +155,14 @@ class Project:
         return self.values.get('__voice', [])
 
     # ---- output
+    def prepare_frame(self,t):
+        from .creator import layout_at
+        from .text import set_project_fonts
+        set_project_fonts(self);self.layout=layout_at(self,self.scene_t(t))
+        if hasattr(self.scene,'setup'):self.scene.setup(self.params,self)
+
     def hits(self, t):
+        self.prepare_frame(t)
         from .layers import measure_layers
         return measure_layers(self.scene_t(t), self.params, self.layers + self.media_layers, self.width, self.height)
     def scene_t(self, t):
@@ -183,6 +198,7 @@ class Project:
         fo = cairo.FontOptions(); fo.set_antialias(cairo.ANTIALIAS_GRAY); fo.set_hint_style(cairo.HINT_STYLE_NONE); fo.set_hint_metrics(cairo.HINT_METRICS_OFF)
         c.set_font_options(fo)
         if scale != 1.0: c.scale(scale, scale)
+        self.prepare_frame(t)
         tt = self.scene_t(t)
         self.scene.draw(c, tt, self.params)
         if self.media_layers:

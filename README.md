@@ -23,18 +23,19 @@ adjust the timing in DX Editor, then rebuild from the same source.
 </tr>
 </table>
 
-The current source is **0.5.0.dev0**, a development build toward v0.5. It adds a [project home and bulk layer tools](docs/WORKSPACE.md):
-create or reopen projects, search and rename layers, select several at once, lock,
-solo, align and space them. A [media library](docs/MEDIA.md) adds reusable imports,
-replacement, relinking and file checks before export. The [audio workspace](docs/AUDIO_WORKSPACE.md)
-adds a waveform, listening speed and loopable preview ranges. [Narration takes](docs/NARRATION.md)
-add replaceable recordings, source trims, timing, mute and music ducking. Saved audio
-balance controls adjust voice, music, effects and footage, with export loudness targets. [Caption tools](docs/CAPTIONS.md)
-add SRT/VTT interchange, phrase split/merge and timing review. [Brand presets](docs/BRAND_PRESETS.md)
-reuse palettes and exposed size settings with field-by-field control. [View controls](docs/VIEW.md)
-resize the workspace and adjust preview quality. [Export jobs](docs/EXPORTS.md)
-can be cancelled while preserving the previous completed MP4. These additions are in the current source; the
-[published v0.1.0](https://github.com/joyjophin/dx-studio/releases/tag/v0.1.0) downloads
+The current source is **0.5.0.dev0**, a development build toward v0.5. It includes
+[project home and bulk editing](docs/WORKSPACE.md), [media](docs/MEDIA.md),
+[narration](docs/NARRATION.md), [audio balance](docs/AUDIO_WORKSPACE.md),
+[captions](docs/CAPTIONS.md), [brand presets](docs/BRAND_PRESETS.md),
+[workspace controls](docs/VIEW.md) and [cancellable exports](docs/EXPORTS.md).
+
+The new [creator workflow](docs/CREATOR_WORKFLOW.md) adds correctable word timings,
+aligned captions, reviewed narration-linked retiming, storyboard playback order,
+protected assistant revisions with frame comparisons, actual presenter clips and
+scene layouts, editable explanation blocks, portable fonts/logos/templates and
+range exports with profiles, SRT and sampled quality review. Speech recognition is
+optional; timed-word import needs no model or account. These are development
+features; [published v0.1.0 downloads](https://github.com/joyjophin/dx-studio/releases/tag/v0.1.0)
 remain the initial release.
 
 ## A look around
@@ -61,6 +62,11 @@ remain the initial release.
 </td>
 </tr>
 </table>
+
+<p align="center">
+  <img src="docs/images/creator-workflow.png" alt="DX Editor with an editable CSV bar chart, a presenter recording on the right and scene-specific layout controls" width="100%">
+  <br><sub><b>Explain it in parts. Keep yourself in frame.</b> Development editor capture with original illustrative data and a code-drawn presenter demo.</sub>
+</p>
 
 These are captures of the working editor. [Recreate the examples and gallery →](docs/GALLERY.md)
 

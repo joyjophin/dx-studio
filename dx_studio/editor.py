@@ -8,6 +8,7 @@ project's own scene code, so what you see is exactly what gets built.
 import contextlib, copy, hashlib, io, json, os, re, subprocess, sys, threading, time, webbrowser, signal, uuid
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 from urllib.parse import urlparse, parse_qs, unquote
+from .paths import contained
 import numpy as np
 from PIL import Image
 
@@ -200,13 +201,15 @@ class Editor:
             if self.build['running']:raise ValueError('An export is already running. Open its progress or cancel it first.')
             self.save(values,revision)
             with self.lock:require_ready(self.pr)
-            n=int(round(self.pr.duration*self.pr.fps));b=self.build
+            from .export_profiles import resolve as export_options
+            options=export_options(self.pr);output=self.pr.output
+            n=int(round(options['duration']*options['fps']));b=self.build
             job_id=uuid.uuid4().hex
             snapshot=os.path.join(self.pr.path,'.build','export-'+job_id+'.settings.json')
             os.makedirs(os.path.dirname(snapshot),exist_ok=True)
             atomic_json(snapshot,copy.deepcopy(self.saved))
             b.update(running=True,progress=0.0,log=[],done=False,ok=None,id=job_id,
-                     state='preparing',cancelled=False,cancel_requested=False,revision=self.revision,started_at=time.time())
+                     output_file=os.path.relpath(output,self.pr.path),sidecar=options['captions']=='sidecar',state='preparing',cancelled=False,cancel_requested=False,revision=self.revision,started_at=time.time())
             self.build_process=None
             candidate=os.path.join(self.pr.path,'.build','export-'+b['id']+'.mp4')
         def run():
@@ -236,8 +239,11 @@ class Editor:
                     ok=code==0 and not cancelled
                     try:
                         if ok:
-                            os.replace(candidate,self.pr.output);b['log']=(b['log']+['Saved '+os.path.basename(self.pr.output)])[-40:]
+                            from .publishing import publish
+                            captions=os.path.splitext(candidate)[0]+'.srt' if b.get('sidecar') else None
+                            publish(candidate,output,captions);b['log']=(b['log']+['Saved '+os.path.basename(output)])[-40:]
                         elif os.path.isfile(candidate):os.unlink(candidate)
+                        if os.path.isfile(os.path.splitext(candidate)[0]+'.srt'):os.unlink(os.path.splitext(candidate)[0]+'.srt')
                     except OSError as error:
                         ok=False;b['log']=(b['log']+[str(error)])[-40:]
                     b.update(running=False,done=True,ok=ok,cancelled=cancelled,
@@ -346,6 +352,8 @@ def make_handler(ed=None, workspace=None):
                 if u.path == '/editor-bulk.js': return self._send(200, open(os.path.join(HERE, 'editor-bulk.js'), 'rb').read(), 'text/javascript; charset=utf-8')
                 if u.path == '/editor-tools.js': return self._send(200, open(os.path.join(HERE, 'editor-tools.js'), 'rb').read(), 'text/javascript; charset=utf-8')
                 if u.path == '/editor-session.js': return self._send(200, open(os.path.join(HERE, 'editor-session.js'), 'rb').read(), 'text/javascript; charset=utf-8')
+                from .creator_api import get as creator_get
+                if creator_get(self,editor,workspace,u,q):return
                 if editor is None: return self._send(404,b'Open a project first','text/plain')
                 if u.path == '/frame': return self._send(200, editor.frame(float(q.get('t', ['0'])[0]), min(1.0, max(0.05, float(q.get('s', ['0.45'])[0]))), json.loads(q.get('solo',['[]'])[0])), 'image/jpeg')
                 if u.path == '/api/state': return self._json(editor.open_state())
@@ -374,10 +382,14 @@ def make_handler(ed=None, workspace=None):
                     with editor.preview(json.loads(q.get('solo',['[]'])[0])): h = editor.pr.hits(float(q.get('t', ['0'])[0]))
                     return self._json(h)
                 if u.path == '/api/status':
-                    return self._json({'audio_version': editor.audio_version, 'audio_busy': editor.audio_busy, 'build': editor.build, 'has_video':os.path.isfile(editor.pr.output)})
+                    return self._json({'audio_version': editor.audio_version, 'audio_busy': editor.audio_busy, 'build': editor.build, 'has_video':os.path.isfile(contained(editor.pr.path,editor.build.get('output_file') or os.path.relpath(editor.pr.output,editor.pr.path)))})
                 if u.path.startswith('/thumb/'): return self._send(200, editor.thumb(unquote(u.path[7:])), 'image/png', {'Cache-Control': 'max-age=3600'})
                 if u.path == '/audio': return self._file(editor.audio_path, 'audio/wav')
-                if u.path == '/video': return self._file(editor.pr.output, 'video/mp4')
+                if u.path in ('/video','/export-captions'):
+                    identifier=q.get('job',[None])[0]
+                    if identifier and identifier!=editor.build.get('id'):raise ValueError('This export is no longer selected')
+                    path=contained(editor.pr.path,editor.build['output_file']) if identifier and editor.build.get('output_file') else editor.pr.output
+                    return self._file(os.path.splitext(path)[0]+'.srt','application/x-subrip') if u.path=='/export-captions' else self._file(path,'video/mp4')
                 self._send(404, b'not found', 'text/plain')
             except (BrokenPipeError, ConnectionResetError): pass
             except (ValueError, FileNotFoundError) as e: self._json({'ok':False,'error':str(e)},400)
@@ -388,16 +400,19 @@ def make_handler(ed=None, workspace=None):
             if not self._allowed(mutation=True): return
             try: size = int(self.headers.get('Content-Length', '0'))
             except ValueError: return self._json({'ok':False, 'error':'Invalid Content-Length'}, 400)
-            limit = 256*1024*1024 if urlparse(self.path).path.endswith(('/api/upload','/api/narration/upload')) else 4*1024*1024
+            limit = 256*1024*1024 if urlparse(self.path).path.endswith(('/api/upload','/api/narration/upload','/api/creator/brand-import')) else 32*1024*1024 if urlparse(self.path).path.endswith('/api/creator/template-import') else 4*1024*1024
             if size < 0 or size > limit: return self._json({'ok':False, 'error':'Request too large'}, 413)
             u = urlparse(self.path)
             try:
                 if self._library_post(u): return
                 editor = self._project_editor(); u = urlparse(self.path)
                 if editor is None: return self._json({'ok':False,'error':'Open a project first'},404)
+                from .creator_api import post as creator_post
+                if creator_post(self,editor,workspace,u,size):return
                 if u.path == '/api/preview':
                     editor.apply(self._body())
-                    return self._json({'ok': True, 'layers': editor.pr.layer_meta, 'layout': editor.pr.layout, 'layer_defaults': editor.pr.defaults.get('__layers', {}), 'has_audio':editor.has_audio()})
+                    with editor.lock:editor.pr.prepare_frame(float(parse_qs(u.query).get('t',['0'])[0]))
+                    return self._json({'ok': True, 'layers': editor.pr.layer_meta, 'layout': editor.pr.layout, 'layer_defaults': editor.pr.defaults.get('__layers', {}), 'has_audio':editor.has_audio(),'output':os.path.basename(editor.pr.output)})
                 if u.path == '/api/brands/resolve':
                     from .brands import resolve
                     body=self._body();return self._json(resolve(brands.get(body.get('id')),editor.pr.schema))

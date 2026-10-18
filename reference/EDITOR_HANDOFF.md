@@ -38,7 +38,9 @@ Current development builds expose effective narration through `project.voices()`
 and saved `__voice` takes. Preserve take IDs, trims, timing, levels and mute when
 replacing recordings. `VoiceTimes` and speech-authoring scripts still read the
 original project voice list; updating that list does not replace saved narration
-overrides or automatically realign captions and graphics. Inspect both before
+overrides by itself. Current development builds can propose word-linked timing after a new
+timed transcript, with explicit conflict/protection review; see
+[ASSISTANT_REVISIONS](ASSISTANT_REVISIONS.md). Inspect both source and saved values before
 revising spoken content. Saved `__mix` balance, mute and mastering controls also
 override the original mix defaults; keep them unless the requested revision
 changes the audio balance.
@@ -89,3 +91,18 @@ Current export jobs capture settings at launch; later saved edits need a new
 export. Distinguish a browser preview from a completed render, and settings
 versions from source backups. Preserve the existing scope of the user's task;
 creating a project handoff does not authorise publishing the video.
+
+
+## Current creator workspace state
+
+Preserve `__story`, `__anchors`, `__protected`, `__presenter`, `__blocks`,
+`__brand_assets`, `__export` and `__quality_ignores` when revising a project.
+Read [PROJECT_FORMAT](PROJECT_FORMAT.md) for their clocks and contracts. A reorder
+is a source-to-output mapping, not permission to rewrite original timing fields.
+Keep complete block IDs so data updates remain possible. Portable templates and
+brand kits copy their dependencies; retain required font licences and credits.
+
+A saved export range/profile changes the CLI build too. Check its output clock,
+caption mode and filename before producing delivery files. A clean mode removes
+engine-managed captions only. Review the mastered MP4 and current job's sidecar;
+sampled preflight results are useful findings, not a full-frame quality certificate.

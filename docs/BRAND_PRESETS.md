@@ -1,5 +1,7 @@
 # Reusable brand presets
 
+For project-owned fonts/logos, portable brand ZIPs and selection templates, see [the creator workflow](CREATOR_WORKFLOW.md).
+
 Available in the development source toward v0.5.0.
 
 Open **Brand** to begin with Editorial paper, Electric violet or Midnight.

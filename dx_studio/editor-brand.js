@@ -7,7 +7,7 @@ function brandPanel(){
   const row=el('div','kbar');row.append(mediaButton('Review preset',reviewBrand),mediaButton('Export preset',exportBrand),mediaButton('Import preset JSON',importBrand));root.append(row);
   const name=el('input','txt');name.id='brandName';name.placeholder='e.g. My channel palette';name.maxLength=80;name.setAttribute('aria-label','New brand preset name');root.append(name,mediaButton('Save current style',saveBrand));
   const note=el('p','note');note.id='brandStatus';note.setAttribute('role','status');root.append(note);
-  const review=el('div');review.id='brandReview';root.append(review);setTimeout(loadBrands,0);return root;
+  const review=el('div');review.id='brandReview';root.append(review);root.append(brandAssetsPanel());setTimeout(loadBrands,0);return root;
 }
 async function loadBrands(selected){
   try{BRAND_PRESETS=(await api('/api/brands')).presets;const select=$('#brandPreset');if(!select)return;select.replaceChildren();for(const preset of BRAND_PRESETS){const option=el('option');option.value=preset.id;option.textContent=preset.name+(preset.builtin?' · included':'');select.append(option);}if(selected)select.value=selected;$('#brandStatus').textContent='Presets match public colour and *_size parameters. Custom fonts and logos are managed separately.';}

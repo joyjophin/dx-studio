@@ -19,7 +19,11 @@ skill and editor should work for beginners, while exposing precise controls when
 needed. Channel identity, language, presenter appearance and visual style must be
 creator choices. No personal sticker pack or specific AI vendor should be required.
 
-## What exists today
+## Foundation at the time of this proposal
+
+For implemented development work since this proposal, see [ROADMAP](ROADMAP.md)
+and [the creator workflow](CREATOR_WORKFLOW.md). The following describes the
+starting point, not the latest source.
 
 The current source provides an editable scene renderer, a local editor, caption
 phrase editing, text/shape/media overlays, layer transforms, visibility, ordering,

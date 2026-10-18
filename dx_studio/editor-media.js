@@ -86,8 +86,11 @@ async function checkExport() {
 function showPreflight(report){
   const list=$('#preflightList');list.replaceChildren();$('#preflightTitle').textContent=report.ok?'Files ready for export':'Export needs attention';
   if(!report.findings.length)list.append(el('p','note','File and caption timing checks passed. These checks do not analyse every frame, text overflow or final audio levels.'));
-  for(const finding of report.findings){const row=el('div','asset-card'),message=el('b'),fix=el('p','sub');message.textContent=(finding.severity==='error'?'Fix: ':'Warning: ')+finding.message;fix.textContent=finding.fix;row.append(message,fix);
-    if(finding.kind==='caption')row.append(mediaButton('Show caption',()=>{$('#preflightDialog').close();const index=CAPV().findIndex(c=>c.start===finding.at);if(index>=0)selectCap(index,true);}));
+  if(report.scope)list.append(el('p','note',report.scope));
+  for(const finding of report.findings){if(finding.dismissed)continue;const row=el('div','asset-card'),message=el('b'),fix=el('p','sub');message.textContent=(finding.severity==='error'?'Fix: ':'Warning: ')+finding.message;fix.textContent=finding.fix;row.append(message,fix);
+    if(finding.id&&finding.severity!=='error')row.append(mediaButton('Dismiss this warning',()=>{commitHistory();V.__quality_ignores.push(finding.id);finding.dismissed=true;changed(true);showPreflight(report);}));
+    if(finding.at!==undefined&&finding.at!==null)row.append(mediaButton('Show frame',()=>{$('#preflightDialog').close();if(playing)pause();setT(finding.at);}));
+    if(finding.kind==='caption')row.append(mediaButton('Show caption',()=>{$('#preflightDialog').close();const index=CAPV().findIndex(c=>c.start===(finding.source_at??finding.at));if(index>=0)selectCap(index,true);}));
     for(const id of finding.layers||[])row.append(mediaButton('Show layer',()=>{$('#preflightDialog').close();selectLayer(id,true);}));list.append(row);}
   $('#preflightDialog').showModal();
 }

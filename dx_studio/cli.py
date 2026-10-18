@@ -28,13 +28,14 @@ def cmd_still(path, times):
     print('\n'.join(files))
 
 def render_video(pr, out, progress=None):
-    n = int(round(pr.duration*pr.fps))
+    from .export_profiles import resolve
+    opts=resolve(pr);n=max(1,int(round(opts['duration']*opts['fps'])))
     p = subprocess.Popen(['ffmpeg', '-y', '-loglevel', 'error', '-f', 'rawvideo', '-pix_fmt', 'bgra', '-s', f'{pr.width}x{pr.height}',
-                          '-r', str(pr.fps), '-i', '-', '-c:v', 'libx264', '-preset', 'medium', '-crf', '17', '-pix_fmt', 'yuv420p',
+                          '-r', str(opts['fps']), '-i', '-', '-vf', f"scale={opts['width']}:{opts['height']}", '-c:v', 'libx264', '-preset', 'medium', '-crf', '17', '-pix_fmt', 'yuv420p',
                           '-tune', 'animation', out], stdin=subprocess.PIPE)
     try:
         for i in range(n):
-            s = pr.render(i/pr.fps); p.stdin.write(bytes(s.get_data()))
+            s = pr.render(opts['start']+i/opts['fps']); p.stdin.write(bytes(s.get_data()))
             if i % 150 == 0:
                 print(f'frame {i}', flush=True)
                 if progress: progress(i/n)
@@ -60,6 +61,9 @@ def cmd_build(path, output=None, settings=None):
         pr.apply(pr.values_from_settings(snapshot))
     from .preflight import require_ready
     require_ready(pr)
+    from .export_profiles import resolve as export_options,sidecar as caption_sidecar
+    opts=export_options(pr)
+    sidecar_text=caption_sidecar(pr,opts['start'],opts['end']) if opts['captions']=='sidecar' else None
     destination=contained(pr.path,output) if output else pr.output
     if not destination.lower().endswith('.mp4'):raise ValueError('Export to an .mp4 file')
     sources={pr.media.path(item) for item in pr.values.get('__media',[]) if item.get('file')}
@@ -73,17 +77,26 @@ def cmd_build(path, output=None, settings=None):
     with tempfile.TemporaryDirectory(prefix='export-',dir=bdir) as work:
         print('mixing audio…', flush=True)
         raw=audio.build_mix(pr,os.path.join(work,'mix.wav'))
+        if opts['start']>0 or opts['end']<pr.duration:
+            clipped=os.path.join(work,'range.wav')
+            subprocess.run(['ffmpeg','-v','error','-y','-ss',str(opts['start']),'-i',raw,'-t',str(opts['duration']),'-c:a','pcm_f32le',clipped],check=True);raw=clipped
         from .mix_controls import settings as mix_settings
         mx=mix_settings(pr)
         mastered=os.path.join(work,'master.wav')
         lufs,peak=audio.master(raw,mastered,mx.get('loudness',-14.0),mx.get('peak',-1.2))
         print(f'mastered: {lufs:.1f} LUFS, peak {peak:.1f} dBFS',flush=True)
+        if opts['captions']!='burned':
+            pr.values['__captions']=[];pr.apply(pr.values)
         vid=os.path.join(work,'video.mp4');render_video(pr,vid);print('muxing…',flush=True)
         final=os.path.join(work,'complete.mp4')
         subprocess.run(['ffmpeg','-hide_banner','-loglevel','error','-y','-i',vid,'-i',mastered,
                         '-map','0:v','-map','1:a','-c:v','copy','-c:a','aac','-b:a','256k','-ar','48000',
-                        '-t',str(pr.duration),'-movflags','+faststart',final],check=True)
-        os.replace(final,destination)
+                        '-t',str(opts['duration']),'-movflags','+faststart',final],check=True)
+        captions=None
+        if sidecar_text is not None:
+            captions=os.path.join(work,'captions.srt');Path(captions).write_text(sidecar_text,encoding='utf-8')
+        from .publishing import publish
+        publish(final,destination,captions)
     print(f'Done -> {destination}  ({time.time()-t0:.0f} s)')
 
 def cmd_check(path):

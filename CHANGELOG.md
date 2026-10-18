@@ -2,6 +2,15 @@
 
 ## 0.5.0.dev0 — unreleased development toward 0.5.0
 
+- Correctable source-relative word transcripts, optional cached local English ASR, active-word captions and reviewed word-linked layer/caption retiming.
+- Conflict-aware assistant settings patches with protected decisions, current/proposed frame comparisons and validation before applying selected changes.
+- Storyboard scene notes and playback reordering, preserving source clocks and remapping visuals, captions and audio; reorder precedes ripple cuts/holds.
+- Actual presenter-video placement, cover/contain crop, source trim/audio controls and per-scene responsive layout presets.
+- Editable comparison, steps, quote, CSV bar-chart and title/sponsor blocks, plus portable selection templates with copied dependencies and new IDs.
+- Project-owned TTF/OTF roles, logo placement, asset-credit notes and reviewed portable brand ZIPs.
+- Saved source/1080p/720p profiles, output fps, selected-range exports and burned/clean/SRT caption modes with matching audio and sidecar timing.
+- Background sampled frame/font/audio review, actionable findings, intentional warning dismissals and rollback-safe video/sidecar publication.
+
 - Autosave editable settings with explicit save/failure status and browser draft recovery.
 - Named setting versions, bounded automatic backups and recoverable restore/reset actions.
 - Revision checks and editor write locks prevent stale saves from silently replacing newer edits.
