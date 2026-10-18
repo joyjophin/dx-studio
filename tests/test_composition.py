@@ -81,6 +81,35 @@ def test_invalid_safe_area_is_rejected():
     with pytest.raises(ValueError):layout_for(1920,1080,'none',{'content':[-5,0,1920,1080]})
 
 
+def test_portrait_defaults_are_centred_and_presenter_halves_mirror():
+    for w,h in [(1080,1920),(720,1280)]:
+        for preset in ['none','bottom-left','bottom-right','bottom-band']:
+            layout=layout_for(w,h,preset)
+            for key in ['content','captions']:
+                assert (layout[key][0]+layout[key][2])/2==pytest.approx(w/2)
+        left=layout_for(w,h,'left-half');right=layout_for(w,h,'right-half')
+        for key in ['content','captions']:
+            assert left[key][0]==pytest.approx(w-right[key][2])
+            assert left[key][2]==pytest.approx(w-right[key][0])
+    custom={'content':[80,170,900,1560],'captions':[80,1370,900,1550]}
+    layout=layout_for(1080,1920,safe_area=custom)
+    assert layout['content'][::2]==[80,900] and layout['captions']==custom['captions']
+
+
+def test_new_portrait_templates_centre_layer_groups_at_each_beat(tmp_path):
+    for template in ['explainer','starter']:
+        pr=Project(create(tmp_path/template,template=template,format='9:16'))
+        assert pr.layout['content'][0]==pr.width-pr.layout['content'][2]==130
+        assert pr.layout['captions'][0]==pr.width-pr.layout['captions'][2]==130
+        for t in [1,5,9,13]:
+            if t>=pr.duration:continue
+            groups={'title','problem','payoff','closing','card','row1','row2','row3','note','captions'}
+            hits=[hit for hit in pr.hits(t) if hit['id'] in groups]
+            assert hits
+            assert all(hit['center'][0]==pytest.approx(pr.width/2) for hit in hits)
+            pr.render(t,.1)  # selection and render share the same responsive geometry
+
+
 def test_overlap_check_catches_manual_moves_into_presenter_area(tmp_path):
     from dx_studio.composition import presenter_collisions
     pr=Project(create(tmp_path/'video',format='16:9',presenter='left-half'))

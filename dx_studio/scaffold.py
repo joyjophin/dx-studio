@@ -20,7 +20,7 @@ def create(dest, template="explainer", format="9:16", name=None, brand=None, pre
     cfg.update(width=FORMATS[format][0], height=FORMATS[format][1], name=name or dest.name)
     cfg['brand'] = palette
     cfg['composition'] = {'presenter': presenter}
-    cfg['safe_area'] = ({'content':[80,170,900,1560], 'captions':[80,1370,900,1550]} if format == '9:16'
+    cfg['safe_area'] = ({'content':[130,170,950,1560], 'captions':[130,1370,950,1550]} if format == '9:16'
                         else {'content':[96,64,1824,1016], 'captions':[200,900,1720,1016]})
     (dest/'project.json').write_text(json.dumps(cfg, indent=2)+'\n')
     (dest/'assets'/'Avatars').mkdir(parents=True)
