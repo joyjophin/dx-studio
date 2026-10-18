@@ -38,7 +38,7 @@ def make_novoice(project,out,mute_footage=False):
             if abs(loudness-target)<.25 and actual_peak<=peak+.05:break
             if actual_peak>peak+.05:limit-=(actual_peak-peak)+.1
             if abs(loudness-target)>=.25:gain+=(target-loudness)*1.05
-        for line in pr.cfg.get('voice',[]):line['gain']=0.0
+        for line in pr.voices():line['muted']=True
         if mute_footage:
             for item in pr.values.get('__media',[]):
                 if item.get('kind')=='video':item['muted']=True

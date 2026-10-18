@@ -75,6 +75,8 @@ class Project:
         schema.append({'key': '__timeline', 'type': 'timeline', 'label': 'Ripple edits', 'panel': 'Layers', 'default': []})
         if not self.layers:
             schema.insert(0, {'key': '__layers', 'type': 'layers', 'label': 'Layers', 'panel': 'Layers', 'default': {}})
+        from .narration import defaults as voice_defaults
+        schema.append({'key':'__voice','type':'narration','label':'Narration','panel':'Narration','default':voice_defaults(self)})
         self.schema = normalize(schema)
         self.defaults = {e['key']: copy.deepcopy(e['default']) for e in self.schema}
         self.values = self.load_settings()
@@ -111,6 +113,8 @@ class Project:
         atomic_json(self.settings_path, self.settings_diff(values))
     def apply(self, values):
         from . import layers as _L
+        from .narration import validate as validate_voice
+        validate_voice(self, values.get('__voice', []))
         layout = layout_for(self.width,self.height,values.get('__composition','none'),self.cfg.get('safe_area'))
         self.layout = layout
         self.values = values
@@ -134,6 +138,9 @@ class Project:
                                                 for c in sorted(values.get('__captions', []), key=lambda c: c['start']) if c.get('text', '').strip()])
         self.params = Params(self.schema, values)
         if hasattr(self.scene, 'setup'): self.scene.setup(self.params, self)
+
+    def voices(self):
+        return self.values.get('__voice', [])
 
     # ---- output
     def hits(self, t):

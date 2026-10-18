@@ -26,7 +26,8 @@ Range boundaries stay within the video after timeline edits.
 
 Ranges and listening choices last for this page session. They are audition tools,
 not export trims or speed ramps. Individual voice-take waveforms, recording,
-transcripts and separate audio-track mixing remain planned.
+transcripts and separate music/effects track mixing remain planned. Imported
+voice takes now have [their own saved controls](NARRATION.md).
 
 Peak generation reads bounded chunks and caches up to eight versions per project.
 Both stereo channels contribute to each peak, so opposite-polarity channels do

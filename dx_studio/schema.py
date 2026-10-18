@@ -20,9 +20,9 @@ Values in settings.json are plain JSON: time/number -> float, color -> "#RRGGBB"
 import copy
 from .core import hexc
 
-TYPES = {'time', 'number', 'color', 'text', 'bool', 'choice', 'point', 'sticker', 'clips', 'layers', 'captions', 'media', 'timeline'}
+TYPES = {'time', 'number', 'color', 'text', 'bool', 'choice', 'point', 'sticker', 'clips', 'layers', 'captions', 'media', 'timeline', 'narration'}
 DEFAULT_PANEL = {'time': 'Timing', 'color': 'Colours', 'text': 'Text', 'clips': None,
-                 'number': 'Settings', 'bool': 'Settings', 'choice': 'Settings', 'point': 'Settings', 'sticker': 'Settings', 'layers': 'Layers', 'captions': 'Captions', 'media': 'Layers', 'timeline': 'Layers'}
+                 'number': 'Settings', 'bool': 'Settings', 'choice': 'Settings', 'point': 'Settings', 'sticker': 'Settings', 'layers': 'Layers', 'captions': 'Captions', 'media': 'Layers', 'timeline': 'Layers', 'narration': 'Narration'}
 
 def normalize(schema):
     out, seen = [], set()

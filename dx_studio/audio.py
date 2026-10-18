@@ -176,13 +176,21 @@ def build_mix(project, out_path):
         k = int(cue['at']*SR)
         if 0 <= k < N: m = min(len(x), N-k); sfx[k:k+m] += x[:m]
     vo = np.zeros(N); spans = []
-    for line in cfg.get('voice', []):
-        a, sr = sf.read(os.path.join(project.path, line['file']))
+    for line in project.voices() if hasattr(project, 'voices') else cfg.get('voice', []):
+        if line.get('muted') or line.get('gain',1)<=0: continue
+        path = os.path.join(project.path, line['file'])
+        info = sf.info(path); offset = line.get('offset',0)
+        if offset>=info.duration: continue
+        count = max(0, min(info.frames-int(offset*info.samplerate), int(line.get('duration',info.duration)*info.samplerate)))
+        if not count: continue
+        a, sr = sf.read(path,start=int(offset*info.samplerate),frames=count)
         if a.ndim > 1: a = a.mean(axis=1)
         a = signal.resample_poly(a, SR, sr) if sr != SR else a
         a = hp(a, 75)*line.get('gain', 1.0)
-        k = int(line['start']*SR); m = min(len(a), N-k); vo[k:k+m] += a[:m]
-        spans.append((line['start'], line['start']+len(a)/SR, line.get('duck', 'normal')))
+        k = int(line['start']*SR); m = min(len(a), N-k)
+        if m<=0: continue
+        vo[k:k+m] += a[:m]
+        if line.get('duck')!='none': spans.append((line['start'], min(dur,line['start']+len(a)/SR), line.get('duck', 'normal')))
     if np.max(np.abs(vo)) > 0:
         vo = vo/np.max(np.abs(vo))*0.70; vo = _compress(vo); vo = vo/np.max(np.abs(vo))*0.70
     scene_mix = vo+sfx

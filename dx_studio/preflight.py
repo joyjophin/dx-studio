@@ -13,7 +13,25 @@ def inspect_project(project):
                          'file':asset['file'], 'layers':asset['used_by'],
                          'message':f"{asset['name']}: {asset.get('error','Media unavailable')}",
                          'fix':'Relink or replace this asset in Media, or hide its layers.'})
-    sources = [(line.get('file'), 'Narration') for line in project.cfg.get('voice', [])]
+    sources = []
+    for take in project.voices():
+        if take.get('muted') or take.get('gain',1)<=0: continue
+        file = take['file']; label = take['name']
+        try:
+            import soundfile as sf
+            info = sf.info(contained(project.path,file))
+            if take['offset']>=info.duration:
+                raise ValueError('Source trim starts after the end of the recording')
+            if take['start']>=project.base_duration:
+                raise ValueError('Take starts after the end of the scene')
+            if take['offset']+take['duration']>info.duration+.02 or take['start']+take['duration']>project.base_duration+.02:
+                findings.append({'severity':'warning','kind':'narration','file':file,'layers':[],
+                                 'message':f'{label}: the take extends beyond the recording or scene; only the available section plays.',
+                                 'fix':'Adjust the source trim or duration in Narration.'})
+        except (OSError,ValueError,RuntimeError) as error:
+            findings.append({'severity':'error','kind':'narration','file':file,'layers':[],
+                             'message':f'{label}: {error}',
+                             'fix':'Replace the take, adjust its timing, or mute it in Narration.'})
     music = project.cfg.get('music')
     if isinstance(music, dict): sources.append((music.get('file'), 'Music'))
     for file, label in sources:
