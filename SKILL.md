@@ -93,13 +93,20 @@ when needed. They are examples, not a requirement for a particular topic or styl
    python -m dx_studio build ./projects/my-video
    python scripts/novoice.py ./projects/my-video ./outputs/my-video-no-voice.mp4
    python -m dx_studio pack ./projects/my-video --output ./outputs/my-video-project.zip
+   python -m dx_studio verify-bundle ./outputs/my-video-project.zip
    ```
    Deliver the MP4, portable project zip, voiceover sheet (text, timing, sources), and
    no-voice master when useful. Read [EDITOR_HANDOFF](reference/EDITOR_HANDOFF.md) when
    revising saved edits or delivering sidecar captions for the final edited timeline. Confirm
    output dimensions, duration, audio and completion before claiming success. Never
    claim a render or visual inspection that did not happen. `pack` preserves saved edits.
-   Explain: extract the bundle, install its engine, run `python -m dx_studio edit project`.
+   Explain: extract the bundle, follow `OPEN-ME.md` to install its matching engine,
+   then run `python -m dx_studio edit project`. The editor's Project menu offers
+   Getting started, Version history, Installation & diagnostics, and Download portable
+   project. A normal handoff includes current saved edits; older settings versions
+   are opt-in with `pack --include-history` for a backup. Bundles include source files,
+   so review private/unused assets and licences before sharing. Integrity hashes detect
+   accidental changes; they do not make executable scene code safe.
 
 ## Keep the project editable
 

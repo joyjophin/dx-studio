@@ -86,16 +86,15 @@ def _box(L, lt):
     return b
 
 def _window(st, t):
-    ex = st.get('exit', 'none') != 'none'
-    return st['start'] <= t <= st['end'] + (0 if not ex else 0)
+    return st['start'] <= t and (t < st['end'] if st.get('end_exclusive') else t <= st['end'])
 
 def _apply(c, L, st, t, measure=False):
     """apply motion + user transform + presets; returns (alpha, layer time)"""
     shift = st['start'] - L.start; lt = t - shift
     if L.motion: L.motion(c, lt)
     tr = transform_at(st, t - st['start'])
-    en_u = (t-st['start']-st.get('enter_delay',0))/max(1e-6, st.get('enter_dur', 0.4)) if st.get('enter', 'none') != 'none' else 1.0
-    ex_u = (st['end']-t)/max(1e-6, st.get('exit_dur', 0.3)) if st.get('exit', 'none') != 'none' else 1.0
+    en_u = (t-st['start']+st.get('enter_offset',0)-st.get('enter_delay',0))/max(1e-6, st.get('enter_dur', 0.4)) if st.get('enter', 'none') != 'none' else 1.0
+    ex_u = (st['end']-t+st.get('exit_offset',0))/max(1e-6, st.get('exit_dur', 0.3)) if st.get('exit', 'none') != 'none' else 1.0
     edx, edy, es, ea = preset_factor(st.get('enter', 'none'), clamp(en_u))
     xdx, xdy, xs, xa = preset_factor(st.get('exit', 'none'), clamp(ex_u))
     b = _box(L, lt)

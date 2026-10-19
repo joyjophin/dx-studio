@@ -11,7 +11,7 @@ def scene_defaults(project):
 
 
 def defaults(project):
-    return [('__story','Storyboard',scene_defaults(project)),('__anchors','Transcript',[]),('__protected','Revisions',[]),
+    return [('__groups','Layers',[]),('__story','Storyboard',scene_defaults(project)),('__anchors','Transcript',[]),('__protected','Revisions',[]),
             ('__presenter','Presenter',{'media_id':None,'scenes':{}}),
             ('__brand_assets','Brand',{'fonts':{},'logo':None,'credits':{}}),('__blocks','Blocks',[]),
             ('__export','Export',{'profile':'source','fps':0,'range':None,'captions':'burned','file':project.cfg.get('output','output.mp4')}),
@@ -22,6 +22,14 @@ def finite(value,low,high):return not isinstance(value,bool) and isinstance(valu
 
 
 def validate(project,values):
+    groups=values.get('__groups',[])
+    if not isinstance(groups,list) or len(groups)>200:raise ValueError('Use at most 200 selection groups')
+    group_ids=set();members=set()
+    for group in groups:
+        if not isinstance(group,dict) or not isinstance(group.get('id'),str) or group['id'] in group_ids or not isinstance(group.get('name'),str) or not 1<=len(group['name'])<=120:raise ValueError('Selection groups need unique IDs and a name')
+        ids=group.get('layers')
+        if not isinstance(ids,list) or not 1<=len(ids)<=2000 or any(not isinstance(id,str) for id in ids) or len(set(ids))!=len(ids) or members.intersection(ids):raise ValueError('A layer can belong to one selection group')
+        group_ids.add(group['id']);members.update(ids)
     scenes=values.get('__story',[])
     if not isinstance(scenes,list) or len(scenes)>100:raise ValueError('Use at most 100 storyboard scenes')
     ids=set()
@@ -66,6 +74,7 @@ def validate(project,values):
         from .motion import validate_curve
         if not isinstance(state.get('keys',[]),list) or len(state.get('keys',[]))>2000:raise ValueError('Use at most 2,000 layer keyframes')
         if not finite(state.get('enter_delay',0),0,86400):raise ValueError('Entrance delay must be nonnegative and finite')
+        if any(not finite(state.get(key,0),0,86400) for key in ('enter_offset','exit_offset')):raise ValueError('Clip animation offsets must be nonnegative and finite')
         for keyframe in state.get('keys',[]):
             if not isinstance(keyframe,dict):raise ValueError('Invalid layer keyframe')
             if keyframe.get('ease')=='custom':validate_curve(keyframe.get('bezier'))

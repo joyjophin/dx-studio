@@ -6,8 +6,28 @@ function isLayerLocked(id) {
 function layerTimeOffset(id){let result=0,parent=LM(id)?.parent;while(parent){result+=(LS(parent)?.start||0)-(LM(parent)?.default_start||0);parent=LM(parent)?.parent;}return result;}
 function bulkSelectResults(){SELECTED.clear();for(const m of LAY)if(matchesLayer(m)&&!isLayerLocked(m.id))SELECTED.add(m.id);selLayer=[...SELECTED].at(-1)||null;selectionRefresh();}
 function selectedRoots(unlocked=true) {return DXLayerTools.roots([...SELECTED].filter(id=>LM(id)&&LS(id)&&(!unlocked||!isLayerLocked(id))),LAY);}
+function selectionGroup(id){return(V.__groups||[]).find(group=>group.layers.includes(id));}
+function selectionGroupMembers(id){const group=selectionGroup(id);return group?group.layers.filter(key=>LM(key)):[id];}
+function selectionGroupList(parent){
+ const host=el('div');host.id='selectionGroups';parent.append(host);renderSelectionGroups(host);
+}
+function renderSelectionGroups(host=$('#selectionGroups')){
+ if(!host)return;const open=host.querySelector('details')?.open;host.replaceChildren();
+ const groups=(V.__groups||[]).filter(group=>group.layers.some(id=>LM(id)));if(!groups.length)return;
+ const details=el('details','tool-help'),summary=el('summary');summary.textContent='Selection groups · '+groups.length;details.append(summary);
+ details.open=!!open;for(const group of groups){const button=el('button','btn small');button.textContent=group.name;button.onclick=()=>selectLayer(group.layers.find(id=>LM(id)),true);details.append(button);}host.append(details);
+}
+function selectionGroupControls(parent){
+ const ids=selectedRoots(false),groups=(V.__groups||[]).filter(group=>group.layers.some(id=>SELECTED.has(id))),wrap=el('div','kbar');
+ if(groups.length===1&&groups[0].layers.every(id=>SELECTED.has(id)||!LM(id))){
+  const name=el('input','txt');name.setAttribute('aria-label','Selection group name');name.maxLength=120;name.value=groups[0].name;const identifier=groups[0].id;name.oninput=()=>{const current=V.__groups.find(group=>group.id===identifier);if(!current)return;current.name=name.value.trim()||'Selection group';changed();renderSelectionGroups();};parent.append(name);
+ }
+ if(ids.length>1){const button=el('button','btn small','Group selection');button.onclick=()=>{commitHistory();const members=new Set(ids);V.__groups=(V.__groups||[]).map(group=>({...group,layers:group.layers.filter(id=>!members.has(id))})).filter(group=>group.layers.length);V.__groups.push({id:'group_'+crypto.randomUUID(),name:'Selection group '+(V.__groups.length+1),layers:ids});bulkChanged('Selection grouped');};wrap.append(button);}
+ if(groups.length){const button=el('button','btn small','Ungroup');button.onclick=()=>{commitHistory();V.__groups=V.__groups.filter(group=>!groups.includes(group));bulkChanged('Selection ungrouped');};wrap.append(button);}
+ parent.append(wrap,el('p','sub','Groups select their members together for moving, alignment, visibility and timing. Ungroup to edit individual members. Locked layers stay protected.'));
+}
 function matchesLayer(m){const q=layerSearch.trim().toLowerCase();return !q||(m.label+' '+m.id+' '+m.group).toLowerCase().includes(q)||LAY.some(child=>isDescendant(child.id,m.id)&&(child.label+' '+child.id).toLowerCase().includes(q));}
-function selectionRefresh(){renderLayerTree();renderLayerRows();fillInspector();overlaySoon();}
+function selectionRefresh(){renderLayerTree();renderLayerRows();fillInspector();renderSelectionGroups();overlaySoon();}
 function bulkChanged(message){changed(true);selectionRefresh();if(message)toast(message);}
 function bulkVisibility(visible){const ids=selectedRoots();for(const id of ids)LS(id).visible=visible;bulkChanged(ids.length?`${ids.length} layer${ids.length===1?'':'s'} ${visible?'shown':'hidden'}`:'Unlock a layer before changing it');}
 function bulkLock(){const ids=[...SELECTED].filter(id=>LS(id)),unlock=ids.length&&ids.every(id=>LS(id).locked);for(const id of ids)LS(id).locked=!unlock;bulkChanged(unlock?'Selection unlocked':'Selection locked');}
@@ -18,6 +38,7 @@ function bulkToolbar(parent){
   const search=el('input','txt');search.type='search';search.placeholder='Search layers';search.setAttribute('aria-label','Search layers');search.value=layerSearch;
   search.oninput=()=>{layerSearch=search.value;renderLayerTree();renderLayerRows();};search.onkeydown=e=>{if(e.key==='Escape'){search.value='';layerSearch='';renderLayerTree();renderLayerRows();}};parent.append(search);
   const row=el('div','kbar');for(const [label,run] of [['Select results',bulkSelectResults],['Clear',()=>{SELECTED.clear();selLayer=null;selectionRefresh();}]]){const b=el('button','btn small',label);b.onclick=run;row.append(b);}parent.append(row);
+  selectionGroupList(parent);
 }
 function bulkInspector(parent){
   const ids=[...SELECTED].filter(id=>LS(id));if(!ids.length)return false;
@@ -25,6 +46,7 @@ function bulkInspector(parent){
   const row=el('div','kbar');for(const [label,run] of [['Show',()=>bulkVisibility(true)],['Hide',()=>bulkVisibility(false)],['Lock / unlock',bulkLock],['Solo graphics',bulkSolo]]){const b=el('button','btn small',label);b.onclick=run;row.append(b);}parent.append(row);
   parent.append(el('p','note','Shift-click layers or use their checkboxes to select more. Move the selection together on the canvas or timeline. Locked layers are skipped. Solo affects the preview only.'));
   const actions=el('div','kbar');for(const [label,run] of [['Duplicate added layers',bulkDuplicate],['Delete / hide',bulkDelete]]){const b=el('button','btn small',label);b.onclick=run;actions.append(b);}parent.append(actions);
+  selectionGroupControls(parent);
   motionStylesPanel(parent);bulkArrangePanel(parent);return true;
 }
 function bulkArrangePanel(parent){

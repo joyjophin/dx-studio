@@ -1,10 +1,23 @@
 """Fast, actionable file checks before a costly export; no frame rendering."""
 from pathlib import Path
 from .paths import contained
+import os
+import shutil
 
 
 def inspect_project(project):
     findings = []
+    destination=Path(project.output)
+    parent=destination.parent
+    while not parent.exists() and parent!=parent.parent:parent=parent.parent
+    try:
+        if not parent.is_dir() or not os.access(parent,os.W_OK):raise OSError('The export folder is not writable')
+        free=shutil.disk_usage(parent).free
+        if free<16*1024*1024:raise OSError('Less than 16 MB of disk space remains')
+        if free<1024*1024*1024:findings.append({'severity':'warning','kind':'storage','layers':[],'message':'Less than 1 GB of disk space remains. Exports and decoded footage need working space.','fix':'Free disk space before a longer export. The final size depends on your project.'})
+    except OSError as error:findings.append({'severity':'error','kind':'storage','layers':[],'message':str(error),'fix':'Choose a writable export folder inside the project and free disk space.'})
+    from .relink import references
+    if str(destination.resolve()) in references(project):findings.append({'severity':'error','kind':'output','layers':[],'message':'The export filename is also a source asset.','fix':'Choose a separate MP4 filename in Export.'})
     for asset in project.media.catalog(include_unused=False):
         if asset['status'] == 'ready' or not asset['used_by']: continue
         active = [identifier for identifier in asset['used_by']
@@ -53,6 +66,14 @@ def inspect_project(project):
             font=TTFont(contained(project.media.assets,file));font.getGlyphSet();font.close()
         except Exception as error:
             findings.append({'severity':'error','kind':'font','file':file,'layers':[],'message':'Brand font unavailable: '+file,'fix':'Replace it in Brand or restore the bundled fonts.'})
+    for item in project.values.get('__media',[]):
+        state=project.values['__layers'].get(item['id'],{})
+        if item.get('kind') not in ('video','gif') or item.get('loop') or not state.get('visible',True):continue
+        try:duration=project.media.inspect(item['file'])['duration']
+        except (OSError,ValueError,RuntimeError):continue
+        offset=item.get('source_offset',0)
+        if duration and offset>=duration:findings.append({'severity':'error','kind':'media','layers':[item['id']],'message':item.get('name','Clip')+': source in point is beyond the recording.','fix':'Choose an earlier source in point or replace this clip.'})
+        elif duration and offset+state.get('end',item['t0']+item['dur'])-state.get('start',item['t0'])>duration+.05:findings.append({'severity':'warning','kind':'media','layers':[item['id']],'message':item.get('name','Clip')+': the clip extends beyond its source.','fix':'Trim the clip or enable Loop. Video holds its last frame after the recording ends; its audio stops.'})
     from .subtitles import findings as caption_findings
     findings.extend(caption_findings(project))
     return {'ok':not any(f['severity']=='error' for f in findings), 'findings':findings}

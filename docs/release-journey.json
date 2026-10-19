@@ -1,0 +1,38 @@
+{
+  "ok": true,
+  "cases": [
+    {
+      "ratio": "16:9",
+      "presenter": "left-half",
+      "captions": "burned",
+      "duration": 3.0,
+      "size": [
+        1280,
+        720
+      ],
+      "audio_video_delta": 0.0,
+      "bundle_files": 93,
+      "source_audio_split_matches": true,
+      "saved_edits_reopened": true,
+      "settings_version_restored": true,
+      "full_decode": true
+    },
+    {
+      "ratio": "9:16",
+      "presenter": "bottom-right",
+      "captions": "sidecar",
+      "duration": 3.0,
+      "size": [
+        720,
+        1280
+      ],
+      "audio_video_delta": 0.0,
+      "bundle_files": 93,
+      "source_audio_split_matches": true,
+      "saved_edits_reopened": true,
+      "settings_version_restored": true,
+      "full_decode": true
+    }
+  ],
+  "scope": "Synthetic sources and scripted workflow; not real speech alignment, new-user research or a long full-HD render."
+}

@@ -1,6 +1,7 @@
 include LICENSE THIRD_PARTY_NOTICES.md README.md SKILL.md CHANGELOG.md CONTRIBUTING.md SECURITY.md
-recursive-include dx_studio *.py *.html *.js *.ttf *.txt *.json
-recursive-include docs *.md *.svg *.png *.jpg *.gif
+include launch.sh Launch*.command
+recursive-include dx_studio *.py *.html *.js *.css *.ttf *.txt *.json
+recursive-include docs *.md *.svg *.png *.jpg *.gif *.json
 recursive-include reference *.md
 recursive-include kits *.py
 recursive-include scripts *.py *.sh

@@ -1,35 +1,42 @@
 # Maintainer release
 
-Before publishing, run the contribution checks, review representative frames for
-both formats, and confirm source/skill archives contain no personal media, secrets
-or build caches. Keep imported fonts under their original licence.
+v1.0.0 is the first full product launch; the planned v0.5 work is incorporated.
+Keep the release title distinct from earlier v0.1 preview downloads.
+
+## Release gates
+
+- Finish the [launch scope](V1_LAUNCH.md), inspect both ratios in the editor and
+  document actual checks in [VALIDATION](VALIDATION.md).
+- Run critical regression checks and one full release suite. Export and fully
+  decode both formats, including presenter reservations. Verify narration/media
+  timing and portable save/reopen against the matching packaged engine.
+- Install the wheel/source in a fresh virtual environment, run doctor, and open
+  a sample. Record OS/dependency limits without implying a clean-machine or new-user
+  study that was not performed.
+- Check MIT/OFL notices, archive contents and local documentation links. Exclude
+  caches, local projects, credentials, personal media and model weights.
+- Keep `pyproject.toml`, engine version, changelog, release notes and assets aligned.
 
 ```sh
 python -m pytest
 python scripts/smoke_test.py
+python scripts/release_journey.py --output /tmp/dx-release-journey
+python scripts/benchmark_preview.py --output /tmp/dx-preview.json
 python -m build
-python scripts/package_release.py --output ../release-artifacts
+python scripts/package_release.py --output ../release-artifacts/1.0.0 --distributions dist
 ```
 
-The source zip and dx-studio-video.zip are alternative distributions of the same
-public source. The skill zip has a `dx-studio-video/SKILL.md` entry point and its
-local engine/resources. The wheel installs the engine/editor/templates; use the
-repository or skill bundle for agent instructions, production guides and helpers.
+Package from the reviewed release commit. `SHA256SUMS` covers the source ZIP,
+`dx-studio-video.zip`, wheel and sdist when `--distributions` is supplied. Verify
+it after downloading release attachments too. Publish the tag at the merged,
+passing commit and attach those five assets to the GitHub release. Do not mutate
+an existing release's source silently; ship a patch version for a code change.
 
-Create the public repository as **dx-studio**, without an initial README or licence,
-then push the prepared local repository. Enable Actions and private vulnerability
-reporting. Review the repository description, screenshots and licence display.
+The source ZIP and skill ZIP carry the same engine and public resources under
+different root names. The skill ZIP has `dx-studio-video/SKILL.md`. The wheel
+contains the engine/editor/templates; the skill/source distribution supplies
+assistant instructions and production helpers. Do not publish to PyPI without
+checking package-name ownership; GitHub is the v1.0 distribution channel.
 
-For v0.1.0, attach the wheel, source distribution, source zip, skill zip and checksum
-file to a GitHub release. Do not publish to PyPI without first checking ownership
-and availability of the package name. A distribution name in pyproject.toml does
-not mean the package is already registered on PyPI.
-
-Suggested description: “AI-authored explainer videos that stay editable. Python
-renderer, DX Editor, and a skill for Claude, ChatGPT and coding assistants.”
-Suggested topics: motion-graphics, explainer-video, video-editor, python, agent-skills,
-claude, chatgpt, open-source.
-
-Before refreshing README visuals, see [GALLERY.md](GALLERY.md). Capture real editor
-controls in a wide viewport, label the example, and regenerate rendered output
-from its source. Keep available capabilities separate from roadmap items.
+See [GALLERY](GALLERY.md) before refreshing visuals. Capture real controls in a
+wide viewport, identify synthetic examples and keep roadmap features separate.

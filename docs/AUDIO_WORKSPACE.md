@@ -1,6 +1,6 @@
 # Audio balance and preview listening
 
-Available in the development source toward v0.5.0.
+Available in DX Studio v1.0.
 
 ## Shape the exported mix
 
@@ -45,8 +45,10 @@ range** also constrains normal playback; **Full video** clears the range.
 Range boundaries stay within the video after timeline edits.
 
 Ranges and listening choices last for this page session. They are audition tools,
-not export trims or speed ramps. Individual voice-take waveforms, recording,
-transcripts and separate music/effects track mixing remain planned. Imported
+not export trims or speed ramps. Individual voice-take waveforms and microphone recording remain planned. Correctable
+transcripts and optional local English transcription are included. Source balance
+controls are described above; independently editable music/effects clip tracks
+remain planned. Imported
 voice takes now have [their own saved controls](NARRATION.md).
 
 Peak generation reads bounded chunks and caches up to eight versions per project.

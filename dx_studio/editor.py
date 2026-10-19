@@ -36,6 +36,9 @@ class Editor:
         self.build = {'running':False,'progress':0.0,'log':[],'done':False,'ok':None,'id':None,
                       'state':'idle','cancelled':False,'cancel_requested':False,'revision':None,'started_at':None}
         self._thumbs = {}
+        from .preview_cache import PreviewCache
+        self.preview_cache=PreviewCache()
+        self.share_directory=None;self.shared_bundles={}
 
     # ---------------- helpers
     def env(self):
@@ -95,10 +98,14 @@ class Editor:
 
     def frame(self, t, scale, solo=None):
         with self.preview(solo):
+            key=self.preview_cache.key(self.pr,t,scale,solo)
+            cached=self.preview_cache.get(key)
+            if cached is not None:return cached
             s = self.pr.render(t, scale)
             w, h = s.get_width(), s.get_height()
             a = np.frombuffer(bytes(s.get_data()), np.uint8).reshape(h, s.get_stride()//4, 4)[:, :w, :]
-        b = io.BytesIO(); Image.fromarray(a[..., [2, 1, 0]].copy(), 'RGB').save(b, 'JPEG', quality=84); return b.getvalue()
+            b = io.BytesIO(); Image.fromarray(a[..., [2, 1, 0]].copy(), 'RGB').save(b, 'JPEG', quality=84)
+            data=b.getvalue();self.preview_cache.put(key,data);return data
 
     def apply(self, values):
         if not isinstance(values, dict): raise ValueError('Editable values must be an object')
@@ -283,16 +290,25 @@ def make_handler(ed=None, workspace=None):
             for k, v in (extra or {}).items(): self.send_header(k, v)
             self.end_headers(); self.wfile.write(body)
         def _json(self, o, code=200): self._send(code, json.dumps(o, ensure_ascii=False).encode(), 'application/json')
-        def _file(self, path, ctype):
+        def _file(self, path, ctype, attachment=None):
             if not os.path.exists(path): return self._send(404, b'not built yet', 'text/plain')
-            size = os.path.getsize(path); rng = self.headers.get('Range')
             with open(path, 'rb') as f:
+                size=os.fstat(f.fileno()).st_size;rng=self.headers.get('Range');s=0;e=size-1
                 if rng:
-                    m = re.match(r'bytes=(\d*)-(\d*)', rng); s = int(m.group(1) or 0); e = min(int(m.group(2) or size-1), size-1)
-                    f.seek(s); body = f.read(e-s+1); self.send_response(206); self.send_header('Content-Range', f'bytes {s}-{e}/{size}')
-                else: body = f.read(); self.send_response(200)
-            self.send_header('Content-Type', ctype); self.send_header('Accept-Ranges', 'bytes'); self.send_header('Content-Length', str(len(body)))
-            self.send_header('Cache-Control', 'no-store'); self.end_headers(); self.wfile.write(body)
+                    m=re.fullmatch(r'bytes=(\d*)-(\d*)',rng)
+                    if not m or not any(m.groups()):return self._send(416,b'Invalid range','text/plain',{'Content-Range':f'bytes */{size}'})
+                    if m[1]:s=int(m[1]);e=min(int(m[2]) if m[2] else size-1,size-1)
+                    else:s=max(0,size-int(m[2]))
+                    if s>e or s>=size:return self._send(416,b'Invalid range','text/plain',{'Content-Range':f'bytes */{size}'})
+                    self.send_response(206);self.send_header('Content-Range',f'bytes {s}-{e}/{size}')
+                else:self.send_response(200)
+                self.send_header('Content-Type',ctype);self.send_header('Accept-Ranges','bytes');self.send_header('Content-Length',str(max(0,e-s+1)));self.send_header('Cache-Control','no-store')
+                if attachment:self.send_header('Content-Disposition',f'attachment; filename="{attachment}"')
+                self.end_headers();f.seek(s);remaining=e-s+1
+                while remaining>0:
+                    data=f.read(min(1024*1024,remaining))
+                    if not data:break
+                    self.wfile.write(data);remaining-=len(data)
         def _body(self):
             n = int(self.headers.get('Content-Length', 0)); return json.loads(self.rfile.read(n) or b'{}')
         def _allowed(self, mutation=False):
@@ -330,6 +346,9 @@ def make_handler(ed=None, workspace=None):
             body = self._body()
             if u.path == '/api/library/open': editor = workspace.open(body.get('path',''))
             elif u.path == '/api/library/create': editor = workspace.create(body)
+            elif u.path == '/api/library/sample':
+                editor=workspace.create({'name':'Your first explainer '+uuid.uuid4().hex[:6],'format':body.get('format','16:9'),'folder':body.get('folder')})
+                self._json({'ok':True,'url':'/project/'+editor.state()['project']['id']+'/?tour=1'});return True
             elif u.path == '/api/library/forget':
                 workspace.library.forget(body.get('id')); self._json({'ok':True}); return True
             else: return False
@@ -356,6 +375,10 @@ def make_handler(ed=None, workspace=None):
                 if u.path == '/editor-media.js': return self._send(200, open(os.path.join(HERE, 'editor-media.js'), 'rb').read(), 'text/javascript; charset=utf-8')
                 if u.path == '/editor-bulk.js': return self._send(200, open(os.path.join(HERE, 'editor-bulk.js'), 'rb').read(), 'text/javascript; charset=utf-8')
                 if u.path == '/editor-tools.js': return self._send(200, open(os.path.join(HERE, 'editor-tools.js'), 'rb').read(), 'text/javascript; charset=utf-8')
+                if u.path == '/editor-guide.js': return self._send(200, open(os.path.join(HERE, 'editor-guide.js'), 'rb').read(), 'text/javascript; charset=utf-8')
+                if u.path == '/api/system':
+                    from .doctor import report
+                    return self._json(report())
                 if u.path == '/editor-session.js': return self._send(200, open(os.path.join(HERE, 'editor-session.js'), 'rb').read(), 'text/javascript; charset=utf-8')
                 from .creator_api import get as creator_get
                 if creator_get(self,editor,workspace,u,q):return
@@ -376,6 +399,11 @@ def make_handler(ed=None, workspace=None):
                     except (OSError,RuntimeError): return self._json({'ready':False,'message':'Preview audio is being updated. Try again shortly.'})
                 if u.path == '/api/media':
                     with editor.lock: return self._json({'assets':editor.pr.media.catalog()})
+                if u.path=='/api/bundle/download':
+                    identifier=q.get('id',[''])[0]
+                    path=editor.shared_bundles.get(identifier)
+                    if not path:raise ValueError('This download expired. Prepare a new portable project.')
+                    return self._file(path,'application/zip','dx-project.zip')
                 if u.path == '/api/preflight':
                     from .preflight import inspect_project
                     with editor.lock: return self._json(inspect_project(editor.pr))
@@ -400,7 +428,7 @@ def make_handler(ed=None, workspace=None):
             except (ValueError, FileNotFoundError) as e: self._json({'ok':False,'error':str(e)},400)
             except Exception as e:
                 import traceback; traceback.print_exc()
-                self._send(500, f'{type(e).__name__}: {e}'.encode(), 'text/plain')
+                self._json({'ok':False,'error':f'{type(e).__name__}: {e}'},500)
         def do_POST(self):
             if not self._allowed(mutation=True): return
             try: size = int(self.headers.get('Content-Length', '0'))
@@ -412,6 +440,28 @@ def make_handler(ed=None, workspace=None):
                 if self._library_post(u): return
                 editor = self._project_editor(); u = urlparse(self.path)
                 if editor is None: return self._json({'ok':False,'error':'Open a project first'},404)
+                if u.path in ('/api/bundle','/api/bundle/prepare'):
+                    import tempfile
+                    from .bundle import pack
+                    body=self._body()
+                    if u.path.endswith('/prepare'):
+                        with editor.lock:
+                            if editor.share_directory is None:editor.share_directory=tempfile.TemporaryDirectory(prefix='dx-shares-')
+                            identifier=uuid.uuid4().hex
+                            path=pack(editor.pr.path,os.path.join(editor.share_directory.name,identifier+'.zip'),include_history=body.get('include_history') is True)
+                            editor.shared_bundles[identifier]=path
+                            for key in list(editor.shared_bundles)[:-2]:
+                                old=editor.shared_bundles.pop(key)
+                                try:old.unlink()
+                                except OSError:pass
+                        return self._json({'id':identifier,'url':'/api/bundle/download?id='+identifier,'bytes':path.stat().st_size})
+                    with tempfile.TemporaryDirectory(prefix='dx-share-') as directory:
+                        with editor.lock:path=pack(editor.pr.path,os.path.join(directory,'dx-project.zip'),include_history=body.get('include_history') is True)
+                        size=path.stat().st_size
+                        self.send_response(200);self.send_header('Content-Type','application/zip');self.send_header('Content-Length',str(size));self.send_header('Content-Disposition','attachment; filename="dx-project.zip"');self.send_header('Cache-Control','no-store');self.end_headers()
+                        with path.open('rb') as stream:
+                            while data:=stream.read(1024*1024):self.wfile.write(data)
+                    return
                 from .creator_api import post as creator_post
                 if creator_post(self,editor,workspace,u,size):return
                 if u.path == '/api/preview':
@@ -451,6 +501,14 @@ def make_handler(ed=None, workspace=None):
                     body = self._body()
                     with editor.lock: item = editor.pr.media.item_for(body.get('file',''),float(body.get('t',0)))
                     return self._json({'ok':True,'item':item})
+                if u.path == '/api/media/clip':
+                    from .clips import prepare
+                    body=self._body()
+                    with editor.lock:
+                        values=body.get('values',editor.pr.values)
+                        editor.apply(values)
+                        result=prepare(editor.pr,values,body.get('id'),body.get('operation'),body.get('at'),body.get('start'),body.get('end'))
+                    return self._json(result)
                 if u.path == '/api/media/relink':
                     from pathlib import Path
                     body = self._body(); source = Path(body.get('path','')).expanduser().resolve()
@@ -459,6 +517,13 @@ def make_handler(ed=None, workspace=None):
                     if source.stat().st_size > 256*1024*1024: raise ValueError('Use a file smaller than 256 MB')
                     with editor.lock: item = editor.pr.media.import_file(source.name,source.read_bytes(),float(body.get('t',0)))
                     return self._json({'ok':True,'item':item})
+                if u.path in ('/api/media/relink-folder','/api/media/relink-folder-apply'):
+                    from .relink import plan,restore
+                    body=self._body()
+                    with editor.lock:
+                        editor.apply(body.get('values',editor.pr.values))
+                        result=restore(editor.pr,body.get('folder',''),body.get('selected',[])) if u.path.endswith('-apply') else plan(editor.pr,body.get('folder',''))
+                    return self._json(result)
                 if u.path == '/api/upload':
                     q = parse_qs(u.query); n = int(self.headers.get('Content-Length', 0)); data = self.rfile.read(n)
                     name = unquote(q.get('name', ['file'])[0]); t = float(q.get('t', ['0'])[0])
@@ -498,7 +563,7 @@ def make_handler(ed=None, workspace=None):
             except Exception as e:
                 from .history import SaveConflict
                 if isinstance(e, SaveConflict): return self._json({'ok': False, 'error': str(e), 'conflict': True}, 409)
-                if isinstance(e, (ValueError, FileNotFoundError)): return self._json({'ok': False, 'error': str(e)}, 400)
+                if isinstance(e, (ValueError, OSError)): return self._json({'ok': False, 'error': str(e)}, 400)
                 import traceback; traceback.print_exc()
                 self._json({'ok': False, 'error': f'{type(e).__name__}: {e}'}, 500)
     return H
@@ -526,4 +591,5 @@ def serve(path=None, port=None, open_browser=None):
         deadline=time.monotonic()+4
         for editor in editors:
             if editor.build_thread:editor.build_thread.join(max(0,deadline-time.monotonic()))
+            if editor.share_directory:editor.share_directory.cleanup()
         srv.server_close()

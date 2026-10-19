@@ -40,9 +40,10 @@ Changes use normal undo, autosave, recovery and named settings versions. Removin
 a take keeps its audio file. Portable project bundles include those files and
 saved edits, allowing old versions and source replacements to remain usable.
 
-The existing **Audio** panel remains a preview listening workspace; its monitor
-volume and audition range do not change exports. In-browser microphone recording,
-transcription and word alignment are future work.
+Audio → Mix includes saved export balances and separate preview listening controls.
+Monitor volume and audition range do not change exports. Correctable word imports
+and optional local English transcription are included; microphone recording and
+forced alignment to an arbitrary supplied script remain future work.
 
 Speech-authoring scripts and `VoiceTimes` still use `project.json.voice`. An
 assistant updating the script should inspect saved `__voice` overrides too.

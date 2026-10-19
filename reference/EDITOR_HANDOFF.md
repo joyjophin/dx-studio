@@ -16,7 +16,7 @@ parameter keys and media IDs when the element's role remains the same. A broad
 source rewrite needs a recoverable source copy or the project's existing version
 control: named editor versions contain settings, not Python or source assets.
 
-Current development builds add saved `__layers[id].label` and `locked` fields.
+DX Studio v1.0 add saved `__layers[id].label` and `locked` fields.
 Locks guard editor gestures; Python edits and global parameters can still affect
 locked layers. Treat locks and saved overrides as evidence of manual intent when
 revising. Preserve them where compatible with the requested change. Follow an
@@ -34,11 +34,11 @@ Do not add the same offset to every child. Stored captions and cue times use
 scene time; the watched output can differ after ripple cuts and holds. Use the
 engine's time mapping when converting between them.
 
-Current development builds expose effective narration through `project.voices()`
+DX Studio v1.0 expose effective narration through `project.voices()`
 and saved `__voice` takes. Preserve take IDs, trims, timing, levels and mute when
 replacing recordings. `VoiceTimes` and speech-authoring scripts still read the
 original project voice list; updating that list does not replace saved narration
-overrides by itself. Current development builds can propose word-linked timing after a new
+overrides by itself. DX Studio v1.0 can propose word-linked timing after a new
 timed transcript, with explicit conflict/protection review; see
 [ASSISTANT_REVISIONS](ASSISTANT_REVISIONS.md). Inspect both source and saved values before
 revising spoken content. Saved `__mix` balance, mute and mastering controls also
@@ -95,7 +95,7 @@ creating a project handoff does not authorise publishing the video.
 
 ## Current creator workspace state
 
-Preserve `__story`, `__anchors`, `__protected`, `__presenter`, `__blocks`,
+Preserve `__groups`, `__story`, `__anchors`, `__protected`, `__presenter`, `__blocks`,
 `__brand_assets`, `__export` and `__quality_ignores` when revising a project.
 Read [PROJECT_FORMAT](PROJECT_FORMAT.md) for their clocks and contracts. A reorder
 is a source-to-output mapping, not permission to rewrite original timing fields.
@@ -106,3 +106,8 @@ A saved export range/profile changes the CLI build too. Check its output clock,
 caption mode and filename before producing delivery files. A clean mode removes
 engine-managed captions only. Review the mastered MP4 and current job's sidecar;
 sampled preflight results are useful findings, not a full-frame quality certificate.
+
+Portable ZIPs include all non-cache project source files and may include unused
+assets. Review what you share. `verify-bundle` checks the manifest without executing
+Python. Preserve the included engine for reproduction; test upgrades on a copy.
+Older settings versions are excluded by default and can be included for a backup.

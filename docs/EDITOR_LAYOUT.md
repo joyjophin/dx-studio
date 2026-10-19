@@ -1,6 +1,6 @@
 # A calmer editing workspace
 
-The current development editor uses a compact layout with a project-focused
+DX Editor v1.0 uses a compact layout with a project-focused
 dashboard, a tool browser, a large preview and a timeline. It has no chat or prompt
 panel. Existing project files, saved edits and export behavior continue to work.
 

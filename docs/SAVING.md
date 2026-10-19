@@ -1,7 +1,6 @@
 # Autosave, recovery and versions
 
-This page describes development work for the next release. The published v0.1.0
-editor still uses manual Save. Use the feature branch to try these controls.
+DX Studio v1.0 saves edits automatically and keeps recoverable settings versions.
 
 ## Everyday saving
 
@@ -20,7 +19,7 @@ settles so every keystroke does not immediately launch a mix.
 ![DX Editor versions and restore backup](images/editor-versions.png)
 
 
-Choose **Versions**, give the current cut a name and click **Save version**.
+Choose **Project menu → Version history**, give the current cut a name and click **Save version**.
 Restore a version from the list to return to its editable settings. Restoring or
 resetting first keeps a backup of the current saved settings. Undo/redo remain
 available for in-session changes.
@@ -35,8 +34,9 @@ restoring matching settings against the current scene.
 Before the first changed save, the initial settings are backed up. Later saves
 keep at most one automatic backup per minute and retain the latest 30 automatic
 backups. The initial backup, named versions and restore/reset backups are not
-removed automatically. There is no version-deletion UI yet. Local history is not
-included in portable project bundles; the current saved settings are included.
+removed automatically. There is no version-deletion UI yet. Portable project downloads include current saved settings. To carry older versions
+for a backup, enable **Include older settings versions** or use CLI `pack --include-history`.
+Leave this off for an ordinary handoff; earlier text and working notes can be private.
 
 ## Recover edits that did not reach disk
 

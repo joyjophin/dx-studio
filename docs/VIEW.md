@@ -1,6 +1,6 @@
 # Workspace appearance, layouts and preview quality
 
-Available in the development source toward v0.5.0.
+Available in DX Studio v1.0.
 
 Choose **Appearance → System, Light or Dark** in the dashboard header or the
 editor's **View options** dialog. **System** is the default and follows device

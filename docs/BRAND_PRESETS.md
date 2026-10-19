@@ -4,7 +4,7 @@ Open Design → Brand in the current tool rail.
 
 For project-owned fonts/logos, portable brand ZIPs and selection templates, see [the creator workflow](CREATOR_WORKFLOW.md).
 
-Available in the development source toward v0.5.0.
+Available in DX Studio v1.0.
 
 Open **Brand** to begin with Editorial paper, Electric violet or Midnight.
 **Review preset** lists compatible fields, their current and proposed values,
@@ -36,10 +36,11 @@ writer lock for concurrent editor processes. Applied values are saved in the
 project settings, so portable project bundles retain the resulting style even
 without the preset library.
 
-This increment covers palettes and exposed size settings. It does not import
-fonts, package logos or override custom scene styling. Use Media for logos and
-review text contrast, caption readability and layout after a style change.
+Palette presets cover colours and exposed size settings. The same Brand workspace
+also imports project-owned fonts and logos and exchanges portable brand ZIPs; see
+the creator workflow linked above. Review text contrast, caption readability and
+layout after a style change.
 Layer locks guard direct editing; global colour parameters can still affect a
-locked layer. Preset renaming/removal and richer brand assets remain planned.
+locked layer. Preset renaming/removal and broader inherited brand rules remain planned.
 
 ![Brand field review](images/brand-presets.png)

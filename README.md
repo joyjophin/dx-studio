@@ -7,7 +7,7 @@
 
 <p align="center">
   <img src="docs/images/editor-modern.jpg" alt="DX Editor with a compact left tool rail, thumbnail media library, large landscape preview and a focused scene, narration and caption timeline" width="100%">
-  <br><sub><b>More room for the story.</b> Real development editor capture. Tools stay on the left; detailed controls appear when you select a layer.</sub>
+  <br><sub><b>More room for the story.</b> Real editor capture. Tools stay on the left; detailed controls appear when you select a layer.</sub>
 </p>
 
 An AI-generated video often arrives as a finished file. DX Studio gives you the
@@ -23,11 +23,15 @@ adjust the timing in DX Editor, then rebuild from the same source.
 </tr>
 </table>
 
-The current source is **0.5.0.dev0**, a development build toward v0.5. It includes
+**DX Studio v1.0** is the first full product launch. It includes
 [project home and bulk editing](docs/WORKSPACE.md), [media](docs/MEDIA.md),
 [narration](docs/NARRATION.md), [audio balance](docs/AUDIO_WORKSPACE.md),
 [captions](docs/CAPTIONS.md), [brand presets](docs/BRAND_PRESETS.md),
 [workspace controls](docs/VIEW.md) and [cancellable exports](docs/EXPORTS.md).
+Visual clips support source-aware trim/split, saved selection groups and reviewed
+folder recovery. Project downloads include an integrity manifest and matching
+engine, with older settings versions available as an opt-in backup. Preview
+caches are bounded; footage decodes in four-second sections.
 Layer finishing also includes [reusable motion styles, stagger and editable easing curves](docs/MOTION.md).
 
 The new [creator workflow](docs/CREATOR_WORKFLOW.md) adds correctable word timings,
@@ -35,13 +39,13 @@ aligned captions, reviewed narration-linked retiming, storyboard playback order,
 protected assistant revisions with frame comparisons, actual presenter clips and
 scene layouts, editable explanation blocks, portable fonts/logos/templates and
 range exports with profiles, SRT and sampled quality review. Speech recognition is
-optional; timed-word import needs no model or account. These are development
-features; [published v0.1.0 downloads](https://github.com/joyjophin/dx-studio/releases/tag/v0.1.0)
-remain the initial release.
+optional; timed-word import needs no model or account.
+[Download v1.0](https://github.com/joyjophin/dx-studio/releases/tag/v1.0.0) ·
+[First project](docs/QUICKSTART.md) · [What changed](CHANGELOG.md).
 
 ## A look around
 
-The development source now has a [quieter dashboard and editor](docs/EDITOR_LAYOUT.md):
+DX Studio has a [quieter dashboard and editor](docs/EDITOR_LAYOUT.md):
 project cards, a compact tool rail, scene-focused text controls and a contextual
 inspector. Timeline layer tracks expand when needed. Light and dark themes follow
 your system, with an **Appearance** preference to override it. There is no chat or
@@ -76,7 +80,7 @@ The gallery below also includes earlier editor captures showing individual capab
 
 <p align="center">
   <img src="docs/images/creator-workflow.png" alt="DX Editor with an editable CSV bar chart, a presenter recording on the right and scene-specific layout controls" width="100%">
-  <br><sub><b>Explain it in parts. Keep yourself in frame.</b> Development editor capture with original illustrative data and a code-drawn presenter demo.</sub>
+  <br><sub><b>Explain it in parts. Keep yourself in frame.</b> Editor capture with original illustrative data and a code-drawn presenter demo.</sub>
 </p>
 
 These are captures of the working editor. [Recreate the examples and gallery →](docs/GALLERY.md)
@@ -141,8 +145,16 @@ craft can help attention and understanding; it cannot guarantee views.
 
 ## Get started
 
-Install [Python, Cairo and FFmpeg](docs/INSTALL.md), then run from the extracted or
-cloned repository:
+Download the **source ZIP** from [the v1.0 release](https://github.com/joyjophin/dx-studio/releases/tag/v1.0.0), extract it, and follow the [platform setup guide](docs/INSTALL.md) for Python, Cairo and FFmpeg. Then:
+
+- **macOS:** open **Launch DX Studio.command**.
+- **Linux / WSL2:** run `bash launch.sh` inside the extracted folder.
+
+The launcher creates a local environment, installs Python dependencies on first
+setup, checks the installation and opens your projects dashboard. Try the editable
+sample or create your own project. Nothing needs a paid API or voice model.
+
+For an existing Python environment, the manual path is:
 
 ```sh
 python3 -m venv .venv
@@ -153,7 +165,7 @@ python -m dx_studio init projects/hello --format 16:9
 python -m dx_studio edit projects/hello
 ```
 
-DX Editor opens locally. Change something, press **Save**, then **Build video**.
+Edits autosave. Choose **Export → Build this export** to create the MP4.
 For portrait, choose `--format 9:16`. To reserve presenter space:
 
 ```sh
@@ -202,9 +214,10 @@ between scene defaults and saved edits when an assistant revises a project.
 
 ## Status and contributing
 
-**0.1.0 is the first public release.** The local renderer/editor workflow has
-[documented validation](docs/VALIDATION.md), including 72 passing regression tests
-and full-HD export checks. GitHub Actions runs after the repository is uploaded.
+**1.0.0 is the first full product launch.** Earlier 0.x releases remain available.
+[Release validation and measured limits](docs/VALIDATION.md) describe what was
+checked. Ubuntu CI covers Python 3.10 and 3.13; macOS validation uses an arm64 Mac.
+WSL2 follows Ubuntu setup but has not received a separate launch validation pass.
 
 The renderer uses the CPU. Hosted collaboration, GPU rendering, automatic
 reframing of arbitrary scenes and broad multilingual coverage are future work.

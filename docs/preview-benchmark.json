@@ -1,0 +1,76 @@
+{
+  "fixture": {
+    "seconds": 600,
+    "declared_scene_layers": 632,
+    "caption_cues": 200,
+    "voice_takes": 60,
+    "looping_video": true,
+    "samples": 24,
+    "preview_scale": 0.25
+  },
+  "environment": {
+    "version": "1.0.0",
+    "python": "3.13.3",
+    "system": "Darwin",
+    "architecture": "arm64",
+    "ok": true,
+    "checks": [
+      {
+        "name": "cairocffi",
+        "ok": true,
+        "version": "1.7.1"
+      },
+      {
+        "name": "uharfbuzz",
+        "ok": true,
+        "version": "0.56.3"
+      },
+      {
+        "name": "fonttools",
+        "ok": true,
+        "version": "4.67.0"
+      },
+      {
+        "name": "numpy",
+        "ok": true,
+        "version": "2.5.4"
+      },
+      {
+        "name": "scipy",
+        "ok": true,
+        "version": "1.18.1"
+      },
+      {
+        "name": "Pillow",
+        "ok": true,
+        "version": "13.0.0"
+      },
+      {
+        "name": "soundfile",
+        "ok": true,
+        "version": "0.14.0"
+      },
+      {
+        "name": "ffmpeg",
+        "ok": true,
+        "version": "ffmpeg version 7.1"
+      },
+      {
+        "name": "ffprobe",
+        "ok": true,
+        "version": "ffprobe version n4.4.1"
+      },
+      {
+        "name": "H.264 encoder",
+        "ok": true,
+        "version": "libx264 available"
+      }
+    ]
+  },
+  "cold_median_ms": 10.03,
+  "cold_max_ms": 67.73,
+  "warm_median_ms": 5.31,
+  "cache_hits": 24,
+  "cache_bytes": 282590,
+  "scope": "Sampled scrub frames and repeated-frame cache reuse. Synthetic sources; no full-length export or real-time playback guarantee."
+}

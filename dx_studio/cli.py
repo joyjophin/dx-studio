@@ -9,13 +9,13 @@
 """
 import os, subprocess, sys, time, tempfile
 from pathlib import Path
-from PIL import Image
 
 def _project(path):
     from .project import Project
     return Project(path)
 
 def cmd_still(path, times):
+    from PIL import Image
     pr = _project(path); os.makedirs(os.path.join(pr.path, 'stills'), exist_ok=True)
     files = []
     for t in times:
@@ -95,6 +95,9 @@ def cmd_build(path, output=None, settings=None):
         captions=None
         if sidecar_text is not None:
             captions=os.path.join(work,'captions.srt');Path(captions).write_text(sidecar_text,encoding='utf-8')
+        from .export_validation import verify
+        verify(final,opts)
+        print('MP4 verified: dimensions, frame rate, duration and audio/video streams',flush=True)
         from .publishing import publish
         publish(final,destination,captions)
     print(f'Done -> {destination}  ({time.time()-t0:.0f} s)')
@@ -121,7 +124,8 @@ def main(argv=None):
     from . import __version__
     ap.add_argument('--version',action='version',version='DX Studio '+__version__)
     sub=ap.add_subparsers(dest='command',required=True)
-    sub.add_parser('doctor',help='Check local dependencies')
+    diagnostic=sub.add_parser('doctor',help='Check local dependencies');diagnostic.add_argument('--json',action='store_true',help='Print a shareable report without project contents or file paths')
+    verify=sub.add_parser('verify-bundle',help='Check portable ZIP integrity without executing scenes');verify.add_argument('archive')
     sub.add_parser('sounds',help='List built-in sound effects')
     new=sub.add_parser('init',help='Create an editable project')
     new.add_argument('dest');new.add_argument('--format',choices=['9:16','16:9'],default='9:16')
@@ -134,18 +138,21 @@ def main(argv=None):
         if command=='edit': p.add_argument('--port',type=int,default=8765);p.add_argument('--no-browser',action='store_true')
         if command=='build':p.add_argument('--output',help='Output path inside the project');p.add_argument('--settings',help='Settings snapshot inside the project')
         if command=='captions':p.add_argument('--format',choices=['srt','vtt'],default='srt');p.add_argument('--output')
-        if command=='pack': p.add_argument('--output',required=True)
+        if command=='pack': p.add_argument('--output',required=True);p.add_argument('--include-history',action='store_true',help='Include older settings versions in a backup; review before sharing')
     args=ap.parse_args(argv)
     try:
         if args.command=='doctor':
             from .doctor import doctor
-            return doctor()
+            return doctor(args.json)
+        if args.command=='verify-bundle':
+            from .bundle import verify
+            result=verify(args.archive);print(f"Bundle verified: {result['files']} files · matching engine {result['engine_version']}");return 0
         if args.command=='init':
             from .scaffold import create
             print(create(args.dest,args.template,args.format,args.name,args.brand,args.presenter));return 0
         if args.command=='pack':
             from .bundle import pack
-            print(pack(args.project,args.output));return 0
+            print(pack(args.project,args.output,args.include_history));return 0
         if args.command=='captions':
             from .subtitles import export
             from pathlib import Path
@@ -161,5 +168,5 @@ def main(argv=None):
         if args.command=='build':cmd_build(args.project,args.output,args.settings);return 0
         {'check':cmd_check,'audio':cmd_audio}[args.command](args.project)
         return 0
-    except (ValueError,FileNotFoundError,RuntimeError) as exc:
+    except (ValueError,OSError,RuntimeError,subprocess.SubprocessError) as exc:
         ap.exit(1,f'Error: {exc}\n')

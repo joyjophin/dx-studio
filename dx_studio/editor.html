@@ -158,7 +158,7 @@
   .composition-summary{font-size:12px;color:var(--muted);line-height:1.6;padding:10px;background:var(--soft);border-radius:8px;margin-top:12px}
   header{flex-wrap:wrap;padding:10px 18px;gap:8px}
   .app{grid-template-rows:auto auto minmax(0,1fr) auto}
-  .app>header{grid-row:1}.app>.recovery-bar{grid-row:2}.app>main{grid-row:3}.app>.tl{grid-row:4}
+  .app>header{grid-row:1}.app>.notices{grid-row:2;min-width:0}.app>main{grid-row:3}.app>.tl{grid-row:4}
   .recovery-bar{display:flex;gap:12px;align-items:center;padding:9px 18px;background:#FFF4E8;border-bottom:1px solid #F4D6BC;font-size:12px}
   .recovery-bar[hidden]{display:none}.recovery-bar span{flex:1}
   .history-dialog{width:min(620px,calc(100vw - 40px));max-height:85vh;border:1px solid var(--line);border-radius:16px;padding:24px;color:var(--ink);box-shadow:0 20px 80px #18212630}
@@ -189,10 +189,12 @@
     <div class="spacer"></div>
     <button class="btn icon-button" id="bUndo" title="Undo (⌘Z)" disabled>↶</button><button class="btn icon-button" id="bRedo" title="Redo (⇧⌘Z)" disabled>↷</button>
     <div class="header-divider"></div><button class="btn icon-button" id="bView" title="View options">View</button>
-    <details class="shell-menu" id="projectMenu"><summary class="btn icon-button" aria-label="Project menu" title="Project menu">···</summary><div class="shell-popover"><div class="menu-caption">Project</div><button id="bSave">Save now</button><button id="bVersions">Version history</button><button id="bExportStatus" hidden>Last export</button><hr><button id="bReset">Reset to original</button></div></details>
+    <details class="shell-menu" id="projectMenu"><summary class="btn icon-button" aria-label="Project menu" title="Project menu">···</summary><div class="shell-popover"><div class="menu-caption">Project</div><button id="bSave">Save now</button><button id="bVersions">Version history</button><button id="bBundle">Download portable project</button><button id="bExportStatus" hidden>Last export</button><hr><button id="bGuide">Getting started</button><button id="bDiagnostics">Installation & diagnostics</button><hr><button id="bReset">Reset to original</button></div></details>
     <button class="btn primary" id="bExport">Export</button><button class="shell-legacy" id="bBuild">Build video</button>
   </header>
-  <div class="recovery-bar" id="recoveryBar" hidden><span id="recoverySummary"></span><button class="btn small" id="bRecovery">Review drafts</button><button class="btn small" id="bReload" hidden>Reload saved project</button></div>
+  <div class="notices"><div class="recovery-bar" id="recoveryBar" hidden><span id="recoverySummary"></span><button class="btn small" id="bRecovery">Review drafts</button><button class="btn small" id="bReload" hidden>Reload saved project</button></div>
+  <div class="recovery-bar" id="welcomeBar" hidden><span>New to DX Studio? Start with a quick guide.</span><button class="btn small" id="guideStart">Show me around</button><button class="btn small" id="guideDismiss">Dismiss</button></div>
+  </div>
   <main>
     <nav class="tool-rail" id="toolRail" aria-label="Editing tools"><details class="shell-menu tool-more" id="moreTools"><summary aria-label="More tools" title="More tools">More</summary><div class="shell-popover" id="moreToolsMenu"></div></details></nav>
     <aside class="tool-panel" aria-label="Tool browser"><div class="tool-head"><span id="toolTitle">Media</span><button id="bCollapseTools" title="Collapse tool panel" aria-label="Collapse tool panel">‹</button></div><div class="tool-subnav" id="toolSubnav" hidden></div><div class="tool-quick" id="toolQuick"></div><label class="workspace-nav">Workspace<select id="panelJump" aria-label="Editor workspace"></select></label><div class="tabs" id="tabs"></div><div class="panes" id="panes"></div></aside>
@@ -255,12 +257,17 @@
 <input type="file" id="libraryFile" accept="image/png,image/jpeg,image/webp,image/gif,video/mp4,video/quicktime,video/webm,.m4v" multiple hidden>
 <dialog id="relinkDialog"><h2>Relink media</h2><p class="sub" id="relinkMessage"></p><label for="relinkPath">Full path to the replacement file</label><input class="txt" id="relinkPath" placeholder="/path/to/your/footage.mp4"><div class="kbar"><button class="btn" id="relinkCancel">Cancel</button><button class="btn primary" id="relinkApply">Copy and relink</button></div></dialog>
 <dialog id="preflightDialog"><h2 id="preflightTitle">Export file check</h2><div id="preflightList"></div><button class="btn" id="preflightClose">Close</button></dialog>
+<dialog class="history-dialog" id="folderRelinkDialog" aria-labelledby="folderRelinkTitle"><h2 id="folderRelinkTitle">Find missing files</h2><p class="note" id="folderRelinkMessage" role="status"></p><label for="folderRelinkPath">Folder containing your originals</label><input class="txt" id="folderRelinkPath" placeholder="/path/to/media"><button class="btn" id="folderRelinkScan">Scan folder</button><div id="folderRelinkList" style="max-height:40vh;overflow:auto;margin:12px 0"></div><div class="kbar"><button class="btn" id="folderRelinkClose">Cancel</button><button class="btn primary" id="folderRelinkApply" disabled>Copy selected files</button></div></dialog>
 <input type="file" id="captionFile" accept=".srt,.vtt,text/vtt,application/x-subrip" hidden>
 <dialog id="captionImportDialog"><h2>Review subtitle import</h2><label for="captionImportText">SRT or WebVTT text</label><textarea class="txt" id="captionImportText" style="width:100%;min-height:130px" placeholder="1&#10;00:00:01,000 --> 00:00:03,000&#10;Your caption"></textarea><button class="btn small" id="captionImportPreviewButton">Preview cues</button><p id="captionImportSummary" class="note"></p><label for="captionImportTiming">File timing</label><select id="captionImportTiming"><option value="output">Current edited video</option><option value="scene">Original scene timeline</option></select><label for="captionImportMode">Apply captions</label><select id="captionImportMode"><option value="append">Add to existing captions</option><option value="replace">Replace current captions</option></select><pre id="captionImportPreview" style="white-space:pre-wrap;max-height:240px;overflow:auto"></pre><div class="kbar"><button class="btn" id="captionImportCancel">Cancel</button><button class="btn primary" id="captionImportApply" disabled>Apply import</button></div></dialog>
 <dialog id="brandImportDialog"><h2>Import brand preset</h2><p class="note" id="brandImportMessage"></p><label for="brandImportText">Preset JSON</label><textarea class="txt" id="brandImportText" style="width:100%;min-height:180px"></textarea><div class="kbar"><button class="btn" id="brandImportCancel">Cancel</button><button class="btn primary" id="brandImportApply">Save and review</button></div></dialog>
 <dialog id="viewDialog"><h2>Make room for your work</h2><label class="appearance-control">Appearance <select data-theme-picker aria-label="Appearance"><option value="system">System</option><option value="light">Light</option><option value="dark">Dark</option></select></label><div class="kbar"><button class="btn" data-view-preset="balanced">Balanced layout</button><button class="btn" data-view-preset="canvas">Focus canvas</button><button class="btn" data-view-preset="timeline">Focus timeline</button></div><p class="sub">Drag the panel dividers, or use these controls. View preferences stay in this browser.</p><label class="kbar"><input id="viewInspector" type="checkbox" checked>Show tools panel</label><label class="kbar"><input id="viewTimeline" type="checkbox" checked>Show timeline</label><label class="kbar" for="viewWidth">Tools panel width<input id="viewWidth" type="range" min="240" max="440" step="8" value="288"></label><label class="kbar" for="viewRows">Expanded layers height<input id="viewRows" type="range" min="48" max="400" step="8" value="128"></label><p id="viewSizes" class="sub"></p><label for="viewQuality">Preview quality</label><select id="viewQuality"><option value="auto">Automatic</option><option value="fast">Fast</option><option value="balanced">Balanced</option><option value="sharp">Sharp</option></select><p class="note">Lower preview quality helps playback on slower computers. Final video exports keep their full project resolution.</p><button class="btn" id="viewClose">Done</button></dialog>
+<dialog class="history-dialog" id="guideDialog" aria-labelledby="guideTitle"><p class="sub" id="guideStep"></p><h2 id="guideTitle">Getting started</h2><p class="note" id="guideText"></p><button class="btn" id="guideOpen">Open this tool</button><div class="kbar" style="margin-top:20px"><button class="btn" id="guideClose">Close guide</button><button class="btn" id="guidePrev">Back</button><button class="btn primary" id="guideNext">Next</button></div></dialog>
+<dialog class="history-dialog" id="diagnosticsDialog" aria-labelledby="diagnosticsTitle"><h2 id="diagnosticsTitle">Installation & diagnostics</h2><p class="note">This report contains DX Studio, Python, system and dependency versions. It excludes project names, paths, scripts and media. Download it to review before sharing with a bug report.</p><pre id="diagnosticsText" style="max-height:45vh;overflow:auto;white-space:pre-wrap"></pre><div class="kbar"><button class="btn" id="diagnosticsClose">Close</button><button class="btn primary" id="diagnosticsDownload" disabled>Download report</button></div></dialog>
+<dialog class="history-dialog" id="bundleDialog" aria-labelledby="bundleTitle"><h2 id="bundleTitle">Download portable project</h2><p class="note" id="bundleMessage" role="status"></p><label class="kbar"><input type="checkbox" id="bundleHistory">Include older settings versions for a backup</label><p class="sub">Older versions may contain earlier text and working notes. Leave this off for a normal handoff.</p><div class="kbar"><button class="btn" id="bundleClose">Cancel</button><button class="btn primary" id="bundleDownload">Download ZIP</button></div></dialog>
 <script src="/editor-session.js"></script>
 <script src="/editor-tools.js"></script>
+<script src="/editor-guide.js"></script>
 <script src="/editor-bulk.js"></script>
 <script src="/editor-media.js"></script>
 <script src="/editor-audio.js"></script>
@@ -552,7 +559,7 @@ function buildPanels() {
     for (const e of SCH.filter(e => e.panel === name)) {
       if (e.type === 'clips') { pane.appendChild(clipsPanel(e)); continue; }
       if (e.type === 'layers') { pane.appendChild(layersPanel()); continue; }
-      if (e.type === 'media') continue;
+      if (e.type === 'media' || e.key==='__groups' || e.key==='__timeline') continue;
       if (e.type === 'captions') { pane.appendChild(captionsPanel()); continue; }
       if (e.group !== group) { group = e.group; pane.appendChild(el('h3', null, esc(group))); }
       pane.appendChild(paramField(e));
@@ -853,6 +860,7 @@ $('#captionImportText').oninput=()=>{$('#captionImportApply').disabled=true;if(C
 $('#libraryFile').onchange=e=>{importLibraryFiles([...e.target.files]);e.target.value='';};
 $('#relinkCancel').onclick=()=>$('#relinkDialog').close();
 $('#relinkApply').onclick=relinkMedia;
+$('#folderRelinkClose').onclick=()=>$('#folderRelinkDialog').close();$('#folderRelinkScan').onclick=scanFolderRelink;$('#folderRelinkApply').onclick=applyFolderRelink;
 $('#preflightClose').onclick=()=>$('#preflightDialog').close();
 $('#bMedia').onclick = () => $('#mediaFile').click();
 $('#mediaFile').onchange = e => { uploadFiles([...e.target.files]); e.target.value = ''; };
@@ -1125,8 +1133,9 @@ function renderBuildProgress(b){
   $('#mClose').style.display='inline-block';$('#mClose').textContent=b.running?'Keep editing':'Close';
   $('#mOpen').style.display=b.ok||b.has_video?'inline-block':'none';$('#mOpen').textContent=b.ok?'Open video':'Open previous video';
   if(b.running){$('#mTitle').textContent=b.cancel_requested?'Cancelling export…':b.state==='muxing'?'Finishing video…':b.state==='rendering'?'Rendering frames…':'Preparing export…';$('#mSub').textContent='This saved version exports while you keep editing.';}
-  else if(b.done){$('#mTitle').textContent=b.ok?'Video ready':b.cancelled?'Export cancelled':'Build failed';$('#mSub').textContent=b.ok?`Saved as ${b.output_file||PJ.output}.`+(b.revision!==session.revision?' Newer edits have been saved; rebuild to include them.':''):b.has_video?'Your previous completed video is kept.':'Your project edits are kept. Start another export when ready.';}
+  else if(b.done){$('#mTitle').textContent=b.ok?'Video ready':b.cancelled?'Export cancelled':'Export needs attention';$('#mSub').textContent=b.ok?`Saved as ${b.output_file||PJ.output}.`+(b.revision!==session.revision?' Newer edits have been saved; rebuild to include them.':''):(b.has_video?'Your previous completed video is kept. ':'Your project edits are kept. ')+(b.cancelled?'Start another export when ready.':exportFailureHelp(b.log||[]));}
 }
+function exportFailureHelp(log){const text=log.join('\n').toLowerCase();if(text.includes('no space left'))return 'Free disk space, then export again.';if(text.includes('permission denied')||text.includes('read-only file'))return 'Choose a writable export location inside your project.';if(text.includes('no such file')||text.includes('missing')||text.includes('unavailable'))return 'Open Media → Library options → Find missing files, then check source files in Export.';if(text.includes('cairo')||text.includes('ffmpeg')&&text.includes('not found'))return 'Open Project menu → Installation & diagnostics to check dependencies.';return 'Check source files in Export. Open Export details below for the failure message; include it with a bug report if the issue persists.';}
 function showBuildProgress(){ $('#modal').classList.add('on');$('#exportDetails').open=false;renderBuildProgress(BUILD_STATE);$('#mClose').focus();}
 $('#bExportStatus').onclick=showBuildProgress;
 $('#bBuild').onclick = async () => {
@@ -1326,7 +1335,8 @@ function setTransform(id, patch) { if(isLayerLocked(id))return;                 
   renderLayerRows(); syncInspector(); changed();
 }
 function selectLayer(id, jump, additive=false, preserve=false) {
-  if(additive){if(SELECTED.has(id))SELECTED.delete(id);else SELECTED.add(id);}else if(!preserve||!SELECTED.has(id)){SELECTED.clear();SELECTED.add(id);}
+  const members=selectionGroupMembers(id);
+  if(additive){const remove=members.every(key=>SELECTED.has(key));for(const key of members){if(remove)SELECTED.delete(key);else SELECTED.add(key);}}else if(!preserve||!SELECTED.has(id)){SELECTED.clear();for(const key of members)SELECTED.add(key);}
   selLayer = SELECTED.has(id)?id:[...SELECTED].at(-1)||null; LASTSEL = 'layer'; if(!selLayer){selectionRefresh();return;} expandTo(id); renderLayerTree(); fillInspector(); renderLayerRows(); overlaySoon();
   setTimeout(() => { const on = document.querySelector('#lrows .lanelab.on'); if (on) on.scrollIntoView({block: 'nearest'}); const tr = document.querySelector('#ltree .lrow.on'); if (tr) tr.scrollIntoView({block: 'nearest'}); }, 0);
   if (jump) { const st = LS(id); if (ST() < st.start+layerTimeOffset(id) || ST() > st.end+layerTimeOffset(id)) goS(st.start + layerTimeOffset(id) + 0.4); }
@@ -1589,7 +1599,7 @@ window.addEventListener('resize', () => drawOverlay());
   new ResizeObserver(fitStage).observe(frame.parentElement); fitStage();
   drawSafetyGuides();setGuides(false);
   if (HAS_AUDIO) audio.src = projectURL('/audio?v=') + audioVer;
-  buildTimeline(); buildPanels(); setupView();setupCreator();setupShell(); loadWaveform(); markDirty(); if (LAY.length) overlaySoon();
+  buildTimeline(); buildPanels(); setupView();setupCreator();setupShell();setupGuide(); loadWaveform(); markDirty(); if (LAY.length) overlaySoon();
   SNAP = JSON.stringify(V); updUndo(); relayoutTimeline();
   const firstText = SCH.find(e => e.at != null);
   setT(Math.min(BASE / 2, firstText ? firstText.at : 0)); poll();

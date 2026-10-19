@@ -12,12 +12,12 @@ promises. Current capabilities and limits are in [README.md](../README.md).
 
 - **v0.1.0:** publish the current editable explainer workflow, open source under
   MIT, with reproducible examples and clearly documented limits.
-- **v0.5.0 (next planned milestone):** develop the reliability and narration-led
-  revision workflow below in small, reviewable increments. The wider 48-item
-  feature plan guides prioritisation; individual items need acceptance checks
-  before being included in the release. No release date is committed.
+- **v1.0.0:** first full product launch. The planned v0.5 work is incorporated into
+  this release, with guided setup/onboarding, clip trim/split, selection groups,
+  reviewed folder recovery, portable backups, bounded preview caching and verified
+  exports. The wider 48-item plan remains a backlog, not a launch-completion claim.
 
-## Development progress toward v0.5.0
+## Shipped foundation in v1.0
 
 - **M02, motion controls:** visual named/custom Bézier easing, drag/keyboard/numeric
   curve handles, reusable local/JSON motion styles, selection staggering and a
@@ -30,9 +30,10 @@ promises. Current capabilities and limits are in [README.md](../README.md).
   [saving and recovery](SAVING.md) and [workspace controls](WORKSPACE.md).
 - **F02, everyday layer editing:** search, renaming, multi-selection, bulk movement
   and timing, lock/solo, alignment, distribution and snapping controls are implemented.
-  This is a first increment; richer clip trimming/splitting and grouping remain planned.
+  Source-aware imported clip trimming/splitting and persistent selection groups are included;
+  nested transform groups and broader track editing remain future work.
 - **B02, media:** searchable project assets, metadata, thumbnails, reusable imports,
-  per-file relinking and replacement are implemented. Folder-wide relinking remains planned.
+  per-file relinking/replacement and reviewed folder recovery for known missing sources are implemented.
 - **X01, initial file preflight:** missing/unreadable imported media and configured
   audio files are checked before export. Sampled frame bounds/presenter collisions, font coverage and a fresh audio-mix
   review are also implemented; comprehensive text/overlap/gap analysis remains planned. See [media and file checks](MEDIA.md).
@@ -63,8 +64,8 @@ promises. Current capabilities and limits are in [README.md](../README.md).
   protected assistant patches with before/after frame previews, presenter recordings
   with per-scene layouts, and six editable explanation block types are implemented.
   See the [creator workflow](CREATOR_WORKFLOW.md) and its explicit first-version limits.
-- These changes are development work toward v0.5.0. The published v0.1.0 assets
-  remain available unchanged.
+- The earlier v0.1.0 assets remain available unchanged. See [launch scope](V1_LAUNCH.md)
+  and [release validation](VALIDATION.md) for v1.0 additions and evidence.
 
 ## Recommended sequence
 

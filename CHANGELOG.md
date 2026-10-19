@@ -1,6 +1,19 @@
 # Changelog
 
-## 0.5.0.dev0 — unreleased development toward 0.5.0
+## 1.0.0 — 2026-10-19
+
+First full product launch. This incorporates the work originally planned for v0.5.
+
+- Guided local launcher for macOS/Linux/WSL2, dependency repair and shareable installation diagnostics without project paths or content.
+- Editable sample project and optional six-step guide; contextual help, recovery and sharing stay in the project menu.
+- Non-destructive visual clip trim/split with continuous source audio, keyframes and entrance/exit phase; persistent named selection groups.
+- Reviewed folder recovery for known media, narration, music, logo and font sources; ambiguous matches remain unresolved and existing files are never overwritten.
+- Portable project downloads with matching engine, per-file SHA-256 manifests, offline integrity verification and opt-in settings-history backups.
+- Bounded JPEG and decoded-frame caches; long footage decodes only requested four-second sections rather than the whole recording before its first preview.
+- Streaming downloads and valid byte ranges; disk/output/source checks and completed MP4 validation before atomic publication.
+- Updated installation, first-project, compatibility, feature and release documentation.
+
+### Editor and creator workflow
 
 - Visual easing curves with custom Bézier drag/keyboard/numeric controls, shared browser/renderer evaluation, reusable local/JSON motion styles, selection staggering and fade-only application. Layer windows/static placement are preserved, locked roots are skipped, and motion edits use normal undo/autosave.
 - Fix default 9:16 graphics/captions shifted 50px left: equal 130px side margins centre the existing 820px content band on a 1080px canvas. Update portrait generation/review guidance in the skill; explicit custom safe areas and saved offsets remain respected.
