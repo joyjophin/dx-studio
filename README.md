@@ -1,14 +1,13 @@
-<p align="center"><img src="docs/images/banner.svg" alt="DX Studio — Make the story. Keep the layers." width="960"></p>
-
 <h1 align="center">DX Studio</h1>
 <p align="center"><b>Turn a brief into an explainer video you can still edit.</b><br>Write with Claude, ChatGPT or a coding assistant. Finish in DX Editor.<br>DX stands for DesignXstream.</p>
 <p align="center">MIT code · Python 3.10+ · 9:16 and 16:9 · Local editor · No API key required</p>
 <p align="center"><a href="#a-look-around">Explore the editor</a> · <a href="#made-with-dx-studio">See it in action</a> · <a href="#features">Features</a> · <a href="#create-with-your-assistant">Use the skill</a> · <a href="#get-started">Get started</a></p>
 
 <p align="center">
-  <img src="docs/images/editor-modern.jpg" alt="DX Editor with a compact left tool rail, thumbnail media library, large landscape preview and a focused scene, narration and caption timeline" width="100%">
-  <br><sub><b>More room for the story.</b> Real editor capture. Tools stay on the left; detailed controls appear when you select a layer.</sub>
+  <a href="https://github.com/joyjophin/dx-studio/releases/download/v1.0.0/make-it-click-landscape.mp4"><img src="docs/images/showcase-landscape.gif" alt="Make it click: a tangled ribbon sculpture resolves on citron, becomes an editable layered poster, then closes with the DX Studio signature" width="100%"></a>
+  <br><sub><b>Make it click.</b> Ten seconds. Original motion and sound. Made entirely with DX Studio.</sub>
 </p>
+<p align="center"><a href="https://github.com/joyjophin/dx-studio/releases/download/v1.0.0/make-it-click-landscape.mp4">Watch 16:9 with sound</a> · <a href="https://github.com/joyjophin/dx-studio/releases/download/v1.0.0/make-it-click-portrait.mp4">Watch 9:16 with sound</a> · <a href="examples/showcase/README.md">Open the editable projects</a></p>
 
 An AI-generated video often arrives as a finished file. DX Studio gives you the
 **project as well as the MP4**. Change a caption, hide a graphic, move a layer or
@@ -45,62 +44,69 @@ optional; timed-word import needs no model or account.
 
 ## A look around
 
-DX Studio has a [quieter dashboard and editor](docs/EDITOR_LAYOUT.md):
-project cards, a compact tool rail, scene-focused text controls and a contextual
-inspector. Timeline layer tracks expand when needed. Light and dark themes follow
-your system, with an **Appearance** preference to override it. There is no chat or
-prompt panel. [Appearance and workspace preferences →](docs/VIEW.md)
+A focused canvas, scene text on the left and a timeline below. Select a layer
+when you need its position, scale, timing or motion controls. Light and dark
+appearances follow your system, with a preference to choose either.
+There is no chat or prompt panel. [Workspace preferences →](docs/VIEW.md)
 
-<p align="center"><img src="docs/images/dashboard-modern.jpg" alt="DX Studio projects dashboard with thumbnail cards and no prompt box" width="100%"></p>
-
-The gallery below also includes earlier editor captures showing individual capabilities.
+<p align="center">
+  <img src="docs/images/showcase-editor-yours.jpg" alt="The actual DX Editor with the Make it click landscape project, editable scene text and the ten-second timeline" width="100%">
+  <br><sub><b>The film, still editable.</b> Real editor capture with the showcase project open.</sub>
+</p>
 
 <table>
 <tr>
 <td width="50%" valign="top">
-  <img src="docs/images/editor-layers.jpg" alt="A headline selected on the preview with selection handles; the inspector exposes position, scale, rotation, opacity and keyframes" width="100%">
-  <p><b>Move, scale, hide and animate.</b> Each declared layer has its own controls and timeline bar.</p>
+  <img src="docs/images/showcase-editor-layers.jpg" alt="The real Ivory poster layer selected with rotated handles and scale, position and opacity controls" width="100%">
+  <p><b>Work at the layer level.</b> The poster's typography and graphics move with their parent. Keep each detail independently editable.</p>
 </td>
 <td width="50%" valign="top">
-  <img src="docs/images/editor-captions.jpg" alt="Caption editor showing a selected phrase, editable text, highlighted words and start/end timing alongside the video preview" width="100%">
-  <p><b>Fix the words that matter.</b> Edit caption text, its highlight and its timing while keeping the narration as recorded.</p>
-</td>
-</tr>
-<tr>
-<td width="50%" valign="top">
-  <img src="docs/images/editor-wide.jpg" alt="Presenter layout set to Left half, with an orange reservation over the left half of the video and graphics and captions recomposed on the right" width="100%">
-  <p><b>A whole half for your presenter.</b> Put the explanation on the opposite side, with a separate caption band.</p>
-</td>
-<td width="50%" valign="top">
-  <img src="docs/images/presenter-corner.jpg" alt="Bottom-right presenter reservation with the explainer graphics and captions moved above it" width="100%">
-  <p><b>Or keep a corner clear.</b> Bottom-left, bottom-right and a vertical bottom band are built in. Guides stay out of the export.</p>
+  <img src="docs/images/showcase-editor-portrait.jpg" alt="The companion native 9:16 project open in DX Editor with a centred vertical composition" width="100%">
+  <p><b>Compose for the format.</b> Portrait has its own geometry, spacing and type hierarchy. It is not a crop of the landscape film.</p>
 </td>
 </tr>
 </table>
 
-<p align="center">
-  <img src="docs/images/creator-workflow.png" alt="DX Editor with an editable CSV bar chart, a presenter recording on the right and scene-specific layout controls" width="100%">
-  <br><sub><b>Explain it in parts. Keep yourself in frame.</b> Editor capture with original illustrative data and a code-drawn presenter demo.</sub>
-</p>
+<p align="center"><img src="docs/images/showcase-dashboard.jpg" alt="DX Studio's projects dashboard with native portrait and landscape showcase thumbnails" width="100%"></p>
 
-These are captures of the working editor. [Recreate the examples and gallery →](docs/GALLERY.md)
+Project cards keep your work within reach. Open a folder from your assistant,
+continue a recent project, or begin with an editable template.
+[Editor layout →](docs/EDITOR_LAYOUT.md) · [Recreate these captures →](docs/GALLERY.md)
 
 ## Made with DX Studio
 
-<p align="center">
-  <img src="docs/images/editable-demo.gif" alt="An eight-second loop rendered from one project: the original scene, a changed headline, a green brand accent, and a hidden caption-example layer" width="100%">
-  <br><sub><b>One project. Four small edits.</b> Original → change the headline → change the accent → hide a layer. These frames come from the actual renderer; the loop has no audio.</sub>
-</p>
+**Make it click** is an original ten-second motion study: complexity becomes
+clarity, then something you can make your own. The ribbon mesh, moving colour
+mattes, typography, poster planes and sound are produced locally. All visible
+words and palette colours remain parameters; the artwork uses selectable layers.
 
 <p align="center">
-  <img src="docs/images/formats.png" alt="The same explainer rendered in portrait and landscape, with a stacked portrait composition and a side-by-side landscape composition" width="100%">
-  <br><sub><b>Portrait and landscape, deliberately composed.</b> The explainer template renders native 1080 × 1920 or 1920 × 1080 frames.</sub>
+  <img src="docs/images/showcase-formats.png" alt="Uncropped 16:9 and 9:16 renders of the editable poster scene, composed separately at native full-HD dimensions" width="100%">
 </p>
 
-Start from the [explainer source](dx_studio/templates/explainer/scene.py) or the
-[minimal starter](dx_studio/templates/starter/scene.py). Both work without a voice
-model, account, character pack or network request after installation.
-[Render this demonstration yourself →](docs/GALLERY.md#render-the-editing-loop)
+[Landscape MP4 + sound](https://github.com/joyjophin/dx-studio/releases/download/v1.0.0/make-it-click-landscape.mp4) ·
+[Portrait MP4 + sound](https://github.com/joyjophin/dx-studio/releases/download/v1.0.0/make-it-click-portrait.mp4) ·
+[Editable landscape bundle](https://github.com/joyjophin/dx-studio/releases/download/v1.0.0/make-it-click-landscape-project.zip) ·
+[Editable portrait bundle](https://github.com/joyjophin/dx-studio/releases/download/v1.0.0/make-it-click-portrait-project.zip)
+
+<details>
+<summary><b>See a real headline edit</b></summary>
+
+<img src="docs/images/showcase-edit.gif" alt="Two actual editor captures: changing Yours. to Editable. updates the rendered headline while preserving the poster and timeline" width="100%">
+
+Actual editor captures, held for comparison. Change the words in **Text**;
+the scene renderer updates the preview. This comparison is silent.
+
+</details>
+
+The demo's code, graphics and synthesised audio are original and MIT licensed;
+DX Sans uses the SIL Open Font License. No character pack, stock footage, voice
+model or API key is needed. The film contains illustrative track graphics, while
+the editor images above are genuine UI captures.
+[Art direction, source and render instructions →](examples/showcase/README.md)
+
+Start a new film with the [explainer](dx_studio/templates/explainer/scene.py)
+or [minimal starter](dx_studio/templates/starter/scene.py), or customise the showcase.
 
 ## Features
 

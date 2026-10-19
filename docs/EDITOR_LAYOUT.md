@@ -42,7 +42,7 @@ out of the dashboard until requested.
 There is no long row of workspace tabs. Each tool shows only its own subnavigation.
 Informational notes can be expanded under **About this tool**.
 
-![Editor with its preview and compact timeline](images/editor-modern.jpg)
+![Editor with its preview and compact timeline](images/showcase-editor-yours.jpg)
 
 ## Select to inspect
 
