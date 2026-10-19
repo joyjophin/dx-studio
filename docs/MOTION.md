@@ -1,6 +1,6 @@
 # Motion styles and easing curves
 
-Available in the development source toward v0.5. Select a layer to open its
+Available in DX Studio v1.0. Select a layer to open its
 inspector. **Motion styles**, **Keyframes** and **Entrance & exit** stay folded
 until needed; the workspace keeps its compact layout in light and dark mode.
 

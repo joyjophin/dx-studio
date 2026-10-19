@@ -130,7 +130,7 @@ def draw(c, t, p):
 
 Every layer automatically gets, in `settings.json` under `__layers`: start/end, visible, x/y offset, scale, rotation, opacity, keyframes (`[{t, x, y, scale, rotation, opacity, ease}]`, `t` relative to the layer's start; eases `ease`, `ease-in`, `ease-out`, `linear`, `back`, `hold`), and entrance/exit presets (`fade`, `pop`, `zoom`, `slide-up/down/left/right`) with durations.
 
-Current development editors also save optional display `label` and `locked` fields.
+DX Studio v1.0 editors also save optional display `label` and `locked` fields.
 Labels do not change stable IDs. Locks cover direct layer editing, including descendants
 of a locked parent; global parameters and scene source still affect those layers.
 Read [EDITOR_HANDOFF](EDITOR_HANDOFF.md) before revising a manually edited project.
@@ -180,7 +180,7 @@ and presenter rectangles in pixels. Scenes opting into responsive composition
 use these rectangles in setup() and update their selection boxes. See
 [PRESENTER_LAYOUTS](PRESENTER_LAYOUTS.md) for the contract and presets.
 
-### Editable narration (current development builds)
+### Editable narration (v1.0)
 
 The engine exposes `__voice` in saved settings. If absent, it derives takes from
 `project.json.voice`; an explicit empty list removes all narration. Each take has
@@ -198,7 +198,7 @@ retime captions, scene animations or `VoiceTimes`; that class and authoring scri
 still read the original `project.json.voice`. An assistant revising authored speech
 must reconcile `__voice` overrides explicitly rather than overwriting them.
 
-### Saved audio mix (current development builds)
+### Saved audio mix (v1.0)
 
 `__mix` holds `voice`, `music`, `effects` and `footage` relative balances (0–2),
 plus a boolean `<track>_muted` for each track. It also holds `loudness` (LUFS)
@@ -214,14 +214,15 @@ these saved overrides when revising project source. Preview monitor controls and
 audition ranges remain outside saved values and do not affect export.
 
 
-### Creator workflow values (current development builds)
+### Creator workflow values (v1.0)
 
-These are ordinary settings, absent in the v0.1 release. The loader provides defaults
+These are ordinary settings. The loader provides defaults
 when older settings omit them. See [CREATOR_WORKFLOW](../docs/CREATOR_WORKFLOW.md)
 for editor behavior and limitations.
 
 | Key | Contract |
 | --- | --- |
+| `__groups` | Up to 200 `{id,name,layers:[layer_id]}` persistent selection groups. Membership is disjoint; existing scene parent/child relationships are unchanged. |
 | `__story` | Up to 100 `{id,name,start,end,script,visual,source}` scene cards. Start/end are original source seconds; chapters seed defaults. |
 | `__voice[].transcript` | `{file,method,source_duration,words:[{id,text,start,end}]}`. Word times refer to the original recording; a different take file makes this transcript stale. |
 | `__anchors` | `{voice_id,word_id,text,layer_id,offset}` links. Offset is scene seconds from the matched word. Retiming preserves layer duration and accounts for inherited parent timing. |

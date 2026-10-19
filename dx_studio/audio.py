@@ -246,11 +246,16 @@ def build_mix(project, out_path):
         a, sr = sf.read(wav)
         if a.ndim > 1: a = a.mean(axis=1)
         s0, s1 = st.get('start', it['t0']), st.get('end', it['t0']+it['dur'])
-        a=a[int(float(it.get('source_offset',0))*SR):]
         n = int(max(0, s1-s0)*SR)
-        if it.get('loop') and len(a): a = np.tile(a, int(np.ceil(n/len(a)))+1)
+        offset=int(float(it.get('source_offset',0))*SR)
+        if it.get('loop') and len(a):
+            offset%=len(a)
+            a=np.tile(a,int(np.ceil((offset+n)/len(a)))+1)
+        a=a[offset:]
         a = a[:n]*float(it.get('volume', 1.0))
-        if len(a) > 400: a[:200] *= np.linspace(0, 1, 200); a[-400:] *= np.linspace(1, 0, 400)
+        if len(a)>400:
+            if it.get('audio_fade_in',True):a[:200]*=np.linspace(0,1,200)
+            if it.get('audio_fade_out',True):a[-400:]*=np.linspace(1,0,400)
         k = int(s0*SR); m = min(len(a), N_scene-k)
         if m > 0: media[k:k+m] += a[:m]*0.8
     mix = remap(scene_mix+media*level(balance,'footage')) + music*level(balance,'music')

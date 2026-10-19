@@ -1,4 +1,4 @@
-# Assistant revisions in current development builds
+# Assistant revisions in v1.0
 
 Use this contract for a settings-only revision requested from DX Editor. It does
 not execute generated Python, contact a provider or grant publishing permission.

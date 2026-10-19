@@ -1,8 +1,7 @@
 # Finish an explainer in DX Editor
 
-These tools are available in the current **0.5.0.dev0 source**, alongside saving,
-media, narration, audio balance and layer editing. Published v0.1 downloads remain
-the initial release. Use the left tool rail and its subnavigation; **More** holds advanced workspaces.
+These tools ship in **DX Studio v1.0**, alongside saving, media, narration, audio
+balance, clip trimming/splitting and saved selection groups. Use the left tool rail and its subnavigation; **More** holds advanced workspaces.
 See [the current layout guide](EDITOR_LAYOUT.md) for the navigation map.
 
 | Workspace | What you can finish |

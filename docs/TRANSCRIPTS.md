@@ -2,7 +2,7 @@
 
 Open Captions → Transcript in the current tool rail.
 
-Current development builds add a **Transcript** workspace. Import a recording in
+DX Studio v1.0 add a **Transcript** workspace. Import a recording in
 Narration first, then choose its take. Spelling corrections change text, not audio.
 Clicking a word seeks to the matching source position, adjusted for the take trim.
 

@@ -34,6 +34,7 @@ class MediaLibrary:
         self.cache_dir = os.path.join(project.path, '.build', 'media')
         self._img, self._gif, self._frames = {}, {}, OrderedDict()
         self._info, self._thumbnails = {}, {}
+        self._frame_bytes=0;self._video_counts={}
 
     # ---- import
     def import_file(self, filename, data, t, center=None):
@@ -162,19 +163,46 @@ class MediaLibrary:
                 if os.path.isdir(work):shutil.rmtree(work)
         return d
     def video_frame(self, item, lt):
-        d = self.decode_video(item)
-        n = len([f for f in os.listdir(d) if f.endswith('.jpg')]) if (d, 'n') not in self._frames else self._frames[(d, 'n')]
-        self._frames[(d, 'n')] = n
-        if n == 0: return None
+        # Seek/decode a small section, rather than unpacking an entire long take
+        # before its first preview. Preview and export share the same chunk clock.
+        duration=self.inspect(item['file'])['duration'] or 1/self.pr.fps
+        n=max(1,math.ceil(duration*self.pr.fps-1e-6))
         i = int(lt*self.pr.fps)
         i = i % n if item.get('loop') else min(max(i, 0), n-1)
-        key = (d, i)
+        count=self.pr.fps*4;chunk,local=divmod(i,count)
+        d=self.decode_chunk(item,chunk)
+        frames=self._video_counts[d]
+        if not frames and chunk:
+            d=self.decode_chunk(item,chunk-1);frames=self._video_counts[d];local=frames-1
+        if not frames:return None
+        local=min(local,frames-1);key = (d, local)
         if key not in self._frames:
-            im = Image.open(os.path.join(d, f'f_{i+1:05d}.jpg')).convert('RGBA')
+            im = Image.open(os.path.join(d, f'f_{local+1:05d}.jpg')).convert('RGBA')
             self._frames[key] = (to_surface(im), im.width, im.height)
-            while len(self._frames) > 90: self._frames.popitem(last=False)
+            self._frame_bytes+=self._frames[key][0].get_stride()*im.height
+            while self._frame_bytes>64*1024*1024 and len(self._frames)>1:
+                _,old=self._frames.popitem(last=False);self._frame_bytes-=old[0].get_stride()*old[2]
         else: self._frames.move_to_end(key)
         return self._frames[key]
+
+    def decode_chunk(self,item,chunk):
+        root=contained(self.cache_dir,self.cache_key(item)+'-chunks-v1')
+        d=contained(root,f'{chunk:06d}')
+        with file_lock(d+'.lock'):
+            if not Path(d,'.complete').is_file():
+                work=tempfile.mkdtemp(prefix='.decode-',dir=root)
+                try:
+                    subprocess.run(['ffmpeg','-hide_banner','-loglevel','error','-y','-ss',str(chunk*4),'-i',self.path(item),
+                                    '-t','4','-vf',f"fps={self.pr.fps},scale='min(1080,iw)':-2",'-frames:v',str(self.pr.fps*4),'-q:v','3',os.path.join(work,'f_%05d.jpg')],check=True)
+                    Path(work,'.complete').touch()
+                    if os.path.isdir(d):shutil.rmtree(d)
+                    os.replace(work,d)
+                finally:
+                    if os.path.isdir(work):shutil.rmtree(work)
+        if d not in self._video_counts:
+            if len(self._video_counts)>256:self._video_counts.clear()
+            self._video_counts[d]=len(list(Path(d).glob('f_*.jpg')))
+        return d
     def audio_wav(self, item):
         """the video's own audio as a mono 48 kHz wav (cached); None if it has no audio"""
         if item.get('kind') != 'video' or not item.get('has_audio'): return None
@@ -249,13 +277,16 @@ class MediaLibrary:
         return out
 
 def probe_video(path):
-    r = subprocess.run(['ffprobe', '-v', 'error', '-show_entries', 'stream=codec_type,width,height:format=duration', '-of', 'json', path],
+    r = subprocess.run(['ffprobe', '-v', 'error', '-show_entries', 'stream=codec_type,width,height,duration:format=duration', '-of', 'json', path],
                        capture_output=True, text=True)
-    info = json.loads(r.stdout or '{}'); w = h = None; has_audio = False
+    info = json.loads(r.stdout or '{}'); w = h = None; has_audio = False;video_duration=None
     for s in info.get('streams', []):
-        if s.get('codec_type') == 'video' and w is None: w, h = s.get('width'), s.get('height')
+        if s.get('codec_type') == 'video' and w is None:
+            w,h=s.get('width'),s.get('height')
+            try:video_duration=float(s.get('duration'))
+            except (ValueError,TypeError):pass
         if s.get('codec_type') == 'audio': has_audio = True
-    dur = float(info.get('format', {}).get('duration', 3.0) or 3.0)
+    dur = video_duration or float(info.get('format', {}).get('duration', 3.0) or 3.0)
     if not w: raise ValueError('Could not read that video file.')
     return w, h, dur, has_audio
 

@@ -1,7 +1,7 @@
 # Projects and layer controls
 
-These features are available in the development source toward v0.5.0. They are
-not part of the published v0.1.0 downloads.
+Available in DX Studio v1.0. The dashboard also offers an editable sample project
+and an optional six-step guide. Reopen the guide from the editor Project menu.
 
 ## Start with a project
 
@@ -60,3 +60,12 @@ drag to temporarily disable snapping. Undo/redo and autosave apply to these edit
 See [saving and recovery](SAVING.md) for restore and version controls.
 
 ![Bulk layer controls](images/editor-bulk.png)
+
+## Persistent selection groups
+
+Select multiple layers, then choose **Group selection** in the inspector. Give the
+group a name. Selecting a member selects the group for moving, alignment, timing,
+visibility and lock actions. Saved groups survive closing, reopening and project
+handoffs. **Ungroup** exposes individual selection again. This is selection
+membership, not a new nested transform or a merge of scene source. Locked members
+remain protected. Find named groups in Media → Layers → Selection groups.

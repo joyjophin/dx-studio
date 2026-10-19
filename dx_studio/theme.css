@@ -86,3 +86,4 @@ dialog{border:1px solid var(--line);border-radius:16px;padding:24px;max-width:ca
 :root[data-theme="dark"] .blk.on{outline-color:#d4c7ff}
 :root[data-theme="dark"] .bar{background:var(--surface-hover)}
 :root[data-theme="dark"] :is(button.lanelab,.asset-preview){background:transparent;border-color:transparent}
+[hidden]{display:none!important}

@@ -1,6 +1,6 @@
 # Media library and file checks
 
-Available in the development source toward v0.5.0.
+Available in DX Studio v1.0.
 
 Open **Media** to browse images, GIFs and footage inside the project's assets
 folder. Search filenames and paths, or filter by type, usage or files needing
@@ -9,8 +9,8 @@ file size and whether footage contains audio. Refresh after moving files outside
 the editor. The library lists up to 1,000 discovered assets plus all referenced
 sources; it does not scan the rest of your computer.
 
-**Import assets** copies files into the project without adding layers. **Add to
-video** inserts an editable layer at the playhead. New assets are sized and
+**+ Add** copies files into the project without adding layers. Click an asset's
+thumbnail to insert an editable layer at the playhead. New assets are sized and
 centred in the graphics safe zone; dropping onto the canvas uses the drop point.
 Supported sources: PNG, JPG, WEBP, GIF, MP4, MOV, M4V and WEBM. Imports are limited
 to 256 MB per file in the local editor.
@@ -18,7 +18,7 @@ to 256 MB per file in the local editor.
 ## Replace or relink
 
 Use **Replace file** or **Relink file** in a selected media layer's inspector.
-In Media, **Replace uses** and **Relink uses** update all unlocked layers sharing
+In an asset card's Options, **Replace** and **Relink** update all unlocked layers sharing
 that source. Locked layers are skipped. Select a replacement through the file
 picker, or paste the full local path in the relink dialog. The file is copied
 into the project so the result stays portable; original sources are retained.
@@ -31,13 +31,13 @@ needed. Video and audio caches follow source identity, so replacements cannot
 reuse the old footage under the same layer ID.
 
 Files are retained even if unused, including sources needed by earlier versions.
-There is no automatic cleanup or folder-wide relink in this increment. This
-library manages imported media layers. Custom Python scenes may use their own
-asset paths; narration and music still use project.json.
+There is no automatic cleanup. The library manages imported media layers.
+Narration uses saved takes, seeded from project.json; custom scenes may read
+additional asset paths the library cannot discover.
 
 ## Check before export
 
-**Check export** checks referenced overlay sources and configured narration/music
+**Export → Check source files** checks referenced overlay sources and configured narration/music
 files. Missing or unreadable visible overlays block export with affected-layer
 links and suggested fixes. Hidden missing overlays produce warnings. The editor
 shows a placeholder for unavailable overlays so you can keep editing and relink.
@@ -49,3 +49,23 @@ not analyse every video frame, custom scene assets, text overflow, all caption
 issues or final audio levels.
 
 ![Media library](images/media-library.png)
+
+## Source-aware clip edits
+
+Select an imported image, GIF or video, then open **Media file → Trim & split clip**
+in the inspector. **Trim to these edges** keeps a section inside the current clip
+window and advances its source in point. **Split at playhead** creates two
+independent clips referencing the same source. Animation keys, entrance/exit phase
+and footage audio retain their source timing. Undo restores the original values;
+source files are never cut. Numeric times use the original scene clock after
+ripple edits or scene reordering. Move clips with their timeline bars.
+
+## Recover a folder of missing sources
+
+Open **Media → Library options → Find missing files in folder**. Paste a folder
+containing the originals, scan, inspect the matched source/target paths, and copy
+selected matches. Recovery includes known media, voice, music, logo and font
+references. Matching prefers the longest shared path suffix; ambiguous filenames
+are left unresolved. Existing files are never overwritten. Scans visit at most
+10,000 files and skip symlinks/hidden folders; choose a smaller folder if needed.
+Restore a version first if it references a source absent from the current project.

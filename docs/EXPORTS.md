@@ -2,13 +2,13 @@
 
 Profiles, frame rates, caption modes, selected ranges and sampled quality review are documented in [the creator workflow](CREATOR_WORKFLOW.md#export-what-you-need).
 
-Available in the development source toward v0.5.0.
+Available in DX Studio v1.0.
 
-**Build video** saves the current settings, runs file/caption preflight and starts
+**Export → Build this export** saves the current settings, runs file/caption preflight and starts
 an export. The job captures those saved editor settings. Further edits can be
 saved while it runs without changing that settings snapshot.
 
-Choose **Keep editing** to leave the progress panel. **Export progress** reopens
+Choose **Keep editing** to leave the progress panel. **Project menu → Last export** reopens
 the active job, including after a browser reload while the local server remains
 running. A completed job appears as **Last export ready**. The progress panel
 shows whether it is preparing audio, rendering frames or finishing the MP4.
@@ -57,7 +57,14 @@ The helper reuses the completed MP4's video stream and builds its own temporary
 audio. It preserves the voiced master and needs no shared build intermediates.
 Footage audio is retained unless explicitly muted with the option above.
 
-Output profiles, range exports and render queues remain planned.
+Source/1080p/720p profiles, output frame rates, caption modes and selected-range
+exports are included. Render queues and restart-resumable rendering remain planned.
+
+Before publication, FFprobe checks the temporary MP4 dimensions, frame rate, duration
+and presence of audio/video streams. Failed validation keeps the previous completed
+video. Preflight also checks available working space, writable output folders, source
+collisions and clip source trims. File-size requirements depend on the project; the
+space warning is not an exact storage estimate. Downloads stream in bounded chunks.
 
 ![Cancelled export keeps the previous completed video](images/export-jobs.png)
 

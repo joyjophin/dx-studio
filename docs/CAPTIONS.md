@@ -4,7 +4,7 @@ In the current layout, open Captions on the left rail. Import/export and bulk sh
 
 For source-relative timed words, active-word highlights and reviewed retiming, see [Transcripts](TRANSCRIPTS.md).
 
-Available in the development source toward v0.5.0, in projects exposing editable
+Available in DX Studio v1.0, in projects exposing editable
 captions (including the explainer template).
 
 ## Bring captions into the project

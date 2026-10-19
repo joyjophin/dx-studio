@@ -111,6 +111,7 @@ h1{font-size:30px}
 @media(prefers-reduced-motion:reduce){*{transition:none!important}
 }
 
+[hidden]{display:none!important}
 </style>
 <link rel="stylesheet" href="/theme.css">
 </head>
@@ -127,6 +128,7 @@ h1{font-size:30px}
 <div class="content"><header class="topbar"><span>Workspace <span>/</span> <b>Projects</b></span><div class="workspace-preferences"><span class="muted"><i class="local-dot"></i>Local workspace</span><label class="appearance-control">Appearance <select data-theme-picker aria-label="Appearance"><option value="system">System</option><option value="light">Light</option><option value="dark">Dark</option></select></label></div></header>
 <main>
  <div class="heading"><div><h1>Your projects</h1><p class="muted">A space for your next great explainer.</p></div><div class="actions"><button data-open="openDialog"><svg viewBox="0 0 24 24"><path d="M3 7h7l2 3h9l-3 10H3zM3 7V4h7l2 3h7v3"/></svg>Open project</button><button class="primary" data-open="createDialog"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>New project</button></div></div>
+ <div class="advanced" id="homeWelcome" hidden style="margin:0 0 28px;padding:20px;display:flex;gap:16px;align-items:center;flex-wrap:wrap"><div style="flex:1"><b>Your first explainer, ready to edit</b><p class="muted">Try a sample with editable headlines, captions and motion. No account or voice model needed.</p></div><button class="primary" id="sampleProject">Try a sample</button><button id="dismissWelcome">Dismiss</button></div>
  <div class="toolbar"><div class="tabs">Recent projects <span class="count" id="projectCount">0</span></div><div class="search"><svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 4 4"/></svg><input type="search" id="search" placeholder="Search projects…" aria-label="Search projects"></div></div>
  <div class="projects" id="projects"></div><div class="message" id="libraryMessage" role="status"></div>
 </main></div></div>
@@ -158,6 +160,9 @@ function render(){
  }
 }
 $('#search').oninput=render;
+try{$('#homeWelcome').hidden=localStorage.getItem('dx-studio:welcome:v1')==='dismissed';}catch(_){}
+$('#dismissWelcome').onclick=()=>{$('#homeWelcome').hidden=true;try{localStorage.setItem('dx-studio:welcome:v1','dismissed');}catch(_){}};
+$('#sampleProject').onclick=async()=>{const button=$('#sampleProject');button.disabled=true;button.textContent='Preparing sample…';try{const result=await api('/api/library/sample',{folder:$('#folder').value});location.href=result.url;}catch(error){$('#libraryMessage').textContent=error.message;button.disabled=false;button.textContent='Try a sample';}};
 for(const kind of ['create','open'])$('#'+kind+'Form').onsubmit=async event=>{event.preventDefault();const button=$('#'+kind+'Button'),message=$('#'+kind+'Message');button.disabled=true;message.textContent='Opening your project…';try{const body=kind==='open'?{path:$('#path').value}:{name:$('#name').value,folder:$('#folder').value,format:$('#format').value,template:$('#template').value,presenter:$('#presenter').value};const result=await api('/api/library/'+kind,body);location.href=result.url;}catch(e){message.textContent=e.message;button.disabled=false;}};
 document.addEventListener('click',event=>{for(const menu of document.querySelectorAll('.card-menu[open]'))if(!menu.contains(event.target))menu.open=false;});
 (async()=>{try{const data=await api('/api/library');projects=data.projects;$('#folder').value=data.default_folder;render();}catch(e){$('#libraryMessage').textContent=e.message;}})();

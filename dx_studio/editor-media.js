@@ -9,7 +9,7 @@ function mediaPanel() {
   for(const [value,label]of[['all','All media'],['used','Used in this video'],['missing','Needs attention'],['image','Images'],['gif','GIFs'],['video','Video']]){const option=el('option');option.value=value;option.textContent=label;filter.append(option);}filter.value=MEDIA_KIND;filter.onchange=()=>{MEDIA_KIND=filter.value;renderMediaAssets();};root.append(filter);
   const status=el('p','sub');status.id='mediaStatus';status.setAttribute('role','status');root.append(status);
   const list=el('div','modern-media-grid');list.id='mediaAssets';root.append(list);
-  const options=el('details','tool-help'),label=el('summary');label.textContent='Library options';const actions=el('div','kbar');actions.append(mediaButton('Refresh library',refreshMedia),mediaButton('Check files',checkExport));options.append(label,actions,el('p','sub','Drop files onto the preview, or add them here. Imported files stay with this project.'));root.append(options);setTimeout(refreshMedia,0);return root;
+  const options=el('details','tool-help'),label=el('summary');label.textContent='Library options';const actions=el('div','kbar');actions.append(mediaButton('Refresh library',refreshMedia),mediaButton('Find missing files in folder',showFolderRelink),mediaButton('Check files',checkExport));options.append(label,actions,el('p','sub','Drop files onto the preview, or add them here. Imported files stay with this project.'));root.append(options);setTimeout(refreshMedia,0);return root;
 }
 async function refreshMedia() {
   const status=$('#mediaStatus');if(!status)return;
@@ -67,6 +67,15 @@ async function relinkMedia() {
 }
 function addMediaSourceActions(parent,id){
   const row=el('div','kbar');row.append(mediaButton('Replace file',()=>pickMediaReplacement([id])),mediaButton('Relink file',()=>showRelink([id])));parent.append(row);
+  const item=mediaItem(id),state=LS(id),tools=el('details','tool-help'),summary=el('summary');summary.textContent='Trim & split clip';tools.append(summary,el('p','sub','Trim keeps the selected section and advances its source in point. Move the clip with its timeline bar. All edits support Undo.'));
+  const source=el('p','sub');source.textContent='Source in: '+(item.source_offset||0).toFixed(2)+' s';tools.append(source);
+  const fields=[];for(const [label,value]of[['Trim start (s)',state.start],['Trim end (s)',state.end]]){const wrap=el('label'),input=el('input','num');wrap.textContent=label;input.type='number';input.step=1/FPS;input.value=value;input.setAttribute('aria-label',label);wrap.append(input);tools.append(wrap);fields.push(input);}
+  tools.append(mediaButton('Trim to these edges',()=>editVisualClip(id,'trim',{start:Number(fields[0].value),end:Number(fields[1].value)})),mediaButton('Split at playhead',()=>editVisualClip(id,'split',{at:ST()})),el('p','sub','Times use the original scene clock. Split keeps source audio, keyframes and animation continuous.'));
+  parent.append(tools);
+}
+async function editVisualClip(id,operation,options){
+  try{const result=await api('/api/media/clip',{id,operation,values:V,...options});commitHistory();V=result.values;PENDING_SELECT=result.selected;changed(true);toast(operation==='split'?'Clip split at playhead':'Clip trimmed');}
+  catch(error){showErr(error.message);}
 }
 async function checkExport() {
   try{await session.flush();const report=await api('/api/preflight');showPreflight(report);}
@@ -83,3 +92,13 @@ function showPreflight(report){
     for(const id of finding.layers||[])row.append(mediaButton('Show layer',()=>{$('#preflightDialog').close();selectLayer(id,true);}));list.append(row);}
   $('#preflightDialog').showModal();
 }
+let FOLDER_RELINK=null;
+function showFolderRelink(){FOLDER_RELINK=null;$('#folderRelinkList').replaceChildren();$('#folderRelinkApply').disabled=true;$('#folderRelinkMessage').textContent='Find missing footage, images, voice recordings, music and brand fonts. Matching files are copied into their original project locations; existing files stay untouched.';$('#folderRelinkDialog').showModal();$('#folderRelinkPath').focus();}
+async function scanFolderRelink(){
+ const button=$('#folderRelinkScan');button.disabled=true;$('#folderRelinkMessage').textContent='Finding missing sources…';$('#folderRelinkApply').disabled=true;
+ try{FOLDER_RELINK=await api('/api/media/relink-folder',{values:V,folder:$('#folderRelinkPath').value});const list=$('#folderRelinkList');list.replaceChildren();
+  for(const record of FOLDER_RELINK.files){const row=el('label','asset-card'),check=el('input');check.type='checkbox';check.checked=record.status==='ready';check.disabled=record.status!=='ready';record._check=check;const title=el('b');title.textContent=record.target;const note=el('span','sub');note.textContent=record.source||record.message||'No matching file in this folder';row.append(check,title,note);list.append(row);}
+  const count=FOLDER_RELINK.files.filter(r=>r.status==='ready').length;$('#folderRelinkMessage').textContent=FOLDER_RELINK.files.length?count+' matching file'+(count===1?'':'s')+' ready to copy.'+(FOLDER_RELINK.limited?' Scan limited to 10,000 files; choose a smaller folder for other sources.':''):'All referenced files are already present.';$('#folderRelinkApply').disabled=!count;
+ }catch(error){$('#folderRelinkMessage').textContent=error.message;}finally{button.disabled=false;}
+}
+async function applyFolderRelink(){const button=$('#folderRelinkApply');button.disabled=true;try{const selected=FOLDER_RELINK.files.filter(r=>r._check?.checked).map(({_check,...record})=>record);const result=await api('/api/media/relink-folder-apply',{values:V,folder:FOLDER_RELINK.folder,selected});$('#folderRelinkDialog').close();ver++;requestFrame();await refreshMedia();toast(result.restored.length+' missing files restored');}catch(error){$('#folderRelinkMessage').textContent=error.message;button.disabled=false;}}

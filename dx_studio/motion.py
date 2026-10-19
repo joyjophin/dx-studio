@@ -106,6 +106,7 @@ def prepare(project, values, style, ids, duration, stagger=0, calm=False):
             state[which] = 'fade' if calm and kind!='none' else kind
             state[which+'_dur'] = duration*style[which+'_fraction']
         state['enter_delay'] = delay
+        state['enter_offset']=0;state['exit_offset']=0
         patches[identifier] = state
     candidate=copy.deepcopy(values);candidate['__layers'].update(patches);project.apply(candidate)
     return {'states':patches,'skipped':[i for i in roots if i not in unlocked]}
