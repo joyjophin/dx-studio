@@ -41,7 +41,7 @@ protected assistant revisions with frame comparisons, actual presenter clips and
 scene layouts, editable explanation blocks, portable fonts/logos/templates and
 range exports with profiles, SRT and sampled quality review. Speech recognition is
 optional; timed-word import needs no model or account.
-[Download v1.1](https://github.com/joyjophin/dx-studio/releases/tag/v1.1.0) ·
+[Download v1.1](https://github.com/joyjophin/dx-studio/releases/tag/v1.1.1) ·
 [First project](docs/QUICKSTART.md) · [What changed](CHANGELOG.md).
 
 ## A look around
@@ -73,7 +73,7 @@ There is no chat or prompt panel. [Workspace preferences →](docs/VIEW.md)
 
 Project cards keep your work within reach. Open a folder from your assistant,
 continue a recent project, or choose one of three starting paths:
-**Create with AI**, **Start from a template**, or **Start blank**.
+**Create with AI** (recommended), **Start from a template** (Alpha), or **Start blank** (Alpha).
 [Choose your workflow →](docs/AI_WORKFLOW.md)
 [Editor layout →](docs/EDITOR_LAYOUT.md) · [Recreate these captures →](docs/GALLERY.md)
 
@@ -133,6 +133,11 @@ up a blank canvas and hand its titles, timing and constraints to your assistant.
 
 ## Create with your assistant
 
+Start with **Create with AI** on the dashboard for a four-step walkthrough and
+an editable prompt builder. It covers sharing the kit, defining your brief,
+opening the returned project, and continuing revisions in the same chat. Template
+and blank-project starts remain **Alpha** while their authoring experience develops.
+
 Give the assistant [SKILL.md](SKILL.md), or use the `dx-studio-video.zip` skill bundle
 from a release. The skill supports hooks, visual proof, narration, caption pacing,
 render checks and a project you can finish in the editor.
@@ -160,7 +165,7 @@ craft can help attention and understanding; it cannot guarantee views.
 
 ## Get started
 
-Download the **source ZIP** from [the v1.1 release](https://github.com/joyjophin/dx-studio/releases/tag/v1.1.0), extract it, and follow the [platform setup guide](docs/INSTALL.md) for Python, Cairo and FFmpeg. Then:
+Download the **source ZIP** from [the v1.1 release](https://github.com/joyjophin/dx-studio/releases/tag/v1.1.1), extract it, and follow the [platform setup guide](docs/INSTALL.md) for Python, Cairo and FFmpeg. Then:
 
 - **macOS:** open **Launch DX Studio.command**.
 - **Linux / WSL2:** run `bash launch.sh` inside the extracted folder.

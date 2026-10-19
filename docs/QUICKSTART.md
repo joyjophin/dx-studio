@@ -2,9 +2,11 @@
 
 After [installation](INSTALL.md), run the launcher and open the dashboard.
 
-1. Choose **Create with AI**, **Start from a template**, or **Start blank**.
-   For a complete editable starting point, pick **Make it click** or **Proof point**
-   from the template gallery, choose landscape/portrait and optional presenter space.
+1. Choose **Create with AI**, the recommended launch workflow. Its four-step
+   walkthrough helps set up the kit, build a starter prompt, open the returned
+   editable project and continue AI revisions. **Start from a template** and
+   **Start blank** are marked **Alpha** while those authoring paths are refined.
+   To try a template, choose Make it click or Proof point and a format/presenter layout.
 2. In **Text**, change the opening headline. Click a canvas layer to move, scale,
    hide or retime it in the inspector. Use Undo to compare your change.
 3. In **Media**, add your images or footage. In **Audio → Voice**, add your recorded

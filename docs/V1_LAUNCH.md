@@ -3,6 +3,10 @@
 The first full product launch is v1.0.0. Earlier 0.x releases remain available.
 Project format stays at version 1; existing projects retain their explicit layouts.
 
+For the public launch, lead with **Create with AI** and its guided project handoff.
+**Start from a template** and **Start blank** are labelled **Alpha** while their
+authoring experience is refined; they are not presented as equally mature paths.
+
 - [x] Guided setup, launcher, dependency diagnostics and an editable first project.
 - [x] Source-aware visual clip trim/split and persistent selection groups.
 - [x] Reviewed folder relinking, complete portable bundles and compatibility guidance.
