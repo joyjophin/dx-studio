@@ -36,7 +36,7 @@ DX Studio does not install system packages or request administrator access itsel
 
 ## 2. Download and open
 
-Download **dx-studio-1.1.0-source.zip** from the GitHub release and extract it.
+Download **dx-studio-1.1.1-source.zip** from the GitHub release and extract it.
 On macOS, open **Launch DX Studio.command**. On Linux/WSL2, run:
 
 ```sh
@@ -67,7 +67,7 @@ python -m dx_studio edit
 ```
 
 Developers can install `'.[dev]'` for checks. To use a release wheel, replace the
-install line with `python -m pip install /path/to/dx_studio-1.1.0-py3-none-any.whl`.
+install line with `python -m pip install /path/to/dx_studio-1.1.1-py3-none-any.whl`.
 The wheel includes the editor, engine, templates and fonts; use the skill ZIP or
 source ZIP for assistant instructions and production scripts. No PyPI publication
 is implied. A portable project bundle has its own matching `engine/` installation.

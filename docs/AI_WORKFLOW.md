@@ -11,6 +11,10 @@ project folder. It does not send prompts to a provider or connect to a chat acco
 
 ![The three starting paths on the actual dashboard](images/workflow-dashboard.jpg)
 
+**Recommended for launch: Create with AI.** Template and blank-project starts are
+**Alpha**: available to experiment with, while their authoring experience is still
+being refined. Alpha describes these two starting paths, not the project file format.
+
 ## 1. Create with AI, then keep the same chat
 
 Download the repository or release, install DX Studio using [INSTALL](INSTALL.md),
@@ -18,6 +22,26 @@ and give your assistant the release's `dx-studio-video.zip` or repository
 [SKILL.md](../SKILL.md). Skill installation differs by assistant; loading a Markdown
 file is context, not permission to read your computer. Use an environment that can
 run Python, inspect images and access a folder you explicitly share with it.
+
+Choose **Create with AI** on the dashboard for the four-step walkthrough:
+
+1. **Set up:** download the skill ZIP, keep its resources together, and share it
+   with an assistant that has coding tools and access to a project folder. Skill
+   installation follows the assistant's own setup; otherwise ask it to read SKILL.md.
+2. **Write your brief:** enter the topic, audience, duration, format and presenter
+   space. Optional style/source choices build an editable starter prompt. Copy it
+   into your assistant; DX does not generate a video or submit the prompt itself.
+3. **Open & edit:** request an editable folder, MP4 and portable project ZIP. Open
+   the folder containing project.json, not an MP4 or ZIP. The walkthrough explains
+   extraction, matching-engine setup, basic editor changes and export.
+4. **Continue with AI:** keep the same chat, prepare the editor handoff, then review
+   source updates. Use the JSON plus portable ZIP when folders are not shared.
+
+![The guided AI brief builder in the actual editor](images/ai-onboarding-brief.jpg)
+
+The steps are navigation, not automatic checks of assistant installation or video
+completion. Your typed brief stays in the dialog during this visit; it is not sent
+to a provider or saved as a project. Editing brief fields rebuilds the prompt.
 
 Start with a concrete brief:
 
@@ -50,7 +74,7 @@ A chat without local folder access cannot update the editor automatically. Attac
 the JSON **and Download full project** ZIP, ask for an updated editable project,
 and open its returned folder. A text-only assistant cannot verify a render.
 
-## 2. Start from a template
+## 2. Start from a template · Alpha
 
 Choose **Start from a template** on the dashboard:
 
@@ -71,7 +95,7 @@ larger changes. Each template is copied into a new project; the original stays i
 
 ![Editable template gallery](images/workflow-templates.jpg)
 
-## 3. Start blank, then hand off your skeleton
+## 3. Start blank, then hand off your skeleton · Alpha
 
 Choose **Start blank**, then set a name, canvas, duration and presenter reservation.
 Presets include 16:9, 9:16 and square; custom even dimensions from 64 to 8192 pixels

@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.1.1 — 2026-10-19
+
+- Make Create with AI the recommended launch workflow. Mark template and blank
+  project starts as Alpha on their dashboard cards, setup dialogs and guides.
+- Replace the initial instruction wall with a four-step walkthrough: kit setup,
+  editable brief/prompt builder, project opening/editing/export, and AI revisions.
+- Link the downloadable skill ZIP and explain coding/file-access prerequisites,
+  expected deliverables, the inner project folder and the MP4-only recovery path.
+- Clarify shared-folder update review and JSON/portable-ZIP exchange when an
+  assistant cannot access local files. No automatic provider connection is implied.
+
 ## 1.1.0 — 2026-10-19
 
 - Three explicit dashboard starting paths: create with an external AI assistant,

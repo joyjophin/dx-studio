@@ -23,7 +23,7 @@ python scripts/smoke_test.py
 python scripts/release_journey.py --output /tmp/dx-release-journey
 python scripts/benchmark_preview.py --output /tmp/dx-preview.json
 python -m build
-python scripts/package_release.py --output ../release-artifacts/1.1.0 --distributions dist
+python scripts/package_release.py --output ../release-artifacts/1.1.1 --distributions dist
 ```
 
 Package from the reviewed release commit. `SHA256SUMS` covers the source ZIP,
