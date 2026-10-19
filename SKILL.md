@@ -20,6 +20,7 @@ Read [PROJECT_FORMAT](reference/PROJECT_FORMAT.md) before writing a scene, and c
 
 | Job | Resource |
 | --- | --- |
+| Existing project, editor skeleton or dx-ai-handoff.json | [AI_HANDOFF](reference/AI_HANDOFF.md) |
 | Hooks, story structure, pacing and payoff | [ENGAGEMENT](reference/ENGAGEMENT.md) |
 | Custom palette, type, accessibility and composition | [STYLE_NOTES](reference/STYLE_NOTES.md) |
 | Recorded narration or optional local TTS | [VOICE_DRIVEN](reference/VOICE_DRIVEN.md) |
@@ -32,8 +33,16 @@ Read [PROJECT_FORMAT](reference/PROJECT_FORMAT.md) before writing a scene, and c
 | Reusable layer motion, stagger, reduced-motion application and easing curves | [MOTION](docs/MOTION.md) |
 | Optional Figma UI kit | [FIGMA_TUTORIALS](reference/FIGMA_TUTORIALS.md) |
 
-Templates live in `dx_studio/templates/`. The explainer is a complete 16-second,
-voice-free demo that reflows for either ratio; starter is a minimal layered scene.
+Before creating anything, check whether the user supplied an existing project or
+`dx-ai-handoff.json`. Read [AI_HANDOFF](reference/AI_HANDOFF.md) and continue in that
+folder, preserving its titles, storyboard, saved edits, dimensions, duration and
+presenter reservation. Do not scaffold over an existing project. Continuing in the
+same chat preserves context; local folder access must be explicitly available.
+
+Templates live in `dx_studio/templates/`: `showcase` (Make it click, ten seconds),
+`comparison` (Proof point, twelve seconds), and `blank` (an empty canvas with user
+constraints). Both authored templates compose for landscape and portrait. The
+older `explainer` (sixteen seconds) and `starter` remain available.
 `kits/` contains optional specialised UI drawing helpers, copied beside `scene.py`
 when needed. They are examples, not a requirement for a particular topic or style.
 
@@ -59,6 +68,8 @@ when needed. They are examples, not a requirement for a particular topic or styl
    # For landscape, choose --format 16:9 at creation.
    python -m dx_studio check ./projects/my-video
    ```
+   For a skeleton, use `--template blank --duration 30`; choose custom even
+   dimensions with `--width 1440 --height 1440` when requested.
    Reserve presenter space at creation, for example:
    `python -m dx_studio init ./projects/my-video --format 16:9 --presenter left-half`.
    Read [PRESENTER_LAYOUTS](reference/PRESENTER_LAYOUTS.md) when reserving camera space.
@@ -101,7 +112,12 @@ when needed. They are examples, not a requirement for a particular topic or styl
    output dimensions, duration, audio and completion before claiming success. Never
    claim a render or visual inspection that did not happen. `pack` preserves saved edits.
    Explain: extract the bundle, follow `OPEN-ME.md` to install its matching engine,
-   then run `python -m dx_studio edit project`. The editor's Project menu offers
+   then run `python -m dx_studio edit project`. For later AI edits, tell the creator
+   to choose **Continue with AI**, prepare the handoff and paste its follow-up prompt
+   into the same chat. With shared local folder access, revise those files in place;
+   the creator reviews detected updates using **Reload AI changes**. Without that
+   access, use an updated portable project ZIP. DX has no provider chat connection.
+   The editor's Project menu offers
    Getting started, Version history, Installation & diagnostics, and Download portable
    project. A normal handoff includes current saved edits; older settings versions
    are opt-in with `pack --include-history` for a backup. Bundles include source files,

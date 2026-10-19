@@ -90,7 +90,8 @@ class Workspace:
         if not slug: raise ValueError('Use letters or numbers in the project name')
         parent = Path(body.get('folder') or Path.home()/'DX Studio Projects').expanduser().resolve()
         folder = create(parent/slug, template=body.get('template','explainer'), format=body.get('format','16:9'),
-                        name=name,presenter=body.get('presenter','none'))
+                        name=name,presenter=body.get('presenter','none'),duration=body.get('duration'),
+                        width=body.get('width'),height=body.get('height'))
         return self.open(folder)
 
     def thumbnail(self, identifier):

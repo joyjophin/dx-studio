@@ -1,6 +1,6 @@
 """DX Studio: author editable motion graphics. Public scene API loads lazily."""
 from importlib import import_module
-__version__ = "1.0.0"
+__version__ = "1.1.0"
 _EXPORTS = {
     **{k:'core' for k in ['PI','WHITE','BLACK','clamp','eo','eio','ei','lin','P','lerp','mixc','window','back_ease','hexc','hex_of']},
     **{k:'text' for k in ['FONTS','shape','tw','text','ktext']},

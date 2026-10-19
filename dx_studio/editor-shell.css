@@ -100,7 +100,25 @@ h3{font-size:10px;letter-spacing:.05em;color:#9891a5;margin:22px 0 8px}
 .inspector-section[open]>summary::after{content:'−'}
 .inspector-section[open]>summary{margin-bottom:7px}
 .inspector-section .sub{font-size:10px}
-.inspector-section .field label{font-size:10px}
+.inspector-section .field label{font-size:11px}
+/* Controls share a label row rather than borrowing space from their labels.
+   This also covers dynamic scene fields, clip controls and narrow tool panels. */
+.tool-panel .field,.context-inspector .field{grid-template-columns:minmax(0,1fr) minmax(0,auto);gap:7px 10px;padding:10px 0}
+.tool-panel .field:has(input[type=range]),.context-inspector .field:has(input[type=range]),
+.tool-panel .field:has(select),.context-inspector .field:has(select),
+.tool-panel .field:has(.color),.context-inspector .field:has(.color){grid-template-columns:minmax(0,1fr)}
+.tool-panel .field.stack,.context-inspector .field.stack,
+.tool-panel .field:has(textarea),.context-inspector .field:has(textarea){grid-template-columns:minmax(0,1fr)}
+.tool-panel .field label,.context-inspector .field label{line-height:1.45;white-space:normal;overflow-wrap:anywhere}
+.tool-panel .field>.ctl,.context-inspector .field>.ctl{min-width:0;max-width:100%}
+.tool-panel .ctl:has(>input[type=range]),.context-inspector .ctl:has(>input[type=range]){flex:1;flex-wrap:nowrap;width:100%}
+.tool-panel .ctl>input[type=range],.context-inspector .ctl>input[type=range]{flex:1 1 60px;width:0;min-width:0;margin:0}
+.tool-panel .ctl>.num,.context-inspector .ctl>.num{flex:0 0 66px;width:66px;min-width:0}
+.tool-panel .ctl>select,.context-inspector .ctl>select{max-width:100%;min-width:0;flex:1 1 100px}
+.tool-panel .field .ctl>.sub,.context-inspector .field .ctl>.sub{flex-shrink:0;line-height:1.4}
+.insp>.row{align-items:flex-start;flex-wrap:wrap}
+.insp>.row>b{min-width:0;overflow-wrap:anywhere;line-height:1.5;flex:1 1 120px}
+.insp>.row>.btn{flex-shrink:0}
 .panel-resize{left:calc(64px + min(30vw,var(--inspector-width)));right:auto;margin:0 0 0 -4px;width:7px}
 .app.inspector-hidden>main{grid-template-columns:64px 0 minmax(0,1fr) 0}
 .app.inspector-hidden.has-selection>main{grid-template-columns:64px 0 minmax(0,1fr) 282px}

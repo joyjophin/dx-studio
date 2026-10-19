@@ -23,7 +23,7 @@ python scripts/smoke_test.py
 python scripts/release_journey.py --output /tmp/dx-release-journey
 python scripts/benchmark_preview.py --output /tmp/dx-preview.json
 python -m build
-python scripts/package_release.py --output ../release-artifacts/1.0.0 --distributions dist
+python scripts/package_release.py --output ../release-artifacts/1.1.0 --distributions dist
 ```
 
 Package from the reviewed release commit. `SHA256SUMS` covers the source ZIP,
@@ -36,7 +36,7 @@ The source ZIP and skill ZIP carry the same engine and public resources under
 different root names. The skill ZIP has `dx-studio-video/SKILL.md`. The wheel
 contains the engine/editor/templates; the skill/source distribution supplies
 assistant instructions and production helpers. Do not publish to PyPI without
-checking package-name ownership; GitHub is the v1.0 distribution channel.
+checking package-name ownership; GitHub is the distribution channel.
 
 See [GALLERY](GALLERY.md) before refreshing visuals. Capture real controls in a
 wide viewport, identify synthetic examples and keep roadmap features separate.

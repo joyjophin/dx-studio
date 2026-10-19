@@ -2,9 +2,9 @@
 
 After [installation](INSTALL.md), run the launcher and open the dashboard.
 
-1. Choose **Try a sample** for an editable 16-second explainer, or **New project**
-   to choose 16:9/9:16, a template and optional presenter space. The sample has
-   original graphics and synthesized sound; no voice model or account is needed.
+1. Choose **Create with AI**, **Start from a template**, or **Start blank**.
+   For a complete editable starting point, pick **Make it click** or **Proof point**
+   from the template gallery, choose landscape/portrait and optional presenter space.
 2. In **Text**, change the opening headline. Click a canvas layer to move, scale,
    hide or retime it in the inspector. Use Undo to compare your change.
 3. In **Media**, add your images or footage. In **Audio → Voice**, add your recorded
@@ -23,22 +23,16 @@ can be dismissed; it does not change your project.
 
 ![The first-project guide in the real editor, following the system dark theme](images/v1-first-project.png)
 
-## Start with Claude, ChatGPT or a coding assistant
+## Continue with your assistant
 
-Give your assistant the release's `dx-studio-video.zip` or repository `SKILL.md`.
-It needs a coding environment to execute Python and inspect rendered images.
-Ask for an editable project and state the audience, format, length, recordings
-and presenter space. Example:
+Use **Continue with AI** to prepare a JSON handoff and copy the next prompt into
+**the same chat**. Give the assistant access to the same local folder; DX detects
+its finished file changes and offers **Review file updates → Reload AI changes**.
+If the assistant cannot access the folder, attach the JSON plus a portable project
+ZIP and open the updated project it returns. DX does not connect to a chat provider.
 
-> Create a 45-second 9:16 explainer about how password managers work. Use my
-> recording for narration, keep graphics horizontally centred, and leave the
-> bottom-right corner for a talking head. Deliver editable layers, an MP4 and a
-> portable DX Studio project.
-
-Extract its portable project and follow `OPEN-ME.md` to install the included
-engine. In DX Editor choose **Open project** and paste the extracted `project/`
-folder path. Scene code executes Python; use projects from people you trust.
-A text-only chat can draft source but cannot verify an actual render.
+For AI-first creation, template editing and blank-to-AI skeletons, follow the
+[three starting workflows](AI_WORKFLOW.md).
 
 ## Move or back up your work
 

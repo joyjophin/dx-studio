@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "dx-studio"
-version = "1.0.0"
+version = "1.1.0"
 description = "AI-authored explainer videos that stay editable. A renderer, local editor, and agent skill."
 readme = "README.md"
 requires-python = ">=3.10"
@@ -33,7 +33,7 @@ dx-studio = "dx_studio.cli:main"
 include = ["dx_studio*"]
 
 [tool.setuptools.package-data]
-dx_studio = ["*.html", "*.js", "*.css", "fonts/*.ttf", "fonts/OFL.txt", "templates/*/*.py", "templates/*/*.json"]
+dx_studio = ["*.html", "*.js", "*.css", "fonts/*.ttf", "fonts/OFL.txt", "templates/*/*.py", "templates/*/*.json", "templates/*/assets/*.flac", "template_previews/*.jpg"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

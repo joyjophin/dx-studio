@@ -1,6 +1,24 @@
 # Changelog
 
-## Unreleased — Showcase
+## 1.1.0 — 2026-10-19
+
+- Three explicit dashboard starting paths: create with an external AI assistant,
+  choose an editable template, or set up a genuinely blank canvas.
+- Packaged Make it click and Proof point templates with native portrait/landscape
+  compositions, real preview artwork and original sound.
+- Blank-project canvas/duration/presenter setup, editable titles and storyboard
+  skeletons, plus JSON handoff and a follow-up prompt for the same AI chat.
+- `dx-studio handoff` CLI and reviewed local-file update detection. Explicit source
+  reload preserves saved edits, invalidates stale Python bytecode, checks stable
+  controls and retains the working preview when an update cannot load.
+- Continuous move/scale/rotate and slider previews: paced updates no longer wait for
+  a pause in pointer input. Intermediate work is coalesced rather than queued.
+- Responsive shared field layouts keep inspector/tool labels readable, with sliders
+  below labels and flexible tracks instead of fixed widths crowding the text.
+- Updated public skill and walkthrough for shared-folder revisions and portable
+  ZIP fallback. No provider integration or silent source execution is implied.
+
+### Showcase
 
 - Original ten-second **Make it click** films in native 16:9 and 9:16, with editable typography, a procedural ribbon sculpture, nested poster layers and original synthesised audio.
 - Reproducible demo projects, portable downloads, GIFs, posters, a format comparison, social artwork and fresh real editor/dashboard captures.

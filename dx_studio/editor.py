@@ -30,6 +30,9 @@ class Editor:
             if os.path.isfile(file):
                 with open(file, 'rb') as stream: source.update(stream.read())
         self.source_revision = source.hexdigest()
+        from .source_sync import snapshot
+        self.disk_files = snapshot(self.pr,self.saved)
+        self.source_generation = 0
         self._audio_timer = None
         self.audio_version = 0; self.audio_busy = False; self._audio_again = False
         self.build_lock=threading.RLock();self.build_process=None;self.build_thread=None
@@ -135,15 +138,25 @@ class Editor:
                 if again: self.regen_audio()
         threading.Thread(target=run, daemon=True).start()
 
+    def require_loaded_source(self):
+        from .source_sync import status
+        update=status(self)
+        if update.get('error') or any(self.disk_files.get(name,{}).get('kind')=='source' or name.endswith('.py') for name in update['files']):
+            from .history import SaveConflict
+            raise SaveConflict('Scene files changed outside the editor. Reload AI changes before saving; your browser draft is kept.')
+
     def save(self, values=None, revision=None, autosave=False):
         with self.lock, self.history.writing():
             self.history.check(revision)
+            self.require_loaded_source()
             if values is not None: self.apply(values)
             if self.pr.settings_diff() != self.history.read_settings():
                 self.history.before_save(self.source_revision)
                 self.pr.save_settings()
             self.saved = copy.deepcopy(self.pr.values)
             self.revision = self.history.revision()
+            from .source_sync import acknowledge_save
+            acknowledge_save(self)
             result = {'ok': True, 'revision': self.revision, 'values': copy.deepcopy(self.saved)}
         if self._audio_timer: self._audio_timer.cancel()
         if autosave:
@@ -160,6 +173,7 @@ class Editor:
     def restore(self, version_id, revision):
         with self.lock, self.history.writing():
             self.history.check(revision)
+            self.require_loaded_source()
             record = self.history.get(version_id)
             values = self.pr.values_from_settings(record['settings'])
             before = copy.deepcopy(self.pr.values)
@@ -172,6 +186,8 @@ class Editor:
                 raise
             self.saved = copy.deepcopy(self.pr.values)
             self.revision = self.history.revision()
+            from .source_sync import acknowledge_save
+            acknowledge_save(self)
             state = self.state()
         self.regen_audio()
         return {'ok': True, 'state': state}
@@ -269,14 +285,73 @@ class Editor:
                 'schema': pr.schema, 'layers': pr.layer_meta, 'values': pr.values, 'saved': self.saved, 'defaults': pr.defaults,
                 'captions': [{k: c[k] for k in ('start', 'show_end', 'text')} for c in pr.captions],
                 'stickers': self.stickers(), 'has_audio': self.has_audio(), 'audio_version': self.audio_version,
-                'has_captions': pr.has_captions, 'revision': self.revision, 'source_revision': self.source_revision}
+                'audio_busy':self.audio_busy,'has_captions': pr.has_captions, 'revision': self.revision, 'source_revision': self.source_revision,'source_generation':self.source_generation}
+
+    def disk_status(self):
+        from .source_sync import status
+        with self.lock:return {**status(self),'generation':self.source_generation}
+
+    def reload_source(self, revision, disk_revision):
+        from pathlib import Path
+        from .history import SaveConflict
+        from .source_sync import snapshot, digest
+        from .project import Project
+        with self.build_lock,self.lock,self.history.writing():
+            if self.build['running']:raise ValueError('Finish or cancel the current export before reloading source files')
+            if getattr(self,'audio_busy',False) or any(job.get('running') for job in getattr(self,'creator_jobs',{}).values()):
+                raise ValueError('Let the current audio or creator task finish, then reload')
+            if revision!=self.revision:raise SaveConflict('Another editor tab reloaded this project. Refresh this tab; its browser draft is retained.')
+            before=snapshot(self.pr,self.saved)
+            if disk_revision!=digest(before):raise SaveConflict('Project files changed again. Review the latest update notice and retry.')
+            # A broken or partly written scene never replaces the working editor.
+            import importlib
+            importlib.invalidate_caches()
+            local_modules={name:module for name,module in list(sys.modules.items())
+                           if getattr(module,'__file__',None) and Path(module.__file__).resolve().is_relative_to(Path(self.pr.path).resolve())}
+            for name,module in local_modules.items():
+                cached=getattr(module,'__cached__',None)
+                if cached and Path(cached).is_file() and Path(cached).resolve().is_relative_to(Path(self.pr.path).resolve()):
+                    Path(cached).unlink()
+                sys.modules.pop(name,None)
+            try:
+                candidate=Project(self.pr.path)
+                from .preflight import require_ready
+                require_ready(candidate)
+                candidate.render(min(.9,candidate.duration/2),min(.15,320/candidate.width))
+                overrides=self.pr.settings_diff(self.saved)
+                lost=[key for key in overrides if not key.startswith('__') and key not in candidate.defaults]
+                new_ids={m['id'] for m in candidate.layer_meta}
+                lost.extend('layer:'+key for key in overrides.get('__layers',{}) if key not in new_ids)
+                if lost:raise ValueError('AI removed controls with saved edits: '+', '.join(lost[:8])+'. Ask it to preserve parameter keys and layer IDs; hide unused layers instead.')
+                if snapshot(candidate,candidate.values)!=before:raise SaveConflict('Project files changed while loading. Wait for the assistant to finish and retry.')
+            except Exception:
+                sys.modules.update(local_modules)
+                raise
+            self.source_generation+=1
+            self.pr=candidate;self.saved=copy.deepcopy(candidate.values)
+            self.revision=self.history.revision()
+            source=hashlib.sha256()
+            for name in ('project.json',candidate.cfg.get('scene','scene.py'),candidate.cfg.get('captions','captions.json')):
+                file=Path(candidate.path)/name
+                if file.is_file():source.update(file.read_bytes())
+            self.source_revision=source.hexdigest();self.disk_files=snapshot(candidate,self.saved)
+            from .preview_cache import PreviewCache
+            self.preview_cache=PreviewCache();self._thumbs.clear()
+            if self._audio_timer:self._audio_timer.cancel()
+            self.regen_audio()
+            return {'ok':True,'state':copy.deepcopy(self.state())}
 
     def open_state(self):
         # New/reloaded tabs start from disk, never from another tab's preview.
         with self.lock, self.history.writing():
+            update=self.disk_status()
+            if update.get('error') or any(name!='settings.json' for name in update['files']):return copy.deepcopy(self.state())
+            if update['changed']:self.source_generation+=1
             self.pr.apply(self.pr.load_settings())
             self.saved = copy.deepcopy(self.pr.values)
             self.revision = self.history.revision()
+            from .source_sync import acknowledge_save
+            acknowledge_save(self)
             return copy.deepcopy(self.state())
 
 def make_handler(ed=None, workspace=None):
@@ -333,7 +408,12 @@ def make_handler(ed=None, workspace=None):
             if u.path == '/home' or (u.path == '/' and ed is None):
                 self._send(200, open(os.path.join(HERE,'home.html'),'rb').read(), 'text/html; charset=utf-8'); return True
             if u.path == '/api/library':
-                self._json({'projects':workspace.library.list(), 'default_folder':os.path.join(os.path.expanduser('~'),'DX Studio Projects')}); return True
+                from .scaffold import CATALOG
+                self._json({'projects':workspace.library.list(),'templates':CATALOG, 'default_folder':os.path.join(os.path.expanduser('~'),'DX Studio Projects')}); return True
+            if u.path.startswith('/template-preview/'):
+                name=u.path.rsplit('/',1)[-1]
+                if name not in {'showcase.jpg','comparison.jpg'}:raise ValueError('Unknown template preview')
+                self._file(os.path.join(HERE,'template_previews',name),'image/jpeg');return True
             if u.path == '/api/library/thumbnail':
                 identifier = parse_qs(u.query).get('id',[''])[0]
                 workspace.library.find(identifier)
@@ -366,6 +446,7 @@ def make_handler(ed=None, workspace=None):
                 if u.path == '/theme.css': return self._send(200, open(os.path.join(HERE, 'theme.css'), 'rb').read(), 'text/css; charset=utf-8')
                 if u.path == '/motion.css': return self._send(200, open(os.path.join(HERE, 'motion.css'), 'rb').read(), 'text/css; charset=utf-8')
                 if u.path == '/editor-shell.css':return self._send(200,open(os.path.join(HERE,'editor-shell.css'),'rb').read(),'text/css; charset=utf-8')
+                if u.path == '/editor-ai.js':return self._send(200,open(os.path.join(HERE,'editor-ai.js'),'rb').read(),'text/javascript; charset=utf-8')
                 if u.path == '/editor-shell.js':return self._send(200,open(os.path.join(HERE,'editor-shell.js'),'rb').read(),'text/javascript; charset=utf-8')
                 if u.path == '/editor-view.js': return self._send(200, open(os.path.join(HERE, 'editor-view.js'), 'rb').read(), 'text/javascript; charset=utf-8')
                 if u.path == '/editor-brand.js': return self._send(200, open(os.path.join(HERE, 'editor-brand.js'), 'rb').read(), 'text/javascript; charset=utf-8')
@@ -385,6 +466,7 @@ def make_handler(ed=None, workspace=None):
                 if editor is None: return self._send(404,b'Open a project first','text/plain')
                 if u.path == '/frame': return self._send(200, editor.frame(float(q.get('t', ['0'])[0]), min(1.0, max(0.05, float(q.get('s', ['0.45'])[0]))), json.loads(q.get('solo',['[]'])[0])), 'image/jpeg')
                 if u.path == '/api/state': return self._json(editor.open_state())
+                if u.path == '/api/source-status':return self._json(editor.disk_status())
                 if u.path == '/api/brands': return self._json({'presets':brands.list()})
                 if u.path == '/api/captions/export':
                     from .subtitles import export
@@ -415,7 +497,7 @@ def make_handler(ed=None, workspace=None):
                     with editor.preview(json.loads(q.get('solo',['[]'])[0])): h = editor.pr.hits(float(q.get('t', ['0'])[0]))
                     return self._json(h)
                 if u.path == '/api/status':
-                    return self._json({'audio_version': editor.audio_version, 'audio_busy': editor.audio_busy, 'build': editor.build, 'has_video':os.path.isfile(contained(editor.pr.path,editor.build.get('output_file') or os.path.relpath(editor.pr.output,editor.pr.path)))})
+                    return self._json({'external':editor.disk_status(),'audio_version': editor.audio_version, 'audio_busy': editor.audio_busy, 'build': editor.build, 'has_video':os.path.isfile(contained(editor.pr.path,editor.build.get('output_file') or os.path.relpath(editor.pr.output,editor.pr.path)))})
                 if u.path.startswith('/thumb/'): return self._send(200, editor.thumb(unquote(u.path[7:])), 'image/png', {'Cache-Control': 'max-age=3600'})
                 if u.path == '/audio': return self._file(editor.audio_path, 'audio/wav')
                 if u.path in ('/video','/export-captions'):
@@ -534,6 +616,22 @@ def make_handler(ed=None, workspace=None):
                         vals = copy.deepcopy(editor.pr.values); vals['__media'] = vals.get('__media', []) + [item]
                         editor.pr.apply(vals)
                     return self._json({'ok': True, 'id': item['id'], 'state': editor.state()})
+                if u.path == '/api/source-reload':
+                    body=self._body()
+                    return self._json(editor.reload_source(body.get('revision'),body.get('disk_revision')))
+                if u.path == '/api/handoff':
+                    body=self._body()
+                    with editor.lock,editor.history.writing():
+                        editor.history.check(body.get('revision'))
+                        if editor.disk_status()['changed']:raise ValueError('Reload external project changes before preparing the handoff')
+                        from .handoff import export,prompt
+                        # Another tab's unsaved preview is not part of this handoff.
+                        previous=copy.deepcopy(editor.pr.values)
+                        try:
+                            editor.pr.apply(editor.saved)
+                            data=export(editor.pr,body.get('request',''),editor.revision,editor.source_revision)
+                        finally:editor.pr.apply(previous)
+                        return self._json({'document':data,'prompt':prompt(editor.pr.path,body.get('request',''))})
                 if u.path == '/api/save':
                     body = self._body()
                     if 'revision' in body and 'values' in body:

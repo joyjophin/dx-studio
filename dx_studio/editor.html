@@ -174,6 +174,9 @@
   .panel-resize:hover,.timeline-resize:hover,.panel-resize:focus-visible,.timeline-resize:focus-visible{background:var(--lil);outline:2px solid var(--vio)}
   .app.inspector-hidden>main{grid-template-columns:minmax(0,1fr) 0}.app.inspector-hidden aside,.app.inspector-hidden .panel-resize{display:none}
   .app.timeline-hidden #tlgrid,.app.timeline-hidden .timeline-resize{display:none}
+
+#aiWorkflowDialog{width:min(740px,94vw);max-height:92vh;overflow:auto}#sourceReloadDialog{width:min(650px,94vw);max-height:90vh;overflow:auto}#aiWorkflowDialog h2,#sourceReloadDialog h2{margin:0;font-size:21px;letter-spacing:-.03em}#aiProjectFolder{display:block;margin-top:8px;font-size:11px;overflow-wrap:anywhere}.ai-workflow{font-size:12px;line-height:1.65;padding-left:20px}.ai-workflow li{margin-bottom:12px}.ai-label{display:block;font-weight:550;font-size:12px;margin:14px 0 7px}#aiWorkflowDialog textarea{width:100%;padding:12px;line-height:1.6;font:inherit;font-size:12px;resize:vertical}#sourceUpdateFiles{font-size:12px;line-height:1.8;overflow-wrap:anywhere}#sourceNotice{background:var(--soft);color:var(--ink)}#bAI{white-space:nowrap}
+
 </style>
 <link rel="stylesheet" href="/editor-shell.css">
 <link rel="stylesheet" href="/theme.css">
@@ -189,10 +192,10 @@
     <div class="spacer"></div>
     <button class="btn icon-button" id="bUndo" title="Undo (⌘Z)" disabled>↶</button><button class="btn icon-button" id="bRedo" title="Redo (⇧⌘Z)" disabled>↷</button>
     <div class="header-divider"></div><button class="btn icon-button" id="bView" title="View options">View</button>
-    <details class="shell-menu" id="projectMenu"><summary class="btn icon-button" aria-label="Project menu" title="Project menu">···</summary><div class="shell-popover"><div class="menu-caption">Project</div><button id="bSave">Save now</button><button id="bVersions">Version history</button><button id="bBundle">Download portable project</button><button id="bExportStatus" hidden>Last export</button><hr><button id="bGuide">Getting started</button><button id="bDiagnostics">Installation & diagnostics</button><hr><button id="bReset">Reset to original</button></div></details>
-    <button class="btn primary" id="bExport">Export</button><button class="shell-legacy" id="bBuild">Build video</button>
+    <details class="shell-menu" id="projectMenu"><summary class="btn icon-button" aria-label="Project menu" title="Project menu">···</summary><div class="shell-popover"><div class="menu-caption">Project</div><button id="bSave">Save now</button><button id="bVersions">Version history</button><button id="bBundle">Download portable project</button><button id="bAIMenu">Prepare AI handoff</button><button id="bExportStatus" hidden>Last export</button><hr><button id="bGuide">Getting started</button><button id="bDiagnostics">Installation & diagnostics</button><hr><button id="bReset">Reset to original</button></div></details>
+    <button class="btn small" id="bAI">Continue with AI</button><button class="btn primary" id="bExport">Export</button><button class="shell-legacy" id="bBuild">Build video</button>
   </header>
-  <div class="notices"><div class="recovery-bar" id="recoveryBar" hidden><span id="recoverySummary"></span><button class="btn small" id="bRecovery">Review drafts</button><button class="btn small" id="bReload" hidden>Reload saved project</button></div>
+  <div class="notices"><div class="recovery-bar" id="sourceNotice" role="status" hidden><span id="sourceNoticeText"></span><button class="btn small" id="sourceReview">Review file updates</button></div><div class="recovery-bar" id="recoveryBar" hidden><span id="recoverySummary"></span><button class="btn small" id="bRecovery">Review drafts</button><button class="btn small" id="bReload" hidden>Reload saved project</button></div>
   <div class="recovery-bar" id="welcomeBar" hidden><span>New to DX Studio? Start with a quick guide.</span><button class="btn small" id="guideStart">Show me around</button><button class="btn small" id="guideDismiss">Dismiss</button></div>
   </div>
   <main>
@@ -265,6 +268,17 @@
 <dialog class="history-dialog" id="guideDialog" aria-labelledby="guideTitle"><p class="sub" id="guideStep"></p><h2 id="guideTitle">Getting started</h2><p class="note" id="guideText"></p><button class="btn" id="guideOpen">Open this tool</button><div class="kbar" style="margin-top:20px"><button class="btn" id="guideClose">Close guide</button><button class="btn" id="guidePrev">Back</button><button class="btn primary" id="guideNext">Next</button></div></dialog>
 <dialog class="history-dialog" id="diagnosticsDialog" aria-labelledby="diagnosticsTitle"><h2 id="diagnosticsTitle">Installation & diagnostics</h2><p class="note">This report contains DX Studio, Python, system and dependency versions. It excludes project names, paths, scripts and media. Download it to review before sharing with a bug report.</p><pre id="diagnosticsText" style="max-height:45vh;overflow:auto;white-space:pre-wrap"></pre><div class="kbar"><button class="btn" id="diagnosticsClose">Close</button><button class="btn primary" id="diagnosticsDownload" disabled>Download report</button></div></dialog>
 <dialog class="history-dialog" id="bundleDialog" aria-labelledby="bundleTitle"><h2 id="bundleTitle">Download portable project</h2><p class="note" id="bundleMessage" role="status"></p><label class="kbar"><input type="checkbox" id="bundleHistory">Include older settings versions for a backup</label><p class="sub">Older versions may contain earlier text and working notes. Leave this off for a normal handoff.</p><div class="kbar"><button class="btn" id="bundleClose">Cancel</button><button class="btn primary" id="bundleDownload">Download ZIP</button></div></dialog>
+<dialog id="aiWorkflowDialog" aria-labelledby="aiWorkflowTitle"><div class="row"><h2 id="aiWorkflowTitle">Continue with your AI assistant</h2><div class="spacer"></div><button class="btn small" id="aiWorkflowClose" aria-label="Close AI handoff">×</button></div>
+<p class="sub">Keep the same chat for creative context. Give your assistant access to this project folder so it can read your saved edits and update the actual source files.</p>
+<div class="note"><b id="aiProjectSummary"></b><br><code id="aiProjectFolder"></code></div>
+<ol class="ai-workflow"><li><b>Prepare the next edit.</b> Your JSON handoff includes dimensions, duration, presenter reservations, storyboard, titles, layer IDs, source files and saved edits.</li><li><b>Continue in the same chat.</b> Paste the follow-up prompt. If the assistant cannot access this folder, attach the JSON and a portable project ZIP.</li><li><b>Return here to review updates.</b> DX notices changed files. Choose Reload AI changes after the assistant finishes. It does not silently replace a cut while you are editing.</li></ol>
+<label class="ai-label" for="aiRequest">What should your assistant create or change?</label><textarea id="aiRequest" class="txt" rows="3" placeholder="e.g. Build the explainer around these titles. Keep my 30-second portrait canvas and bottom-right presenter space."></textarea>
+<div class="row" style="margin:12px 0"><button class="btn primary" id="aiPrepare">Prepare AI handoff</button><button class="btn" id="aiFullProject">Download full project</button></div>
+<div id="aiPrepared" hidden><label class="ai-label" for="aiFollowupPrompt">Paste this into your AI chat</label><textarea id="aiFollowupPrompt" class="txt" rows="7" readonly></textarea><div class="row" style="margin:12px 0"><button class="btn primary" id="aiCopyPrompt">Copy follow-up prompt</button><button class="btn" id="aiDownloadJSON">Download JSON handoff</button></div></div>
+<p class="sub">The JSON contains project text, local file paths, editable settings and source code. Binary media and the engine are in the portable project bundle. Nothing is sent to an AI service by DX Studio.</p>
+<div id="aiHandoffMessage" class="sub" role="status"></div><div class="row" style="justify-content:flex-end;margin-top:16px"><button class="btn" id="aiCheckUpdates">Check for AI updates</button></div></dialog>
+<dialog id="sourceReloadDialog" aria-labelledby="sourceReloadTitle"><div class="row"><h2 id="sourceReloadTitle">Review project file updates</h2><div class="spacer"></div><button class="btn small" id="sourceReloadClose" aria-label="Close file updates">×</button></div><p class="sub">Wait until your assistant has finished writing the files. The current preview stays available if the updated source cannot load.</p><ul id="sourceUpdateFiles"></ul><p id="sourceUpdateMessage" class="sub" role="status"></p><div class="row" style="justify-content:flex-end;margin-top:20px"><button class="btn" id="aiDraftDownload" hidden>Download pending edits</button><button class="btn primary" id="sourceReloadButton">Reload AI changes</button></div></dialog>
+
 <script src="/editor-session.js"></script>
 <script src="/editor-tools.js"></script>
 <script src="/editor-guide.js"></script>
@@ -278,6 +292,7 @@
 <script src="/editor-creator.js"></script>
 <script src="/editor-shell.js"></script>
 <script src="/editor-motion.js"></script>
+<script src="/editor-ai.js"></script>
 <script>
 let LAY = [], selLayer = null, HITS = [];
 const SELECTED = new Set(), SOLO = new Set(); let PENDING_MULTI = []; let layerSearch = '', alignTarget = 'selection';
@@ -302,10 +317,11 @@ async function api(path, body) {
 }
 
 // ---------------------------------------------------------------- preview
-let inflight = false, pending = false;
+let inflight = false, pending = false, previewInteracting = false;
 function frameScale() {
   const h = frame.getBoundingClientRect().height * (window.devicePixelRatio || 1);
-  return viewFrameScale(playing ? Math.min(0.42, Math.max(0.28, h / PJ.height)) : Math.min(0.75, Math.max(0.35, h / PJ.height)));
+  const quality = viewFrameScale(playing ? Math.min(0.42, Math.max(0.28, h / PJ.height)) : Math.min(0.75, Math.max(0.35, h / PJ.height)));
+  return IN_DRAG || previewInteracting ? Math.min(quality, 0.35) : quality;
 }
 function nowT() { return playing ? (playAudio ? audio.currentTime : playT0 + (performance.now() - playStart) / 1000 * PREVIEW_RATE) : t; }
 function requestFrame() {
@@ -320,6 +336,7 @@ img.onerror = async () => {frameLoaded();
 };
 let pushTimer = null, pushBusy = false, pushAgain = false;
 async function pushNow() {
+  clearTimeout(pushTimer); pushTimer = null;
   if (pushBusy) { pushAgain = true; return; }
   pushBusy = true; pushAgain = false;
   try { const r = await api('/api/preview?t='+t, V); if(r.output)PJ.output=r.output;if(r.has_audio!==undefined){syncAudioAvailability(r.has_audio);} if (r.layout) { PJ.layout = r.layout; drawSafetyGuides(); } if (r && r.layers && JSON.stringify(r.layers) !== JSON.stringify(LAY)) { LAY = r.layers; D.__layers = r.layer_defaults; for (const m of LAY) if (!V.__layers[m.id] && r.layer_defaults[m.id]) V.__layers[m.id] = clone(r.layer_defaults[m.id]); renderLayerRows(); renderLayerTree(); if (selLayer && !LM(selLayer)) { selLayer = null; fillInspector(); } else if(document.activeElement?.getAttribute('aria-label')!=='Layer name') fillInspector(); } if (PENDING_SELECT && LM(PENDING_SELECT)) { const id = PENDING_SELECT; PENDING_SELECT = null; selectLayer(id, false); } } catch (e) { showErr(e.message || 'Could not update preview'); }
@@ -327,7 +344,14 @@ async function pushNow() {
   if (PENDING_MULTI.length && PENDING_MULTI.every(id=>LM(id))) { SELECTED.clear(); for(const id of PENDING_MULTI) SELECTED.add(id); selLayer=PENDING_MULTI.at(-1); PENDING_MULTI=[]; selectionRefresh(); }
   if (pushAgain) pushNow();
 }
-function changed(immediate) { const d0 = DUR; syncTimeline(); if (Math.abs(DUR - d0) > 1e-6) relayoutTimeline(); markDirty(); clearTimeout(pushTimer); pushTimer = setTimeout(pushNow, immediate ? 0 : 90); if (!APPLYING) historySoon(immediate); }
+// A paced, latest-value queue: continuous input must never postpone the next preview.
+function queuePreview(immediate=false) {
+  if (immediate) { clearTimeout(pushTimer); pushTimer = null; }
+  if (pushTimer === null) pushTimer = setTimeout(pushNow, immediate ? 0 : 32);
+}
+function changed(immediate) { const d0 = DUR; syncTimeline(); if (Math.abs(DUR - d0) > 1e-6) relayoutTimeline(); markDirty(); queuePreview(immediate); if (!APPLYING) historySoon(immediate); }
+document.addEventListener('pointerdown', event => { if (event.target.matches('input[type=range]')) previewInteracting = true; }, true);
+for (const event of ['pointerup','pointercancel']) window.addEventListener(event, () => { if (previewInteracting) { previewInteracting = false; queuePreview(true); commitHistory(); } });
 function markDirty() { if (session) session.changed(V); }
 
 // ---------------------------------------------------------------- time & playback
@@ -405,8 +429,9 @@ let SNAP_T = 0;
 function dragWith(onMove, onUp) {
   IN_DRAG = true; SNAP_T = t;
   const mv = ev => { ev.preventDefault(); onMove(ev); };
-  const up = ev => { window.removeEventListener('pointermove', mv); window.removeEventListener('pointerup', up); onMove(ev); onUp && onUp(ev); IN_DRAG = false;SHELL_CANVAS_GESTURE=false;shellInspectorChanged(); hideSnap(); commitHistory(); };
-  window.addEventListener('pointermove', mv); window.addEventListener('pointerup', up);
+  const up = ev => { window.removeEventListener('pointermove', mv); window.removeEventListener('pointerup', up); window.removeEventListener('pointercancel', cancel); if(ev.type!=='pointercancel')onMove(ev); onUp && onUp(ev); IN_DRAG = false;SHELL_CANVAS_GESTURE=false;shellInspectorChanged(); renderLayerRows(); hideSnap(); queuePreview(true); commitHistory(); };
+  const cancel = ev => up(ev);
+  window.addEventListener('pointermove', mv); window.addEventListener('pointerup', up); window.addEventListener('pointercancel', cancel);
 }
 function buildTimeline() {
   const G = $('#tlgrid'); G.innerHTML = '';
@@ -540,7 +565,7 @@ const PANEL_NOTE = {
   Text: 'On-screen text. Words that are also spoken stay as recorded, so keep them in sync with the narration. Clicking a field jumps to where it appears.',
   Colours: 'Tints, shadows and backgrounds derived from these colours update with them.',
 };
-function panels() { const out = []; for (const e of SCH) if (!['Narration','Audio','Media','Brand'].includes(e.panel) && !out.includes(e.panel)) out.push(e.panel); out.splice(Math.max(0,out.indexOf('Layers')+1),0,'Media','Narration','Audio','Brand'); return out; }
+function panels() { const out = []; for (const e of SCH) if (!['Narration','Audio','Media','Brand'].includes(e.panel) && !out.includes(e.panel)) out.push(e.panel); if(!out.includes('Text'))out.push('Text');out.splice(Math.max(0,out.indexOf('Layers')+1),0,'Media','Narration','Audio','Brand'); return out; }
 function buildPanels() {
   const T = $('#tabs'), P = $('#panes'); T.innerHTML = ''; P.innerHTML = '';
   const names=panels();const jump=$('#panelJump');jump.replaceChildren();for(const name of names){const option=el('option');option.value=name;option.textContent=name;jump.append(option);}jump.onchange=()=>document.querySelector(`.tab[data-p="${jump.value}"]`)?.click();
@@ -578,7 +603,7 @@ function control(f, get, set, opts = {}) {
     i.oninput = () => { const x = parseFloat(i.value); if (!isNaN(x)) set(f.type === 'time' ? r2(x) : x); };
     if (opts.onFocus) i.onfocus = opts.onFocus; box.append(i); box._sync = () => { if (document.activeElement !== i) i.value = (+get()).toFixed(f.type === 'time' ? 2 : 0); };
   } else if (f.type === 'number') {
-    const r = el('input'); r.type = 'range'; r.min = f.min; r.max = f.max; r.step = f.step || 1; r.value = v;
+    const r = el('input'); r.type = 'range'; r.setAttribute('aria-label',(f.label || f.key || 'Value')+' slider'); r.min = f.min; r.max = f.max; r.step = f.step || 1; r.value = v;
     const i = el('input', 'num'); i.type = 'number'; i.min = f.min; i.max = f.max; i.step = f.step || 1; i.value = v;
     r.oninput = () => { i.value = r.value; set(parseFloat(r.value)); };
     i.oninput = () => { const x = parseFloat(i.value); if (!isNaN(x)) { r.value = x; set(x); } };
@@ -1271,6 +1296,7 @@ $('#bComposition').onclick = () => { const b=[...document.querySelectorAll('.tab
 async function poll() {
   try {
     const st = await api('/api/status');
+    sourceNotice(st.external);
     $('#audioState').style.display = st.audio_busy ? 'inline-block' : 'none';
     if (HAS_AUDIO && st.audio_version !== audioVer) { audioVer = st.audio_version; if(playing&&playAudio)pause(); audio.src = projectURL('/audio?v=') + audioVer;loadWaveform(); }
     const b=st.build;b.has_video=st.has_video;BUILD_STATE=b;$('#bBuild').textContent=b.running?'Export progress':'Build video';
@@ -1332,7 +1358,7 @@ function setTransform(id, patch) { if(isLayerLocked(id))return;                 
     if (!k) { k = Object.assign({t: rt, ease: 'ease'}, transformAt(st, rt)); st.keys.push(k); st.keys.sort((a, b) => a.t - b.t); }
     Object.assign(k, patch);
   } else Object.assign(st, patch);
-  renderLayerRows(); syncInspector(); changed();
+  if (!IN_DRAG) renderLayerRows(); syncInspector(); changed();
 }
 function selectLayer(id, jump, additive=false, preserve=false) {
   const members=selectionGroupMembers(id);
@@ -1429,7 +1455,7 @@ function fillInspector() {
   const rename=el('input','txt');rename.setAttribute('aria-label','Layer name');rename.value=m.label;rename.maxLength=120;rename.oninput=()=>{LS(m.id).label=rename.value.trim()||'Untitled layer';m.label=LS(m.id).label;head.firstChild.textContent=m.label;changed();renderLayerTree();renderLayerRows();drawOverlay();};I.append(rename);
   const num = (label, get, set, o = {}) => {
     const f = el('div', 'field'), box = el('div', 'ctl');
-    if (o.range) { const r = el('input'); r.type = 'range'; r.min = o.min; r.max = o.max; r.step = o.step; r.oninput = () => { i.value = r.value; set(parseFloat(r.value)); }; box.append(r); f._r = r; }
+    if (o.range) { const r = el('input'); r.type = 'range'; r.setAttribute('aria-label',label+' slider'); r.min = o.min; r.max = o.max; r.step = o.step; r.oninput = () => { i.value = r.value; set(parseFloat(r.value)); }; box.append(r); f._r = r; }
     const i = el('input', 'num'); i.type = 'number'; i.step = o.step || 1;i.setAttribute('aria-label',label); i.oninput = () => { const x = parseFloat(i.value); if (!isNaN(x)) { if (f._r) f._r.value = x; set(x); } };
     box.append(i); if (o.unit) box.append(el('span', 'sub', o.unit)); f.append(el('label', null, label), box); I.appendChild(f);
     f._sync = () => { const v = get(); if (document.activeElement !== i) i.value = o.fmt ? o.fmt(v) : v; if (f._r) f._r.value = v; }; f._sync(); return f;
@@ -1493,7 +1519,7 @@ function fillInspector() {
 function syncInspector() { for (const f of Object.values(INSP)) f._sync && f._sync(); }
 // ---- preview: selection overlay + handles
 let hitsTimer = null, hitsFor = '';
-function overlaySoon() { clearTimeout(hitsTimer); hitsTimer = setTimeout(loadHits, 60); }
+function overlaySoon() { if (hitsTimer === null) hitsTimer = setTimeout(() => { hitsTimer = null; loadHits(); }, 32); }
 async function loadHits() {
   const key = t.toFixed(3) + ':' + ver; if (key === hitsFor && !dragging) return drawOverlay();
   hitsFor = key; try { HITS = await (await fetch(projectURL('/api/hits?t=' + t.toFixed(3) + soloQuery()))).json(); } catch (e) { HITS = []; }
@@ -1519,7 +1545,15 @@ function drawOverlay() {
     g.setAttribute('stroke', '#E0457B'); g.setAttribute('stroke-width', 1.5 * sc); ov.appendChild(g); }
   const lab = document.createElementNS('http://www.w3.org/2000/svg', 'text');
   lab.setAttribute('x', c[0][0]); lab.setAttribute('y', c[0][1] - 10 * sc); lab.setAttribute('fill', '#7846EB'); lab.setAttribute('font-size', 13 * sc); lab.setAttribute('font-weight', 700); lab.setAttribute('font-family', 'Inter, sans-serif');
-  lab.textContent = LM(selLayer).label; ov.appendChild(lab);
+  const fullLabel = LM(selLayer).label;
+  lab.textContent = fullLabel; ov.appendChild(lab);
+  // A screen-sized selection label must fit even on a narrow portrait canvas.
+  const maxLabelWidth = Math.max(sc, PJ.width - 16 * sc);
+  let label = fullLabel;
+  while (lab.getComputedTextLength() > maxLabelWidth && label.length > 1) { label = label.slice(0, -1); lab.textContent = label + '…'; }
+  lab.setAttribute('x', Math.max(8 * sc, Math.min(c[0][0], PJ.width - lab.getComputedTextLength() - 8 * sc)));
+  lab.setAttribute('y', Math.max(18 * sc, Math.min(c[0][1] - 10 * sc, PJ.height - 8 * sc)));
+  const title = document.createElementNS('http://www.w3.org/2000/svg','title'); title.textContent = fullLabel; lab.appendChild(title);
   h._rh = rh; drawBulkOutlines(ov,sc);
 }
 let GUIDES = [];
@@ -1598,8 +1632,8 @@ window.addEventListener('resize', () => drawOverlay());
   };
   new ResizeObserver(fitStage).observe(frame.parentElement); fitStage();
   drawSafetyGuides();setGuides(false);
-  if (HAS_AUDIO) audio.src = projectURL('/audio?v=') + audioVer;
-  buildTimeline(); buildPanels(); setupView();setupCreator();setupShell();setupGuide(); loadWaveform(); markDirty(); if (LAY.length) overlaySoon();
+  if (HAS_AUDIO && !st.audio_busy) audio.src = projectURL('/audio?v=') + audioVer;
+  buildTimeline(); buildPanels(); setupView();setupCreator();setupShell();setupGuide();setupAIWorkflow(st); loadWaveform(); markDirty(); if (LAY.length) overlaySoon();
   SNAP = JSON.stringify(V); updUndo(); relayoutTimeline();
   const firstText = SCH.find(e => e.at != null);
   setT(Math.min(BASE / 2, firstText ? firstText.at : 0)); poll();
