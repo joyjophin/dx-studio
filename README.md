@@ -22,7 +22,9 @@ adjust the timing in DX Editor, then rebuild from the same source.
 </tr>
 </table>
 
-**DX Studio v1.0** is the first full product launch. It includes
+**DX Studio v1.1** adds [three clear starting workflows](docs/AI_WORKFLOW.md),
+a JSON skeleton for AI, reviewed file updates and continuous gesture previews.
+v1.0 was the first full product launch. It includes
 [project home and bulk editing](docs/WORKSPACE.md), [media](docs/MEDIA.md),
 [narration](docs/NARRATION.md), [audio balance](docs/AUDIO_WORKSPACE.md),
 [captions](docs/CAPTIONS.md), [brand presets](docs/BRAND_PRESETS.md),
@@ -39,7 +41,7 @@ protected assistant revisions with frame comparisons, actual presenter clips and
 scene layouts, editable explanation blocks, portable fonts/logos/templates and
 range exports with profiles, SRT and sampled quality review. Speech recognition is
 optional; timed-word import needs no model or account.
-[Download v1.0](https://github.com/joyjophin/dx-studio/releases/tag/v1.0.0) ·
+[Download v1.1](https://github.com/joyjophin/dx-studio/releases/tag/v1.1.0) ·
 [First project](docs/QUICKSTART.md) · [What changed](CHANGELOG.md).
 
 ## A look around
@@ -67,10 +69,12 @@ There is no chat or prompt panel. [Workspace preferences →](docs/VIEW.md)
 </tr>
 </table>
 
-<p align="center"><img src="docs/images/showcase-dashboard.jpg" alt="DX Studio's projects dashboard with native portrait and landscape showcase thumbnails" width="100%"></p>
+<p align="center"><img src="docs/images/workflow-dashboard.jpg" alt="DX Studio's projects dashboard with native portrait and landscape showcase thumbnails" width="100%"></p>
 
 Project cards keep your work within reach. Open a folder from your assistant,
-continue a recent project, or begin with an editable template.
+continue a recent project, or choose one of three starting paths:
+**Create with AI**, **Start from a template**, or **Start blank**.
+[Choose your workflow →](docs/AI_WORKFLOW.md)
 [Editor layout →](docs/EDITOR_LAYOUT.md) · [Recreate these captures →](docs/GALLERY.md)
 
 ## Made with DX Studio
@@ -105,8 +109,8 @@ model or API key is needed. The film contains illustrative track graphics, while
 the editor images above are genuine UI captures.
 [Art direction, source and render instructions →](examples/showcase/README.md)
 
-Start a new film with the [explainer](dx_studio/templates/explainer/scene.py)
-or [minimal starter](dx_studio/templates/starter/scene.py), or customise the showcase.
+Start with **Make it click** or **Proof point** in the template gallery, or set
+up a blank canvas and hand its titles, timing and constraints to your assistant.
 
 ## Features
 
@@ -139,26 +143,31 @@ render checks and a project you can finish in the editor.
 > plus a project I can open in DX Editor.
 
 ```text
-Brief → script and beats → editable project → DX Editor → final MP4
-                              ↑                 ↓
-                              └── saved edits ──┘
+AI brief or editor skeleton → editable project ⇄ DX Editor → final MP4
+                                  ⇅
+                     Same AI chat + shared project folder
 ```
 
 The skill asks about presenter placement when it is not already specified. It
 works with assistants that can run Python, access files and inspect images.
-Text-only chat can draft source; rendering needs a coding environment. Story
+Text-only chat can draft source; rendering needs a coding environment.
+After editor tweaks, **Continue with AI** saves a JSON brief and provides the next
+prompt. Keep the same chat and explicitly share the same folder. Review detected
+file changes with **Reload AI changes**. Without local folder access, exchange the
+JSON and portable project ZIP instead. DX does not connect to a chat provider.
+[Full AI round trip and blank-project handoff →](docs/AI_WORKFLOW.md) Story
 craft can help attention and understanding; it cannot guarantee views.
 
 ## Get started
 
-Download the **source ZIP** from [the v1.0 release](https://github.com/joyjophin/dx-studio/releases/tag/v1.0.0), extract it, and follow the [platform setup guide](docs/INSTALL.md) for Python, Cairo and FFmpeg. Then:
+Download the **source ZIP** from [the v1.1 release](https://github.com/joyjophin/dx-studio/releases/tag/v1.1.0), extract it, and follow the [platform setup guide](docs/INSTALL.md) for Python, Cairo and FFmpeg. Then:
 
 - **macOS:** open **Launch DX Studio.command**.
 - **Linux / WSL2:** run `bash launch.sh` inside the extracted folder.
 
 The launcher creates a local environment, installs Python dependencies on first
 setup, checks the installation and opens your projects dashboard. Try the editable
-sample or create your own project. Nothing needs a paid API or voice model.
+templates, or create a blank project with your own constraints. Nothing needs a paid API or voice model.
 
 For an existing Python environment, the manual path is:
 

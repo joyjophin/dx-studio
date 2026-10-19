@@ -3,6 +3,10 @@
 Read this when returning to a project that has been opened in DX Editor, or when
 preparing the editable handoff. Keep the creator's changes usable after your work.
 
+For the same-chat file workflow and editor-created JSON skeleton, read
+[AI_HANDOFF](AI_HANDOFF.md). The editor’s **Continue with AI** prepares the brief;
+**Review file updates → Reload AI changes** adopts completed source revisions.
+
 ## Start from the saved project
 
 Read project.json, scene.py and settings.json before revising an existing cut.

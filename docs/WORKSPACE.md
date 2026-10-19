@@ -1,14 +1,13 @@
 # Projects and layer controls
 
-Available in DX Studio v1.0. The dashboard also offers an editable sample project
-and an optional six-step guide. Reopen the guide from the editor Project menu.
-
 ## Start with a project
 
-Run `dx-studio edit` to open the project home, then choose **New project**. Give
-it a name and choose 16:9 or 9:16. Expand **Project setup** for an explainer or
-minimal starter, presenter space and the parent destination folder.
-Existing folders are never overwritten.
+Run `dx-studio edit` to open project home. Choose **Create with AI** for external
+assistant instructions, **Start from a template** for Make it click or Proof point,
+or **Start blank** to set dimensions, duration and presenter space before adding
+titles and story notes. Expand **Save location** to choose the parent folder.
+Existing folders are never overwritten. Follow the [three workflows](AI_WORKFLOW.md)
+for same-chat AI revisions and the JSON skeleton handoff.
 
 To continue an assistant-created video, paste its project folder in **Open a
 project**. Open trusted projects: scene files run Python. Search recent projects
@@ -21,7 +20,7 @@ settings. Opening the same project in two tabs still uses stale-save protection.
 The library stores paths and metadata locally. Browsing recents does not execute
 scene code; thumbnails for unopened projects use a previously cached preview.
 
-![Project home](images/dashboard-modern.jpg)
+![Project home](images/workflow-dashboard.jpg)
 
 See [the editor layout guide](EDITOR_LAYOUT.md) for the tool rail, contextual
 inspector and expandable timeline tracks.
@@ -56,7 +55,9 @@ A single layer also has **Fit graphics safe zone**, which scales and centres it
 inside the reserved graphics area.
 
 **Snap** (S) controls timeline and canvas snapping. Hold Alt during a
-drag to temporarily disable snapping. Undo/redo and autosave apply to these edits.
+drag to temporarily disable snapping. The rendered preview updates throughout
+continuous dragging and slider input; heavier scenes may preview at a lower rate.
+Undo/redo and autosave apply to these edits.
 See [saving and recovery](SAVING.md) for restore and version controls.
 
 ![Bulk layer controls](images/editor-bulk.png)

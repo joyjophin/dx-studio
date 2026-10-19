@@ -129,14 +129,17 @@ def main(argv=None):
     sub.add_parser('sounds',help='List built-in sound effects')
     new=sub.add_parser('init',help='Create an editable project')
     new.add_argument('dest');new.add_argument('--format',choices=['9:16','16:9'],default='9:16')
-    new.add_argument('--template',choices=['explainer','starter'],default='explainer');new.add_argument('--name');new.add_argument('--brand')
+    from .scaffold import TEMPLATES
+    new.add_argument('--template',choices=TEMPLATES,default='explainer');new.add_argument('--name');new.add_argument('--brand')
+    new.add_argument('--duration',type=float);new.add_argument('--width',type=int);new.add_argument('--height',type=int)
     from .composition import PRESENTER_PRESETS
     new.add_argument('--presenter',choices=list(PRESENTER_PRESETS),default='none',help='Reserve space for a talking head')
-    for command in ['check','audio','build','edit','still','pack','captions']:
+    for command in ['check','audio','build','edit','still','pack','captions','handoff']:
         p=sub.add_parser(command);p.add_argument('project', **({'nargs':'?'} if command=='edit' else {}))
         if command=='still': p.add_argument('times',type=float,nargs='*',default=[0.0])
         if command=='edit': p.add_argument('--port',type=int,default=8765);p.add_argument('--no-browser',action='store_true')
         if command=='build':p.add_argument('--output',help='Output path inside the project');p.add_argument('--settings',help='Settings snapshot inside the project')
+        if command=='handoff':p.add_argument('--request',default='',help='The next change for your AI assistant')
         if command=='captions':p.add_argument('--format',choices=['srt','vtt'],default='srt');p.add_argument('--output')
         if command=='pack': p.add_argument('--output',required=True);p.add_argument('--include-history',action='store_true',help='Include older settings versions in a backup; review before sharing')
     args=ap.parse_args(argv)
@@ -149,10 +152,14 @@ def main(argv=None):
             result=verify(args.archive);print(f"Bundle verified: {result['files']} files · matching engine {result['engine_version']}");return 0
         if args.command=='init':
             from .scaffold import create
-            print(create(args.dest,args.template,args.format,args.name,args.brand,args.presenter));return 0
+            print(create(args.dest,args.template,args.format,args.name,args.brand,args.presenter,args.duration,args.width,args.height));return 0
         if args.command=='pack':
             from .bundle import pack
             print(pack(args.project,args.output,args.include_history));return 0
+        if args.command=='handoff':
+            from .handoff import export, prompt
+            pr=_project(args.project);export(pr,args.request)
+            print(prompt(pr.path,args.request));return 0
         if args.command=='captions':
             from .subtitles import export
             from pathlib import Path

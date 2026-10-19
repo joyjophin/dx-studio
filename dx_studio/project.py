@@ -48,7 +48,10 @@ class Project:
         spec = importlib.util.spec_from_file_location(f'mkscene_{abs(hash(self.path))}', os.path.join(self.path, self.cfg.get('scene', 'scene.py')))
         self.scene = importlib.util.module_from_spec(spec); sys.modules[spec.name] = self.scene
         sys.path.insert(0, self.path)
-        try: spec.loader.exec_module(self.scene)
+        try:
+            # Reloads must see edits made within the same timestamp/size window.
+            with open(spec.origin,'rb') as stream:code=compile(stream.read(),spec.origin,'exec')
+            exec(code,self.scene.__dict__)
         finally: sys.path.remove(self.path)
         schema = copy.deepcopy(getattr(self.scene, 'SCHEMA', []))
         brand = self.cfg.get('brand', {})

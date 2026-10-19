@@ -1,4 +1,4 @@
-# Install DX Studio v1.0
+# Install DX Studio v1.1
 
 DX Studio is a local Python application with a browser editor. It requires Python
 3.10+, Cairo, FFmpeg and FFprobe. The first Python dependency installation needs
@@ -36,7 +36,7 @@ DX Studio does not install system packages or request administrator access itsel
 
 ## 2. Download and open
 
-Download **dx-studio-1.0.0-source.zip** from the GitHub release and extract it.
+Download **dx-studio-1.1.0-source.zip** from the GitHub release and extract it.
 On macOS, open **Launch DX Studio.command**. On Linux/WSL2, run:
 
 ```sh
@@ -67,7 +67,7 @@ python -m dx_studio edit
 ```
 
 Developers can install `'.[dev]'` for checks. To use a release wheel, replace the
-install line with `python -m pip install /path/to/dx_studio-1.0.0-py3-none-any.whl`.
+install line with `python -m pip install /path/to/dx_studio-1.1.0-py3-none-any.whl`.
 The wheel includes the editor, engine, templates and fonts; use the skill ZIP or
 source ZIP for assistant instructions and production scripts. No PyPI publication
 is implied. A portable project bundle has its own matching `engine/` installation.
@@ -82,7 +82,8 @@ bug report. The editor offers the same report in Project menu → Installation &
 
 ## First project and upgrades
 
-Choose **Try a sample**, **New project**, or **Open project**. The optional guide
+Choose **Create with AI**, **Start from a template**, **Start blank**, or **Open project**.
+Follow the [three starting workflows](AI_WORKFLOW.md) for the AI round trip. The optional guide
 is also available in Project menu → Getting started. See [QUICKSTART](QUICKSTART.md).
 For explicit ports use `python -m dx_studio edit --port 8800 --no-browser`.
 

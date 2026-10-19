@@ -1,0 +1,62 @@
+{
+  "format_version": 1,
+  "name": "Make it click",
+  "description": "An original ten-second DX Studio motion study. Every word, plane and curve remains editable.",
+  "width": 1920,
+  "height": 1080,
+  "fps": 30,
+  "duration": 10,
+  "final_hold": 1.1,
+  "scene": "scene.py",
+  "assets": "assets",
+  "output": "video.mp4",
+  "composition": {
+    "presenter": "none"
+  },
+  "safe_area": {
+    "content": [
+      96,
+      64,
+      1824,
+      1016
+    ],
+    "captions": [
+      200,
+      900,
+      1720,
+      1016
+    ]
+  },
+  "chapters": [
+    [
+      0,
+      2.25,
+      "Complex."
+    ],
+    [
+      2.25,
+      4.5,
+      "Clear."
+    ],
+    [
+      4.5,
+      7.6,
+      "Yours."
+    ],
+    [
+      7.6,
+      10,
+      "DX Studio"
+    ]
+  ],
+  "voice": [],
+  "music": {
+    "file": "assets/make-it-click.flac",
+    "level": 0.72,
+    "end_fade_at": 9.65
+  },
+  "mix": {
+    "loudness": -14,
+    "peak": -1.2
+  }
+}
