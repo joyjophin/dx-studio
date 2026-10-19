@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased — Showcase
+
+- Original ten-second **Make it click** films in native 16:9 and 9:16, with editable typography, a procedural ribbon sculpture, nested poster layers and original synthesised audio.
+- Reproducible demo projects, portable downloads, GIFs, posters, a format comparison, social artwork and fresh real editor/dashboard captures.
+- The README now leads with the finished film and its editable project.
+
 ## 1.0.0 — 2026-10-19
 
 First full product launch. This incorporates the work originally planned for v0.5.

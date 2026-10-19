@@ -1,63 +1,63 @@
 # Recreate the gallery
 
-README screenshots come from the working DX Editor. The animation and format
-examples come from the same Project renderer used for exports. No third-party
-product screenshots, personal artwork or generated UI mockups are used.
+The current gallery uses **Make it click**, an original ten-second DX Studio film.
+Both formats are native compositions, not crops. The scene, score and artwork can
+be regenerated locally without a model, account or downloaded media.
 
-## Open the full-frame example
+[Watch, customise and render the showcase →](../examples/showcase/README.md)
 
-After [installation](INSTALL.md):
+## Render the film and artwork
 
-```sh
-python -m dx_studio init projects/gallery --format 16:9 --name "Editable explainer"
-python -m dx_studio edit projects/gallery
-```
-
-Use a wide desktop window. The repository captures use a 1600 × 900 viewport.
-**Text** exposes the scene's words. In **Layers**, select Opening headline to see
-its selection handles and transform controls. In **Captions**, select a phrase
-for its text, highlight and timing controls. The screenshots show existing
-controls and the included fictional demonstration, rather than a finished
-narrated production or a claim about measured audience engagement.
-
-## Reserve presenter space
+After [installation](INSTALL.md), from the repository:
 
 ```sh
-python -m dx_studio init projects/presenter --format 16:9 --presenter left-half
-python -m dx_studio edit projects/presenter
+python scripts/render_showcase.py --build --stills --gallery
 ```
 
-Open **Presenter layout**. The half-frame screenshot uses `left-half`; the corner
-screenshot uses `bottom-right`. **Safe zones** shows the graphics, caption and
-presenter rectangles. Guides are editor overlays and do not appear in the export.
+The two projects and verified full-HD masters live in `outputs/showcase`.
+The gallery pass writes posters for all four beats, the format comparison,
+landscape and portrait GIFs, and a storyboard to `docs/images`.
+Use a new `--output` folder to preserve an edited project.
 
-## Render the editing loop
+## Capture the working editor
 
 ```sh
-python scripts/render_showcase.py
+python -m dx_studio edit outputs/showcase/landscape
 ```
 
-This creates a temporary project from the explainer template, renders four edits,
-and writes `docs/images/editable-demo.gif` plus four PNG stills. Each frame holds
-for two seconds. These are source-parameter changes, not a screen recording:
+Use a wide desktop window; the current captures use the browser's native
+1280 × 720 viewport. Dismiss the first-use guide, open **Text**, and seek to:
 
-1. Original scene.
-2. Headline changed to “My story. My final cut.”
-3. Accent changed to green.
-4. The third example row hidden with its layer visibility setting.
+- **0.9 s:** the opening sculpture and editable headline.
+- **2.9 s:** the resolved mesh on citron.
+- **5.9–6.0 s:** the poster and its editable words.
 
-The sequence is silent and deliberately holds the scene time fixed so the edits
-are easy to compare. Use `python -m dx_studio build` for a complete MP4 production.
+For the layer capture, open **Media → Layers**, select **Ivory poster**, then
+collapse the tool panel. The inspector and actual transformed selection handles
+remain visible. Its child typography and artwork inherit the parent transform.
 
-## Render both formats
+Open the companion portrait folder through **Projects → Open project** and repeat
+at 5.9 s. The dashboard capture shows only these two original demo projects in a
+separate local project library; it contains no personal project footage.
 
-```sh
-python -m dx_studio init projects/portrait --format 9:16
-python -m dx_studio init projects/landscape --format 16:9
-python -m dx_studio still projects/portrait 9
-python -m dx_studio still projects/landscape 9
-```
+`showcase-edit.gif` holds two actual editor captures: the original “Yours.” headline
+and the same scene after changing it to “Editable.” in Text. Undo restores the
+master. This is an interaction comparison, not a continuous screen recording.
 
-The template's source lives in
-[dx_studio/templates/explainer/scene.py](../dx_studio/templates/explainer/scene.py).
-The project folder can be bundled with `dx-studio pack` after saving edits.
+## Asset map
+
+| Asset | Source |
+| --- | --- |
+| `showcase-landscape.gif`, `showcase-portrait.gif` | Real final MP4s, sampled at 15 fps from 0.45 s so their first frame has a readable headline; no audio. |
+| `showcase-<format>-<beat>.png` | Native project renders at 1.35, 3.45, 6.35 and 9 seconds. |
+| `showcase-formats.png` | Uncropped native renders arranged on an editorial sheet. |
+| `showcase-storyboard.jpg` | Four landscape beat frames. |
+| `showcase-social.png` | A 1280 × 640 brand variant rendered from the opening scene. |
+| `showcase-editor-*.jpg` | Actual browser captures from DX Editor. |
+| `showcase-dashboard*.jpg` | Actual project dashboard in system/dark and light appearances. |
+| `showcase-edit.gif` | Two actual editor states held for comparison. |
+
+Earlier feature-specific screenshots remain in the documentation history and image
+folder where they support individual feature guides. The README leads with this
+consistent, original showcase. No third-party product screenshots or UI mockups
+are presented as DX Studio.
